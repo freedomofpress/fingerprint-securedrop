@@ -1,2 +1,10 @@
 tor-build/
 *.un~
+logging/
+.vagrant/
+*.pyc
+.project
+.pydevproject
+__pycache__
+*.swp
+playbook.retry
