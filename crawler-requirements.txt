@@ -1,0 +1,3 @@
+selenium>=2.45.0
+tld
+pyvirtualdisplay
