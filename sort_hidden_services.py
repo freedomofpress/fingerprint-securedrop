@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python
 
 # Pass any number of hidden service directories to a Crawler instance and watch
 # crawl() scrape all the .onion links on the page, then crawl them searching
