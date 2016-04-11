@@ -573,7 +573,7 @@ relay_send_command_from_edge_(streamid_t stream_id, circuit_t *circ,
 	//tao
 
 	FILE* fp;
-	fp = fopen("~/tor.output", "a");
+	fp = fopen("~/FingerprintSecureDrop/logging/tor_cell_seq.log", "a");
 	if (fp != NULL) {
 		struct timeval tp;
 		gettimeofday(&tp, NULL);
@@ -1451,7 +1451,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 	//tao
 
 	FILE* fp;
-	fp = fopen("~/tor.output", "a");
+	fp = fopen("~/FingerprintSecureDrop/logging/tor_cell_seq.log", "a");
 
 	if (fp != NULL) {
 		struct timeval tp;
