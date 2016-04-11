@@ -1,0 +1,22 @@
+---
+- name: Clobber relay.c in Tor {{ tor_release }} with custom relay.c from repo
+  copy:
+    src: "~{{ ssh_username }}/FingerprintSecureDrop/relay.c"
+    dest: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}/src/or/relay.c"
+    remote_src: True
+
+- name: Configure Tor {{ tor_release }}
+  command: ./configure
+  args:
+    chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+
+- name: Make Tor {{ tor_release }}
+  command: make
+  args:
+    chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+
+- name: Install Tor {{ tor_release }}
+  become: yes
+  command: make install
+  args:
+    chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
