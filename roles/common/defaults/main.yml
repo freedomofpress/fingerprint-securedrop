@@ -1,0 +1,6 @@
+---
+common_apt_packages:
+  - virtualenvwrapper
+  - tmux
+  - tree
+  - vim

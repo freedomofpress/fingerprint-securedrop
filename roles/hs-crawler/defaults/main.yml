@@ -1,0 +1,13 @@
+---
+hs_crawler_apt_packages:
+  - xvfb
+  - git 
+  - gnupg-curl # needed for https keyservers
+
+tbb_arch: 64
+tbb_release: 5.5.4
+tbb_locale: en-US
+
+tor_release: 0.2.7.6
+
+ssh_username: "{{ ansible_ssh_user }}"

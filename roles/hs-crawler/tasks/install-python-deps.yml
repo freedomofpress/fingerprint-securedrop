@@ -1,0 +1,11 @@
+---
+- name: Create hs-crawler virtualenv.
+  file:
+    path: "~{{ ssh_username }}/.virtualenvs/hs-crawler"
+    state: directory
+
+- name: Install hs-crawler pip dependencies to hs-crawler virtualenv.
+  pip:
+    requirements: "~{{ ssh_username }}/FingerprintSecureDrop/crawler-requirements.txt"
+    virtualenv: "~{{ ssh_username }}/.virtualenvs/hs-crawler"
+    virtualenv_python: /usr/bin/python2.7

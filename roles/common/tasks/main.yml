@@ -1,0 +1,4 @@
+---
+- include: upgrade-packages.yml
+- include: common-packages.yml
+- include: source-virtualenvwrapper.yml

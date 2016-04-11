@@ -1,0 +1,6 @@
+---
+- hosts: all
+  roles: 
+    - role: common
+    - role: hs-crawler
+    # - role: hs-sorter

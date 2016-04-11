@@ -1,0 +1,43 @@
+---
+- name: Download Tor {{ tor_release }} and signature.
+  get_url:
+    url: "{{ item }}"
+    dest: "~{{ ssh_username }}/tbb/"
+    # Because dist.torproject.org uses SNI, which requires python >= 2.7.9,
+    # which is not available on Ubuntu 14.04 and we're verifying the PGP
+    # signature, it's easier and still safe to skip SSL cert validation in lieu
+    # of apt-pinning python 2.7.9
+    validate_certs: no
+  with_items:
+    - https://dist.torproject.org/tor-{{ tor_release }}.tar.gz
+    - https://dist.torproject.org/tor-{{ tor_release }}.tar.gz.asc
+
+- name: Download Tor {{ tor_release }} signing key.
+  command: gpg --keyserver hkps://keyserver.cns.vt.edu --recv-key B35BF85BF19489D04E28C33C21194EBB165733EA
+  register: gpg_import_tor_browser_devs_key_result
+  changed_when: "'imported: 1' in gpg_import_tor_browser_devs_key_result.stderr"
+
+- name: Verify Tor {{ tor_release }} signature.
+  command: gpg --verify tor-{{ tor_release }}.tar.gz.asc tor-{{ tor_release }}.tar.gz
+  register: gpg_verify_result
+  changed_when: false
+  args:
+    chdir: "~{{ ssh_username }}/tbb/"
+
+# The unarchive module is relying on tar's --diff option, which does not check
+# file hashes, just that the same filenames are present. Thus you can change a
+# file inside the unarchived folder, while preserving it's name, and tar --diff
+# will consider it unchanged. tar's --skip-old-files behaves in the same way.
+# When we re-run our playbook it's necessary we ensure the same end-state and
+# overwrite a potentially polluted browser profile. Hence the following:
+
+- name: Remove the dir the Tor {{ tor_release }} tarball will be extracted to.
+  file:
+    path: "~{{ ssh_username }}/tbb/tor-browser_en-US/"
+    state: absent
+
+- name: Extract Tor {{ tbb_release }} archive.
+  unarchive:
+    copy: no
+    src: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}.tar.gz"
+    dest: "~{{ ssh_username }}/tbb/"
