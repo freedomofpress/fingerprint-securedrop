@@ -1,6 +1,6 @@
-[submodule "tor-browser-selenium"]
-	path = tor-browser-selenium
-	url = https://github.com/webfp/tor-browser-selenium
 [submodule "go-knn"]
 	path = go-knn
 	url = https://github.com/pylls/go-knn
+[submodule "tor-browser-selenium"]
+	path = tor-browser-selenium
+	url = git://github.com/webfp/tor-browser-selenium
