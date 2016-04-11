@@ -1,0 +1,13 @@
+---
+- name: Add Deadsnakes PPA for python3.5
+  apt_repository:
+    repo: ppa:fkrull/deadsnakes
+    update_cache: yes
+
+- name: Install python3.5
+  apt:
+    name: python3.5
+    state: latest
+  with_items:
+    - python3.5
+    - python3-pip
