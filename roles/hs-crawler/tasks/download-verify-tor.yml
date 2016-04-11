@@ -33,7 +33,7 @@
 
 - name: Remove the dir the Tor {{ tor_release }} tarball will be extracted to.
   file:
-    path: "~{{ ssh_username }}/tbb/tor-browser_en-US/"
+    path: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
     state: absent
 
 - name: Extract Tor {{ tbb_release }} archive.
