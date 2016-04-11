@@ -1,10 +1,12 @@
 ---
 - name: Add Deadsnakes PPA for python3.5
+  become: yes
   apt_repository:
-    repo: ppa:fkrull/deadsnakes
+    repo: "ppa:fkrull/deadsnakes"
     update_cache: yes
 
 - name: Install python3.5
+  become: yes
   apt:
     name: python3.5
     state: latest
