@@ -1,8 +1,13 @@
 ---
 hs_crawler_apt_packages:
-  - xvfb
-  - git 
+  - xvfb # tbs
+  - git #tbs
   - gnupg-curl # needed for https keyservers
+  - libfontconfig1 # tbb (firefox)
+  - libxrender1 # tbb (firefox)
+  - libasound2 # tbb (firefox)
+  - libdbus-glib-1-2 # tbb (firefox)
+  - libgtk2.0-0 # tbb (firefox)
 
 tbb_arch: 64
 tbb_release: 5.5.4
