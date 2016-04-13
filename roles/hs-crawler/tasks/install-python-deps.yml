@@ -9,3 +9,9 @@
     requirements: "~{{ ssh_username }}/FingerprintSecureDrop/crawler-requirements.txt"
     virtualenv: "~{{ ssh_username }}/.virtualenvs/hs-crawler"
     virtualenv_python: /usr/bin/python2.7
+
+- name: Install tor-browser-selenium dev pip dependencies to hs-crawler virtualenv.
+  pip:
+    requirements: "~{{ ssh_username }}/FingerprintSecureDrop/tor-browser-selenium/requirements-dev.txt'
+    virtualenv: "~{{ ssh_username }}/.virtualenvs/hs-crawler"
+    virtualenv_python: /usr/bin/python2.7

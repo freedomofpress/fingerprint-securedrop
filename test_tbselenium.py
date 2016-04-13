@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 
-# NOTICE: this is only working right now because I'm working from a dirty
-# submodule where I've implemented this
-# https://github.com/fowlslegs/tor-browser-selenium/commit/8f7c88871735fc86ee0209595e718ea03841ffee
-# commit
-
-import os
-import site
-site.addsitedir(os.path.join(os.getcwd(), 'tor-browser-selenium'))
+from os import (path, getcwd, environ)
+from site import addsitedir
+addsitedir(path.join(getcwd(), 'tor-browser-selenium'))
 from tbselenium.tbdriver import TorBrowserDriver
+from time import sleep
 
-home_dir = os.path.expanduser('~')
-tbb_path = os.path.join(home_dir, 'tbb', 'tor-browser_en-US')
-tbb_fx_path = os.path.join(tbb_path, 'Browser', 'firefox')
-tbb_profile_path = os.path.join(tbb_path, 'Browser', 'TorBrowser', 'Data',
-                                'Browser')
-logfile_path = os.path.join(home_dir, 'FingerprintSecureDrop', 'logging',
+home_dir = path.expanduser('~')
+tbb_path = path.join(home_dir, 'tbb', 'tor-browser_en-US')
+environ['TBB_PATH'] = tbb_path
+tbb_logfile_path = path.join(home_dir, 'FingerprintSecureDrop', 'logging',
                             'firefox.log')
 
+from tbselenium.test.conftest import (start_xvfb, stop_xvfb)
+
+virt_framebuffer = start_xvfb()
+
 with TorBrowserDriver(tbb_path=tbb_path,
-                      tbb_logfile_path=logfile_path) as driver:
+                      tbb_logfile_path=tbb_logfile_path) as driver:
     driver.get('https://check.torproject.org')
-    time.sleep(1)  # stay one second in the page
+    sleep(1)  # stay one second in the page
+    print("Successfully loaded https://check.torproject.org!")
+
+stop_xvfb(virt_framebuffer)
