@@ -1,10 +1,11 @@
-tor-build/
 *.un~
 logging/
 .vagrant/
 *.pyc
-.project
-.pydevproject
-__pycache__
+*__pycache__*
 *.swp
 playbook.retry
+bin/
+lib/
+lib64
+local/
