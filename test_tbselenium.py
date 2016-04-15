@@ -2,8 +2,8 @@
 
 from time import sleep
 from os import (path, getcwd, environ)
-import ConfigParser
-config = ConfigParser.ConfigParser()
+import configparser
+config = configparser.ConfigParser()
 config.read('config.ini')
 home_dir = path.expanduser('~')
 tbb_path = path.join(home_dir, config.get('Crawl Hidden Services', 'tbb_path'))

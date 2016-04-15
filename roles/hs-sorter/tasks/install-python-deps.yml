@@ -1,11 +1,8 @@
 ---
-- name: Create hs-sorter virtualenv.
-  file:
-    path: "~{{ ssh_username }}/.virtualenvs/hs-crawler"
-    state: directory
-
 - name: Install hs-sorter pip dependencies to hs-sorter virtualenv.
   pip:
-    requirements: "~{{ ssh_username }}/FingerprintSecureDrop/sorter-requirements.txt"
-    virtualenv: "~{{ ssh_username }}/.virtualenvs/hs-sorter"
+    requirements: "sorter-requirements.txt"
+    chdir: "~{{ ssh_username }}/FingerprintSecureDrop"
+    executable: /usr/bin/pip3
+    virtualenv: "~{{ ssh_username }}/FingerprintSecureDrop"
     virtualenv_python: /usr/bin/python3.5

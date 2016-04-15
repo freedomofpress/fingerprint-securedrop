@@ -1,6 +1,7 @@
 ---
 common_apt_packages:
-  - virtualenvwrapper
+  - python-virtualenv
+  - python3-pip
   - tmux
   - tree
   - vim
