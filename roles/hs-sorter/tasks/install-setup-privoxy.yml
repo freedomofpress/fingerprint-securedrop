@@ -1,0 +1,14 @@
+---
+- name: Install privoxy.
+  become: yes
+  apt:
+    name: privoxy
+    state: latest
+
+- name: Customize Privoxy config.
+  become: yes
+  lineinfile:
+    dest: /etc/privoxy/config
+    line: 'forward-socks5t / 127.0.0.1:9050 .'
+    regexp: 'forward-socks5t'
+  notify: restart privoxy
