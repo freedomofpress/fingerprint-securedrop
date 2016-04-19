@@ -10,7 +10,7 @@ fpsd_path = path.join(home_dir, config.get('Crawl Hidden Services', 'fpsd_path')
 tbb_path = path.join(home_dir, config.get('Crawl Hidden Services', 'tbb_path'))
 environ['TBB_PATH'] = tbb_path # Required by tbselenium.test.__init__ checks
 tbb_logfile_path = path.join(fpsd_path, 'logging',
-                             config.get('Crawl Hidden Services', 'tbb_logfile_path'))
+                             config.get('Crawl Hidden Services', 'tbb_logfile'))
 
 from site import addsitedir
 addsitedir(path.join(fpsd_path, 'tor-browser-selenium'))
