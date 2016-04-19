@@ -44,15 +44,22 @@
 #include "stdlib.h"
 #include "memory.h"
 
-const char *name = "HOME";
-char *home_path, *logfile_path;
-home_path = getenv(name);
-logfile_path = "/FingerprintSecureDrop/logging/tor_cell_seq.log";
-int x = strlen(home_path) + strlen(logfile_path);
-char abs_logfile_path[x];
-strcpy(abs_logfile_path, home_path);
-strcat(abs_logfile_path, logfile_path);
+static char* webfp_logfile_path = NULL;
 
+static char*
+get_logfile_path()
+{
+  if (!webfp_logfile_path) {
+    char *home_path = getenv("HOME");
+    char* logfile_path = "/FingerprintSecureDrop/logging/tor_cell_seq.log";
+    int x = strlen(home_path) + strlen(logfile_path) + 1;
+    char* abs_logfile_path = (char*) malloc(x);
+    strcpy(abs_logfile_path, home_path);
+    strcat(abs_logfile_path, logfile_path);
+    webfp_logfile_path = abs_logfile_path;
+  }
+  return webfp_logfile_path;
+}
 //
 
 static edge_connection_t *relay_lookup_conn(circuit_t *circ, cell_t *cell,
@@ -589,6 +596,7 @@ relay_send_command_from_edge_(streamid_t stream_id, circuit_t *circ,
   //tao
 
   FILE* fp;
+  char* abs_logfile_path = get_logfile_path();
   fp = fopen(abs_logfile_path, "a");
   if (fp != NULL) {
     struct timeval tp;
@@ -1467,6 +1475,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
   //tao
 
   FILE* fp;
+  char* abs_logfile_path = get_logfile_path();
   fp = fopen(abs_logfile_path, "a");
 
   if (fp != NULL) {

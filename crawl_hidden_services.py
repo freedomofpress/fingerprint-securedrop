@@ -12,6 +12,7 @@ import re
 from utils import setup_logging
 from time import sleep
 from os import (path, environ)
+from datetime import datetime
 
 import configparser
 config = configparser.ConfigParser()
@@ -26,7 +27,8 @@ environ['TBB_PATH'] = tbb_path # Required by tbselenium.test.__init__ checks
 tbb_logfile_path = path.join(fpsd_path, 'logging', 
                              config.get('Crawl Hidden Services',
                                         'tbb_logfile'))
-timeout = config.get('Crawl Hidden Services', 'page_load_timeout')
+page_load_timeout = literal_eval(config.get('Crawl Hidden Services',
+                                            'page_load_timeout'))
 take_screenshots = config.get('Crawl Hidden Services', 'take_screenshots')
 from site import addsitedir
 addsitedir(path.join(fpsd_path, 'tor-browser-selenium'))
@@ -41,7 +43,6 @@ class Crawler:
             logfile = logfile.readlines()
             self.sds = self.extract_set(logfile, -4, 'Up to date SDs:')
             self.not_sds = self.extract_set(logfile, -1, 'Not SDs:')
-        self.page_load_timeout=page_load_timeout
 
     def extract_set(self, hs_sets, subscript, expected_set_prefix):
         line = hs_sets[subscript]
@@ -58,13 +59,22 @@ of the hidden service sorter script.'.format(set_prefix)
         for url_set in url_set_list:
             for url in url_set:
                 with VirtTBDriver(**kwargs) as driver:
+                    driver.set_page_load_timeout(page_load_timeout)
                     logger.info("Starting crawl of {}".format(url))
-                    driver.get(url)
+                    try:
+                        driver.get(url)
+                    except:
+                        logger.warning("{} timed out after {}s".format(url,
+                                                                       page_load_timeout))
+                        pass
+                    if driver.is_connection_error_page:
+                        logger.warning("{} failed to load".format(url))
                     if take_screenshots:
                         try:
                             driver.get_screenshot_as_file(
                                 path.join(fpsd_path, 'logging',
-                                          '{}.png'.format(url)[7:]))
+                                          '{}-{}.png'.format(url[7:-6], 
+                                                             datetime.now().strftime("%m-%d_%H:%M:%S"))))
                         except:
                             pass
                     logger.info("Stopping crawl of {}".format(url))
@@ -79,9 +89,8 @@ def VirtTBDriver(**kwargs):
 
 if __name__ == '__main__':
     logger = setup_logging('crawler')
-    crawler = Crawler(hs_sorter_log=hs_sorter_log,
-                      timeout=timeout)
+    crawler = Crawler(hs_sorter_log=hs_sorter_log)
     crawler.crawl_url_sets([crawler.not_sds, crawler.sds],
-                            tbb_path=tbb_path,
-                            tbb_logfile_path=tbb_logfile_path,
-                            tor_cfg=tor_cfg)
+                           tbb_path=tbb_path,
+                           tbb_logfile_path=tbb_logfile_path,
+                           tor_cfg=tor_cfg)

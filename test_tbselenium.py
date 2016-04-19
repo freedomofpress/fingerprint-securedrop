@@ -24,6 +24,8 @@ def main():
                       tor_cfg=USE_RUNNING_TOR) as driver:
         driver.get('https://check.torproject.org')
         sleep(1)  # stay one second in the page
+        assert (not driver.is_connection_error_page), "Failed to load \
+https://check.torproject.org :-("
         print("Successfully loaded https://check.torproject.org!")
 
 from contextlib import contextmanager
