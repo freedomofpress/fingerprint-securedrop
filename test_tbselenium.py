@@ -6,13 +6,14 @@ import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
 home_dir = path.expanduser('~')
+fpsd_path = path.join(home_dir, config.get('Crawl Hidden Services', 'fpsd_path'))
 tbb_path = path.join(home_dir, config.get('Crawl Hidden Services', 'tbb_path'))
 environ['TBB_PATH'] = tbb_path # Required by tbselenium.test.__init__ checks
-tbb_logfile_path = path.join(home_dir, config.get('Crawl Hidden Services',
-                                                  'tbb_logfile_path'))
+tbb_logfile_path = path.join(fpsd_path, 'logging',
+                             config.get('Crawl Hidden Services', 'tbb_logfile_path'))
 
 from site import addsitedir
-addsitedir(path.join(getcwd(), 'tor-browser-selenium'))
+addsitedir(path.join(fpsd_path, 'tor-browser-selenium'))
 from tbselenium.test.conftest import (start_xvfb, stop_xvfb)
 from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR

@@ -10,40 +10,13 @@ from ast import literal_eval
 import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
-DIRECTORIES_TO_SCRAPE_AND_SORT = literal_eval(config['Sort Hidden Services']['directories_to_scrape_and_sort'])
-
+directories_to_scrape_and_sort = literal_eval(config['Sort Hidden Services']['directories_to_scrape_and_sort'])
 
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
 import aiohttp
 import re
-import os
-
-def setup_logging():
-    import logging
-    from datetime import datetime
-
-    try:
-        os.stat('logging')
-    except FileNotFoundError:
-        os.mkdir('logging')
-
-    timestamp = datetime.now().strftime("%m-%d_%H:%M:%S")
-    log_file = 'sorter-log_{}.txt'.format(timestamp)
-    logging.basicConfig(level=logging.DEBUG,
-                        filename='logging/{}'.format(log_file),
-                        format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
-    logger = logging.getLogger('crawler')
-
-    try:
-        os.stat('logging/sorter-log-latest.txt')
-        os.unlink('logging/sorter-log-latest.txt')
-    except FileNotFoundError:
-        pass
-    finally:
-        os.symlink(log_file, 'logging/sorter-log-latest.txt')
-
-    return logger
+from utils import setup_logging
 
 class Crawler:
     def __init__(self, dir_urls):
@@ -140,14 +113,14 @@ class Crawler:
                                                      await response.text())])
     
 if __name__ == "__main__":
-    logger = setup_logging()
+    logger = setup_logging('sorter')
     loop = asyncio.get_event_loop()
     # SSL verification is disabled because we're mostly dealing with almost
     # exclusively self-signed certs in the HS space.
     conn = aiohttp.ProxyConnector(proxy="http://[::1]:8118", verify_ssl=False)
     # The Crawler can begin with any number of directories from which to scrape
     # then sort onion URLs into the four categories in the next block
-    crawler = Crawler(DIRECTORIES_TO_SCRAPE_AND_SORT)
+    crawler = Crawler(directories_to_scrape_and_sort)
     master_sd, deprecated_sd, mentions_sd, not_sd = loop.run_until_complete(crawler.crawl())
     loop.close()
 

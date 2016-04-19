@@ -8,3 +8,8 @@
       # update-packages.yml
     update_cache: no
   with_items: "{{ common_apt_packages }}"
+
+- name: Set tmux mode to vim, avoid that rsi.
+  lineinfile:
+    dest: "{{ ssh_username }}/.tmux.conf"
+    line: "setw -g mode-keys vi"

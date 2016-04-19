@@ -2,5 +2,5 @@
 - hosts: all
   roles: 
     - role: common
-    - role: hs-sorter
+    # - role: hs-sorter
     - role: hs-crawler

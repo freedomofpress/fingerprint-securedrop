@@ -9,7 +9,7 @@
 
 from ast import literal_eval
 import re
-from logging import setup_logging
+from utils import setup_logging
 from time import sleep
 from os import (path, environ)
 
@@ -23,17 +23,17 @@ hs_sorter_log = path.join(fpsd_path, 'logging',
                           config.get('Crawl Hidden Services', 'hs_sorter_log'))
 tbb_path = path.join(home_dir, config.get('Crawl Hidden Services', 'tbb_path'))
 environ['TBB_PATH'] = tbb_path # Required by tbselenium.test.__init__ checks
-tbb_logfile_path = path.join(fpsd_dir, 'logging', 
+tbb_logfile_path = path.join(fpsd_path, 'logging', 
                              config.get('Crawl Hidden Services',
                                         'tbb_logfile'))
-page_load_timeout = config.get('Crawl Hidden Services', 'page_load_timeout')
+timeout = config.get('Crawl Hidden Services', 'page_load_timeout')
+take_screenshots = config.get('Crawl Hidden Services', 'take_screenshots')
 from site import addsitedir
-addsitedir(path.join(fpsd_dir, 'tor-browser-selenium'))
+addsitedir(path.join(fpsd_path, 'tor-browser-selenium'))
 from tbselenium.test.conftest import (start_xvfb, stop_xvfb)
 from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
 tor_cfg = USE_RUNNING_TOR
-
 
 class Crawler:
     def __init__(self, hs_sorter_log, **kwargs):
@@ -60,6 +60,13 @@ of the hidden service sorter script.'.format(set_prefix)
                 with VirtTBDriver(**kwargs) as driver:
                     logger.info("Starting crawl of {}".format(url))
                     driver.get(url)
+                    if take_screenshots:
+                        try:
+                            driver.get_screenshot_as_file(
+                                path.join(fpsd_path, 'logging',
+                                          '{}.png'.format(url)[7:]))
+                        except:
+                            pass
                     logger.info("Stopping crawl of {}".format(url))
                     sleep(2)
 
@@ -73,7 +80,7 @@ def VirtTBDriver(**kwargs):
 if __name__ == '__main__':
     logger = setup_logging('crawler')
     crawler = Crawler(hs_sorter_log=hs_sorter_log,
-                      page_load_timeout=page_load_timeout)
+                      timeout=timeout)
     crawler.crawl_url_sets([crawler.not_sds, crawler.sds],
                             tbb_path=tbb_path,
                             tbb_logfile_path=tbb_logfile_path,
