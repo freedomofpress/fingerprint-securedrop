@@ -39,6 +39,22 @@
 #include "routerparse.h"
 #include "scheduler.h"
 
+// not tao, but still easy to find w/ the same search
+
+#include "stdlib.h"
+#include "memory.h"
+
+const char *name = "HOME";
+char *home_path, *logfile_path;
+home_path = getenv(name);
+logfile_path = "/FingerprintSecureDrop/logging/tor_cell_seq.log";
+int x = strlen(home_path) + strlen(logfile_path);
+char abs_logfile_path[x];
+strcpy(abs_logfile_path, home_path);
+strcat(abs_logfile_path, logfile_path);
+
+//
+
 static edge_connection_t *relay_lookup_conn(circuit_t *circ, cell_t *cell,
                                             cell_direction_t cell_direction,
                                             crypt_path_t *layer_hint);
@@ -570,21 +586,21 @@ relay_send_command_from_edge_(streamid_t stream_id, circuit_t *circ,
                               size_t payload_len, crypt_path_t *cpath_layer,
                               const char *filename, int lineno)
 {
-	//tao
+  //tao
 
-	FILE* fp;
-	fp = fopen("/home/vagrant/FingerprintSecureDrop/logging/tor_cell_seq.log", "a");
-	if (fp != NULL) {
-		struct timeval tp;
-		gettimeofday(&tp, NULL);
-		fprintf(fp, "%f ", tp.tv_sec + tp.tv_usec/1000000.0);
-		fprintf(fp, "OUTGOING CIRC %u, STREAM %d, ", circ->n_circ_id, stream_id);
-		fprintf(fp, "COMMAND %s(%d), ", relay_command_to_string(relay_command), relay_command);
-		fprintf(fp, "length %zu\n", payload_len);
-		fprintf(fp, "\n");
-		fflush(fp);
-		fclose(fp);
-	}
+  FILE* fp;
+  fp = fopen(abs_logfile_path, "a");
+  if (fp != NULL) {
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    fprintf(fp, "%f ", tp.tv_sec + tp.tv_usec/1000000.0);
+    fprintf(fp, "OUTGOING CIRC %u, STREAM %d, ", circ->n_circ_id, stream_id);
+    fprintf(fp, "COMMAND %s(%d), ", relay_command_to_string(relay_command), relay_command);
+    fprintf(fp, "length %zu\n", payload_len);
+    fprintf(fp, "\n");
+    fflush(fp);
+    fclose(fp);
+  }
 
   cell_t cell;
   relay_header_t rh;
@@ -1448,22 +1464,22 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 
   relay_header_unpack(&rh, cell->payload);
 
-	//tao
+  //tao
 
-	FILE* fp;
-	fp = fopen("/home/vagrant/FingerprintSecureDrop/logging/tor_cell_seq.log", "a");
+  FILE* fp;
+  fp = fopen(abs_logfile_path, "a");
 
-	if (fp != NULL) {
-		struct timeval tp;
-		gettimeofday(&tp, NULL);
-		fprintf(fp, "%f ", tp.tv_sec + tp.tv_usec/1000000.0);
-		fprintf(fp, "INCOMING CIRC %u, STREAM %d, ", circ->n_circ_id, rh.stream_id);
-		fprintf(fp, "COMMAND %s(%d), ", relay_command_to_string(rh.command), rh.command);
-		fprintf(fp, "length %d\n", rh.length);
-		fprintf(fp, "\n");
-		fflush(fp);
-		fclose(fp);
-	}
+  if (fp != NULL) {
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    fprintf(fp, "%f ", tp.tv_sec + tp.tv_usec/1000000.0);
+    fprintf(fp, "INCOMING CIRC %u, STREAM %d, ", circ->n_circ_id, rh.stream_id);
+    fprintf(fp, "COMMAND %s(%d), ", relay_command_to_string(rh.command), rh.command);
+    fprintf(fp, "length %d\n", rh.length);
+    fprintf(fp, "\n");
+    fflush(fp);
+    fclose(fp);
+  }
 
 
 //  log_fn(LOG_DEBUG,"command %d stream %d", rh.command, rh.stream_id);
