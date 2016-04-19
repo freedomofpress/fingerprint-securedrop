@@ -26,4 +26,4 @@
   lineinfile:
     dest: /etc/tor/torrc
     line: "UseEntryGuards 0"
-    creates: yes
+    create: yes
