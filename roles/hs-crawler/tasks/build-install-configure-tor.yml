@@ -20,3 +20,9 @@
   command: make install
   args:
     chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+
+- name: Configure torrc (disable entry guards)
+  become: yes
+  lineinfile:
+    file: /etc/tor/torrc
+    line: "UseEntryGuards 0"

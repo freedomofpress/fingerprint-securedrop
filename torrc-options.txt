@@ -1,5 +1,0 @@
-# The following are the torrc options we wish to use for our data collection.
-
-UseEntryGuards 0
-
-# TODO: Filter acknowledgements and SENDMES

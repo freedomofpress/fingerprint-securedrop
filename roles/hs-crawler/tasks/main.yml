@@ -3,4 +3,4 @@
 - include: install-python-deps.yml
 - include: download-verify-tbb.yml
 - include: download-verify-tor.yml
-- include: build-install-tor.yml
+- include: build-install-configure-tor.yml

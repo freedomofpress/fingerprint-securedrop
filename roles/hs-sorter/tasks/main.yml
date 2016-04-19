@@ -1,4 +1,3 @@
 ---
-- include: install-python35.yml
 - include: install-python-deps.yml
 - include: install-setup-privoxy.yml

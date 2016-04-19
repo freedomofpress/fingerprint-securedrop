@@ -5,3 +5,5 @@ common_apt_packages:
   - tmux
   - tree
   - vim
+
+ssh_username: "{{ ansible_ssh_user }}"
