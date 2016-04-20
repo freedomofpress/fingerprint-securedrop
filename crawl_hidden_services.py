@@ -29,7 +29,8 @@ tbb_logfile_path = path.join(fpsd_path, 'logging',
                                         'tbb_logfile'))
 page_load_timeout = literal_eval(config.get('Crawl Hidden Services',
                                             'page_load_timeout'))
-take_screenshots = config.get('Crawl Hidden Services', 'take_screenshots')
+take_screenshots = literal_eval(config.get('Crawl Hidden Services',
+                                           'take_screenshots'))
 from site import addsitedir
 addsitedir(path.join(fpsd_path, 'tor-browser-selenium'))
 from tbselenium.test.conftest import (start_xvfb, stop_xvfb)
@@ -56,29 +57,32 @@ of the hidden service sorter script.'.format(set_prefix)
         return set(literal_eval(set_str.strip('{}')))
 
     def crawl_url_sets(self, url_set_list, **kwargs):
-        for url_set in url_set_list:
-            for url in url_set:
-                with VirtTBDriver(**kwargs) as driver:
-                    driver.set_page_load_timeout(page_load_timeout)
+        with VirtTBDriver(**kwargs) as driver:
+            driver.set_page_load_timeout(page_load_timeout)
+            for url_set in url_set_list:
+                logger.info("Starting crawl of set {}".format(url_set))
+                for url in url_set:
                     logger.info("Starting crawl of {}".format(url))
                     try:
                         driver.get(url)
-                    except:
+                    except selenium.common.exceptions.TimeoutException:
                         logger.warning("{} timed out after {}s".format(url,
                                                                        page_load_timeout))
-                        pass
+                        continue
                     if driver.is_connection_error_page:
-                        logger.warning("{} failed to load".format(url))
+                        logger.warning("Reached connection error page for {}".format(url))
+                        continue
                     if take_screenshots:
                         try:
                             driver.get_screenshot_as_file(
                                 path.join(fpsd_path, 'logging',
-                                          '{}-{}.png'.format(url[7:-6], 
+                                          '{}-{}.png'.format(url[7:-6],
                                                              datetime.now().strftime("%m-%d_%H:%M:%S"))))
-                        except:
-                            pass
-                    logger.info("Stopping crawl of {}".format(url))
-                    sleep(2)
+                        except selenium.common.exceptions.WebDriverException:
+                            logger.warning("Screenshot of {} failed for some reason".format(url))
+                            continue
+                    logger.info("Stopping successful crawl of {}".format(url))
+                    sleep(1)
 
 from contextlib import contextmanager
 @contextmanager
