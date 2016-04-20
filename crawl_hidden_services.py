@@ -64,9 +64,9 @@ of the hidden service sorter script.'.format(set_prefix)
                 # from the common ones we're handling specifically below, it
                 # makes sense to wrap this whole block in a try, except block
                 # and then just log the particular exception.
-                try:
-                    logger.info('Starting crawl of set {}'.format(url_set))
-                    for url in url_set:
+                logger.info('Starting crawl of set {}'.format(url_set))
+                for url in url_set:
+                    try:
                         logger.info('Starting crawl of {}'.format(url))
                         try:
                             driver.get(url)
@@ -88,9 +88,9 @@ of the hidden service sorter script.'.format(set_prefix)
                                 continue
                         logger.info('Stopping successful crawl of {}'.format(url))
                         sleep(1)
-                except Exception as exc:
-                   logger.warning('Exception while crawling {}: {}'.format(url, exc))
-                   continue
+                    except Exception as exc:
+                        logger.warning('Exception while crawling {}: {}'.format(url, exc))
+                        continue
 
 from contextlib import contextmanager
 @contextmanager
