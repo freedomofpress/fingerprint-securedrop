@@ -1,13 +1,12 @@
 ---
-- name: Check whether destination directory exists.
-  stat:
-    path: "{{ hs_crawler_project_directory }}"
-  register: hs_dest_dir_result
-
 - name: Clone git repository.
   become: yes
   become_user: "{{ ssh_username }}"
   git:
     repo: "{{ hs_crawler_git_repo }}"
     dest: "{{ hs_crawler_project_directory }}"
-  when: hs_dest_dir_result.stat.exists == false
+    force: yes
+  # Under vagrant the project will be mounted as a shared directory,
+  # so no need to clone it. Deploying to prod, however, means we'll need
+  # to pull, so check the SSH username as a proxy for vagrant environment.
+  when: ssh_username != 'vagrant'
