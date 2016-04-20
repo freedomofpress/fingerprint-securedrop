@@ -60,29 +60,36 @@ of the hidden service sorter script.'.format(set_prefix)
         with VirtTBDriver(**kwargs) as driver:
             driver.set_page_load_timeout(page_load_timeout)
             for url_set in url_set_list:
-                logger.info("Starting crawl of set {}".format(url_set))
-                for url in url_set:
-                    logger.info("Starting crawl of {}".format(url))
-                    try:
-                        driver.get(url)
-                    except selenium.common.exceptions.TimeoutException:
-                        logger.warning("{} timed out after {}s".format(url,
-                                                                       page_load_timeout))
-                        continue
-                    if driver.is_connection_error_page:
-                        logger.warning("Reached connection error page for {}".format(url))
-                        continue
-                    if take_screenshots:
+                # There are too many selenium exceptions to enumerate, so aside
+                # from the common ones we're handling specifically below, it
+                # makes sense to wrap this whole block in a try, except block
+                # and then just log the particular exception.
+                try:
+                    logger.info('Starting crawl of set {}'.format(url_set))
+                    for url in url_set:
+                        logger.info('Starting crawl of {}'.format(url))
                         try:
-                            driver.get_screenshot_as_file(
-                                path.join(fpsd_path, 'logging',
-                                          '{}-{}.png'.format(url[7:-6],
-                                                             datetime.now().strftime("%m-%d_%H:%M:%S"))))
-                        except selenium.common.exceptions.WebDriverException:
-                            logger.warning("Screenshot of {} failed for some reason".format(url))
+                            driver.get(url)
+                        except selenium.common.exceptions.TimeoutException:
+                            logger.warning('{} timed out after {}s'.format(url,
+                                                                           page_load_timeout))
                             continue
-                    logger.info("Stopping successful crawl of {}".format(url))
-                    sleep(1)
+                        if driver.is_connection_error_page:
+                            logger.warning('Reached connection error page for {}'.format(url))
+                            continue
+                        if take_screenshots:
+                            try:
+                                driver.get_screenshot_as_file(
+                                    path.join(fpsd_path, 'logging',
+                                              '{}-{}.png'.format(url[7:-6],
+                                                                 datetime.now().strftime('%m-%d_%H:%M:%S'))))
+                            except selenium.common.exceptions.WebDriverException:
+                                logger.warning('Screenshot of {} failed for some reason'.format(url))
+                                continue
+                        logger.info('Stopping successful crawl of {}'.format(url))
+                        sleep(1)
+                except Exception as exc:
+                   logger.warning('Exception while crawling {}: {}'.format(url, exc))
 
 from contextlib import contextmanager
 @contextmanager
