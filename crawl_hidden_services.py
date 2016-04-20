@@ -90,6 +90,7 @@ of the hidden service sorter script.'.format(set_prefix)
                         sleep(1)
                 except Exception as exc:
                    logger.warning('Exception while crawling {}: {}'.format(url, exc))
+                   continue
 
 from contextlib import contextmanager
 @contextmanager
