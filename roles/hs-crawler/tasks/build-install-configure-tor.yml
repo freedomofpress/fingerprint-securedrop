@@ -24,6 +24,6 @@
 - name: Configure torrc (disable entry guards)
   become: yes
   lineinfile:
-    dest: /etc/tor/torrc
+    dest: /usr/local/etc/tor/torrc
     line: "UseEntryGuards 0"
     create: yes
