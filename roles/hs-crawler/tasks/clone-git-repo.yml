@@ -1,0 +1,11 @@
+---
+- name: Check whether destination directory exists.
+  stat:
+    path: "{{ hs_crawler_project_directory }}"
+  register: hs_dest_dir_result
+
+- name: Clone git repository.
+  git:
+    repo: "{{ hs_crawler_git_repo }}"
+    dest: "{{ hs_crawler_project_directory }}"
+  when: hs_dest_dir_result.stat.exists == false
