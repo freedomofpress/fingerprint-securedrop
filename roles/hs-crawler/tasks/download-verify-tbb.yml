@@ -1,11 +1,15 @@
 ---
 - name: Create ~/tbb folder
+  become: yes
+  become_user: "{{ ssh_username }}"
   file:
     path: "~{{ ssh_username }}/tbb/"
     state: directory
     mode: 0755
 
 - name: Download TBB {{ tbb_release }} tarball and signature.
+  become: yes
+  become_user: "{{ ssh_username }}"
   get_url:
     url: "{{ item }}"
     dest: "~{{ ssh_username }}/tbb/"
@@ -19,11 +23,15 @@
     - https://dist.torproject.org/torbrowser/{{ tbb_release }}/tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz.asc
 
 - name: Download TBB {{ tbb_release }} signing key.
+  become: yes
+  become_user: "{{ ssh_username }}"
   command: gpg --keyserver hkps://keyserver.cns.vt.edu --recv-key EF6E286DDA85EA2A4BA7DE684E2C6E8793298290
   register: gpg_import_tor_browser_devs_key_result
   changed_when: "'imported: 1' in gpg_import_tor_browser_devs_key_result.stderr"
 
 - name: Verify TBB {{ tbb_release }} signature.
+  become: yes
+  become_user: "{{ ssh_username }}"
   command: gpg --verify tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz.asc tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz
   register: gpg_verify_result
   changed_when: false
@@ -38,11 +46,15 @@
 # overwrite a potentially polluted browser profile. Hence the following:
 
 - name: Remove the dir the TBB {{ tbb_release }} tarball will be extracted to.
+  become: yes
+  become_user: "{{ ssh_username }}"
   file:
     path: "~{{ ssh_username }}/tbb/tor-browser_en-US/"
     state: absent
 
 - name: Extract TBB {{ tbb_release }} archive.
+  become: yes
+  become_user: "{{ ssh_username }}"
   unarchive:
     copy: no
     src: "~{{ ssh_username }}/tbb/tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz"

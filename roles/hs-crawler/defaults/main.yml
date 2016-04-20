@@ -16,3 +16,6 @@ tbb_locale: en-US
 tor_release: 0.2.7.6
 
 ssh_username: "{{ ansible_ssh_user }}"
+
+hs_crawler_project_directory: "~{{ ssh_username }}/FingerprintSecureDrop"
+hs_crawler_git_repo: "https://github.com/freedomofpress/FingerprintSecureDrop"

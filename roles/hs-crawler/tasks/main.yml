@@ -1,5 +1,6 @@
 ---
 - include: install-apt-deps.yml
+- include: clone-git-repo.yml
 - include: install-python-deps.yml
 - include: download-verify-tbb.yml
 - include: download-verify-tor.yml

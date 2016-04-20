@@ -1,5 +1,7 @@
 ---
 - name: Download Tor {{ tor_release }} and signature.
+  become: yes
+  become_user: "{{ ssh_username }}"
   get_url:
     url: "{{ item }}"
     dest: "~{{ ssh_username }}/tbb/"
@@ -13,11 +15,15 @@
     - https://dist.torproject.org/tor-{{ tor_release }}.tar.gz.asc
 
 - name: Download Tor {{ tor_release }} signing key.
+  become: yes
+  become_user: "{{ ssh_username }}"
   command: gpg --keyserver hkps://keyserver.cns.vt.edu --recv-key B35BF85BF19489D04E28C33C21194EBB165733EA
   register: gpg_import_tor_browser_devs_key_result
   changed_when: "'imported: 1' in gpg_import_tor_browser_devs_key_result.stderr"
 
 - name: Verify Tor {{ tor_release }} signature.
+  become: yes
+  become_user: "{{ ssh_username }}"
   command: gpg --verify tor-{{ tor_release }}.tar.gz.asc tor-{{ tor_release }}.tar.gz
   register: gpg_verify_result
   changed_when: false
@@ -32,11 +38,15 @@
 # overwrite a potentially polluted browser profile. Hence the following:
 
 - name: Remove the dir the Tor {{ tor_release }} tarball will be extracted to.
+  become: yes
+  become_user: "{{ ssh_username }}"
   file:
     path: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
     state: absent
 
 - name: Extract Tor {{ tbb_release }} archive.
+  become: yes
+  become_user: "{{ ssh_username }}"
   unarchive:
     copy: no
     src: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}.tar.gz"

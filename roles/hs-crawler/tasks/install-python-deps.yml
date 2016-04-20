@@ -1,5 +1,7 @@
 ---
 - name: Install hs-crawler pip dependencies to hs-crawler virtualenv.
+  become: yes
+  become_user: "{{ ssh_username }}"
   pip:
     chdir: "~{{ ssh_username }}/FingerprintSecureDrop"
     requirements: "crawler-requirements.txt"
