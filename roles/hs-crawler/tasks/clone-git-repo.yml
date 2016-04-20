@@ -5,6 +5,8 @@
   register: hs_dest_dir_result
 
 - name: Clone git repository.
+  become: yes
+  become_user: "{{ ssh_username }}"
   git:
     repo: "{{ hs_crawler_git_repo }}"
     dest: "{{ hs_crawler_project_directory }}"
