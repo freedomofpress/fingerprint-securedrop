@@ -1,8 +1,10 @@
 ---
 - name: Install hs-sorter pip dependencies to hs-sorter virtualenv.
+  become: yes
+  become_user: "{{ ssh_username }}"
   pip:
-    chdir: "~{{ ssh_username }}/FingerprintSecureDrop"
+    chdir: "~/FingerprintSecureDrop"
     requirements: "sorter-requirements.txt"
-    executable: "~{{ ssh_username }}/FingerprintSecureDrop/bin/pip"
+    executable: "~/FingerprintSecureDrop/bin/pip"
     virtualenv_python: python3.5
-    virtualenv: "~{{ ssh_username }}/FingerprintSecureDrop"
+    virtualenv: "~/FingerprintSecureDrop"
