@@ -11,8 +11,9 @@ import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
 config = config['Sort Hidden Services']
-directories_to_sort = config['directories_to_sort'].split()
+onion_dirs = config['onion_dirs'].split()
 privoxy_listening_port = config['privoxy_listening_port']
+version = config['current_version']
 
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
@@ -22,9 +23,15 @@ import pickle
 import utils
 
 class Sorter:
-    def __init__(self, dir_urls):
+    def __init__(self, version, dir_urls):
         # Let's pretend we're Tor Browser
-        self.headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0'}
+        u = 'Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0'
+        self.headers = {'user-agent': u}
+        # SD 0.3.6 still has 0.3.5 in the version string, so it's impossible to
+        # differentiate between the two...
+        self.version = version
+        # 10 is a good balance between speed and not overloading connections,
+        # increasing the chances of errors
         self.max_tasks = 10
         self.sets = ['master_sd', 'not_sd', 'deprecated_sd', 'mentions_sd']
         for i in self.sets:
@@ -45,7 +52,7 @@ class Sorter:
         """Run the sorter until all work is done."""
         workers = [asyncio.Task(self.work()) for _ in range(self.max_tasks)]
 
-        logger.info('Starting {} workers on the queue...'.format(self.max_tasks))
+        logger.info('Starting {} workers on queue...'.format(self.max_tasks))
         # When all work is done, exit and close client
         await self.q.join()
         logger.info('Queue is empty, let\'s lay off these workers...')
@@ -82,31 +89,27 @@ class Sorter:
             if is_dir_url == True:
                 logger.info('Parsing .onions from directory "{}"'.format(url))
                 links = await self.parse_hs_links(response)
-                logger.info('Adding .onions from "{}" to the queue'.format(url))
+                logger.info('Adding onions from "{}" to the queue'.format(url))
                 for link in links:
                     # Put all scraped links on our queue
                     self.q.put_nowait((link, False))
-
-            # See if our onion mentions SD
-            elif await self.regex_search('[Ss]{1}ecure {0,1}[Dd]{1}rop',
-                                         response):
-                version = await self.regex_search('Powered by SecureDrop 0\.[0-3]\.[0-9\.]+',
-                                                  response)
-                # See if our onion actually is a SD instance
-                if version:
-                    version_str = version.group(0)
-                    # Sort by version string
-                    if '0.3.5' in version_str:
-                        # SD 0.3.6 still has 0.3.5 in the version string, so
-                        # it's impossible to differentiate between the two...
+            
+            # Does this site mention SecureDrop?
+            sd_regex = '[Ss]{1}ecure {0,1}[Dd]{1}rop'
+            if await self.regex_search(sd_regex, response):
+                # Does it have a SD version string?
+                v_str_regex = 'Powered by SecureDrop 0\.[0-3]\.[0-9\.]+'
+                v_str_match = await self.regex_search(v_str_regex, response)
+                if v_str_match:
+                    v_str = v_str_match.group(0)
+                    # Is it up to date?
+                    if self.version in version:
                         self.master_sd.add(url)
-                        logger.info('SD 0.3.6: {}'.format(url))
+                        logger.info('SD {}: {}'.format(self.version, url))
                     else:
                         self.deprecated_sd.add(url)
-                        # A deprecated SD instance--log the version string
-                        logger.info('SD {}: {}'.format(re.search('[0-9\.]+',
-                                                                 version_str).group(0),
-                                                       url))
+                        ver_num = re.search('[0-9\.]+', version).group(0)
+                        logger.info('SD {}: {}'.format(ver_num, url))
                 else:
                     # Just mentions SD, but not one itself
                     self.mentions_sd.add(url)
@@ -120,8 +123,10 @@ class Sorter:
         return re.search(regex, await response.text())
 
     async def parse_hs_links(self, response):
-        return set(['http://' + x for x in re.findall('[0-9a-z]{16}\.onion',
-                                                     await response.text())])
+        onion_regex = '[0-9a-z]{16}\.onion'
+        onions = re.findall(onion_regex, await response.text())
+        # Need to have the http prefix for aiohttp to know what to do
+        return set(['http://' + x for x in onions])
 
     def pickle_onions(self):
         ts = utils.timestamp()
@@ -130,12 +135,10 @@ class Sorter:
             for i in self.sets:
                 pickle.dump(getattr(self, i), pj)
         utils.symlink_cur_to_latest('class-data', ts, 'pickle')
-        
 
-    
 if __name__ == "__main__":
     logger = utils.setup_logging('sorter')
-    logger.info('Starting asynchronous event loop...')
+    logger.info('Starting an asynchronous event loop...')
     loop = asyncio.get_event_loop()
     proxy = privoxy_listening_port
     logger.info('Connecting to proxy "{}"'.format(proxy))
@@ -144,10 +147,9 @@ if __name__ == "__main__":
     conn = aiohttp.ProxyConnector(proxy=proxy, verify_ssl=False)
     # The Sorter can begin with any number of directories from which to scrape
     # then sort onion URLs into the four categories in the next block
-    logger.info('''Initializing sorter with directories from config file(s): \
-{}...'''.format(directories_to_sort))
-    sorter = Sorter(directories_to_sort)
-    logger.info('Beginning to scrape and sort from directories...')
+    logger.info('''Initializing sorter with: {}...'''.format(onion_dirs))
+    sorter = Sorter(version, onion_dirs)
+    logger.info('Beginning to scrape and sort from onion directories...')
     loop.run_until_complete(sorter.sort())
     logger.info('Closing event loop...')
     loop.close()
