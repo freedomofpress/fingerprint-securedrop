@@ -12,6 +12,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 config = config['Sort Hidden Services']
 directories_to_sort = config['directories_to_sort'].split()
+privoxy_listening_port = config['privoxy_listening_port']
 
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     logger = utils.setup_logging('sorter')
     logger.info('Starting asynchronous event loop...')
     loop = asyncio.get_event_loop()
-    proxy = "http://[::1]:8118"
+    proxy = privoxy_listening_port
     logger.info('Connecting to proxy "{}"'.format(proxy))
     # SSL verification is disabled because we're mostly dealing with almost
     # exclusively self-signed certs in the HS space.
