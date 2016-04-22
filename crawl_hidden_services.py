@@ -8,53 +8,38 @@
 import re
 from time import sleep
 from os import environ, getcwd
-from os.path import (join, expanduser)
-from datetime import datetime
+from os.path import join, expanduser
+from datetime import datetime as dt
 import configparser
-from ast import literal_eval
-from utils import setup_logging
+import pickle
+from utils import setup_logging, timestamp
 
 from site import addsitedir
 addsitedir(join(getcwd(), 'tor-browser-selenium'))
 from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
-from tbselenium.utils import (start_xvfb, stop_xvfb)
+from tbselenium.utils import start_xvfb, stop_xvfb
 import selenium.common.exceptions
 
 class Crawler:
     def __init__(self):
         self.parse_config()
-        with open(self.hs_sorter_log, 'r') as log:
-            log = log.readlines()
-            self.sds = self.parse_set_from_log(log, -4, 'Up to date SDs:')
-            self.not_sds = self.parse_set_from_log(log, -1, 'Not SDs:')
+        with open(self.class_data, 'rb') as pj:
+            self.sds = pickle.load(pj)
+            self.not_sds = pickle.load(pj)
 
     def parse_config(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
-        self.sec = 'Crawl Hidden Services'
-        home_dir = expanduser('~')
-        fpsd_path = join(home_dir, config.get(self.sec, 'fpsd_path'))
-        self.tbb_path = join(home_dir, config.get(self.sec, 'tbb_path'))
-        self.tbb_logfile_path = join(fpsd_path, 'logging',
-                                     config.get(self.sec, 'tbb_logfile'))
-        self.hs_sorter_log = join(fpsd_path, 'logging',
-                                  config.get(self.sec, 'hs_sorter_log'))
-        self.page_load_timeout = literal_eval(config.get(self.sec,
-                                                         'page_load_timeout'))
-        self.take_screenshots = literal_eval(config.get(self.sec,
-                                                        'take_screenshots'))
-
-    def parse_set_from_log(self, log, expect_position, expect_prefix):
-        set_str = log[expect_position]
-        assert expect_prefix in set_str, ''''Line did not begin with "{}" as \
-expected. The logfile specified is probably not from a complete run of the \
-hidden service sorter script.'''.format(expect_prefix)
-        set_str = re.search('{.+', set_str).group(0)
-        # literal_eval does not support type set, so we must strip the
-        # brackets, so literal_eval returns a tuple, then convert that tuple
-        # into a set
-        return set(literal_eval(set_str.strip('{}')))
+        self.sec = config['Crawl Hidden Services']
+        home_path = expanduser('~')
+        self.tbb_path = join(home_path, self.sec['tbb_path'])
+        fpsd_path = join(home_path, self.sec['fpsd_path'])
+        self.log_path = join(fpsd_path, 'logging')
+        self.tbb_logfile_path = join(self.log_path, self.sec['tbb_logfile'])
+        self.class_data = join(self.log_path, self.sec['class_data'])
+        self.page_load_timeout = int(self.sec['page_load_timeout'])
+        self.take_screenshots = self.sec.getboolean('take_screenshots')
 
     def crawl_classes(self):
         logger.info('Creating a virtual framebuffer...')
@@ -68,7 +53,7 @@ hidden service sorter script.'''.format(expect_prefix)
             driver.set_page_load_timeout(self.page_load_timeout)
             logger.info('Crawling the SecureDrop class...')
             self.crawl_class(self.sds, driver)
-            logger.info('Crawling the class of non-SecureDrop onion services...')
+            logger.info('Crawling the class of non-SD onion services...')
             self.crawl_class(self.not_sds, driver)
             logger.info('Crawling has succesfully completed!')
 
@@ -97,17 +82,15 @@ This program will now exit.''')
                 if self.take_screenshots:
                     try:
                         driver.get_screenshot_as_file(
-                            join(fpsd_path, 'logging',
-                                  '{}-{}.png'.format(url[7:-6],
-                                                     datetime.now().strftime('%m-%d_%H:%M:%S'))))
+                            join(self.log_path,
+                                 '{}-{}.png'.format(url[7:-6], timestamp())
                     except selenium.common.exceptions.WebDriverException:
                         logger.warning('Screenshot of {} failed for some reason'.format(url))
                         continue
 
             # Catch unusual exceptions and log them
             except Exception as exc:
-                    logger.warning('Unexpected exception while loading {}: {}'.format(url,
-                                                                                      exc))
+                    logger.warning('Exception loading {}: {}'.format(url, exc))
                     continue
 
             logger.info('Successfully loaded {}'.format(url))

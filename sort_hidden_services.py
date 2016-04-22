@@ -1,50 +1,57 @@
 #!/usr/bin/env python
 
-# Pass any number of hidden service directories to a Crawler instance and watch
-# crawl() scrape all the .onion links on the page, then crawl them searching
-# for SDs and sites that mention SD, sorting them accordingly. Be sure to read
-# the note at the bottom regarding the ProxyConnector and how you'll need to
-# setup Privoxy.
+# Pass any number of hidden service directories to a Sorter instance and watch
+# sort() scrape all the .onions the page, then scrape those .onions in turn,
+# searching for SDs and sites that mention SD, sorting them accordingly. Be
+# sure to read the note at the bottom regarding the ProxyConnector and how
+# you'll need to setup Privoxy. Data is dumped into a pickle file.
+# ./logging/class-data-latest.pickle will point you to the most recent results.
 
-from ast import literal_eval
 import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
-directories_to_scrape_and_sort = literal_eval(config['Sort Hidden Services']['directories_to_scrape_and_sort'])
+config = config['Sort Hidden Services']
+directories_to_sort = config['directories_to_sort'].split()
 
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
 import aiohttp
 import re
-from utils import setup_logging
+import pickle
+import utils
 
-class Crawler:
+class Sorter:
     def __init__(self, dir_urls):
+        # Let's pretend we're Tor Browser
+        self.headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0'}
         self.max_tasks = 10
-        for i in ['master_sd', 'deprecated_sd', 'mentions_sd', 'not_sd']:
+        self.sets = ['master_sd', 'not_sd', 'deprecated_sd', 'mentions_sd']
+        for i in self.sets:
             setattr(self, i, set())
+        logger.info('Creating our asyncio queue...')
         self.q = asyncio.Queue()
 
         # aiohttp's ClientSession does connection pooling and HTTP keep-alives
         # for us
         self.session = aiohttp.ClientSession(loop=loop, connector=conn)
 
-        # Put (URL, is_dir_url) in the queue
+        logger.info('Putting directory URLs in the queue...')
         for dir_url in dir_urls:
             self.q.put_nowait((dir_url, True))
 
 
-    async def crawl(self):
-        """Run the crawler until all work is done."""
+    async def sort(self):
+        """Run the sorter until all work is done."""
         workers = [asyncio.Task(self.work()) for _ in range(self.max_tasks)]
 
+        logger.info('Starting {} workers on the queue...'.format(self.max_tasks))
         # When all work is done, exit and close client
         await self.q.join()
+        logger.info('Queue is empty, let\'s lay off these workers...')
         for w in workers:
             w.cancel()
+        logger.info('Closing out any lingering HTTP connections...')
         self.session.close()
-
-        return self.master_sd, self.deprecated_sd, self.mentions_sd, self.not_sd
 
     async def work(self):
         while True:
@@ -62,7 +69,8 @@ class Crawler:
 
     async def fetch(self, url, is_dir_url):
         logger.info('Fetching {}'.format(url))
-        async with self.session.get(url, allow_redirects=True) as response:
+        async with self.session.get(url, allow_redirects=True,
+                                    headers=self.headers) as response:
             try:
                 assert response.status == 200
             except:
@@ -71,7 +79,9 @@ class Crawler:
                 return
 
             if is_dir_url == True:
+                logger.info('Parsing .onions from directory "{}"'.format(url))
                 links = await self.parse_hs_links(response)
+                logger.info('Adding .onions from "{}" to the queue'.format(url))
                 for link in links:
                     # Put all scraped links on our queue
                     self.q.put_nowait((link, False))
@@ -111,20 +121,35 @@ class Crawler:
     async def parse_hs_links(self, response):
         return set(['http://' + x for x in re.findall('[0-9a-z]{16}\.onion',
                                                      await response.text())])
+
+    def pickle_onions(self):
+        ts = utils.timestamp()
+        pickle_jar = 'logging/class-data_{}.pickle'.format(ts)
+        with open(pickle_jar, 'wb') as pj:
+            for i in self.sets:
+                pickle.dump(getattr(self, i), pj)
+        utils.symlink_cur_to_latest('class-data', ts, 'pickle')
+        
+
     
 if __name__ == "__main__":
-    logger = setup_logging('sorter')
+    logger = utils.setup_logging('sorter')
+    logger.info('Starting asynchronous event loop...')
     loop = asyncio.get_event_loop()
+    proxy = "http://[::1]:8118"
+    logger.info('Connecting to proxy "{}"'.format(proxy))
     # SSL verification is disabled because we're mostly dealing with almost
     # exclusively self-signed certs in the HS space.
-    conn = aiohttp.ProxyConnector(proxy="http://[::1]:8118", verify_ssl=False)
-    # The Crawler can begin with any number of directories from which to scrape
+    conn = aiohttp.ProxyConnector(proxy=proxy, verify_ssl=False)
+    # The Sorter can begin with any number of directories from which to scrape
     # then sort onion URLs into the four categories in the next block
-    crawler = Crawler(directories_to_scrape_and_sort)
-    master_sd, deprecated_sd, mentions_sd, not_sd = loop.run_until_complete(crawler.crawl())
+    logger.info('''Initializing sorter with directories from config file(s): \
+{}...'''.format(directories_to_sort))
+    sorter = Sorter(directories_to_sort)
+    logger.info('Beginning to scrape and sort from directories...')
+    loop.run_until_complete(sorter.sort())
+    logger.info('Closing event loop...')
     loop.close()
-
-    logger.info('Up to date SDs: {}'.format(master_sd))
-    logger.info('Not up to date SDs: {}'.format(deprecated_sd))
-    logger.info('Mentions SD: {}'.format(mentions_sd))
-    logger.info('Not SDs: {}'.format(not_sd))
+    logger.info('Last, but not least, let\'s pickle the onions...')
+    sorter.pickle_onions()
+    logger.info('Program exiting succesfully...')
