@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Automates visiting sites using Tor Browser running in a virtual X11
 # framebuffer. Does not take an arbitrary list of sites, but rather parses a
 # logfile created by running ./sort_hidden_services.py wherein sets of
