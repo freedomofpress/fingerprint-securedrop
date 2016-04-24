@@ -34,8 +34,9 @@ class Sorter:
         # increasing the chances of errors
         self.max_tasks = 10
         self.sets = ['master_sd', 'not_sd', 'deprecated_sd', 'mentions_sd']
-        for i in self.sets:
+        for i in self.sets + ['_seen_urls']:
             setattr(self, i, set())
+        self.seen = set()
         logger.info('Creating our asyncio queue...')
         self.q = asyncio.Queue()
 
@@ -90,9 +91,11 @@ class Sorter:
                 logger.info('Parsing .onions from directory "{}"'.format(url))
                 links = await self.parse_hs_links(response)
                 logger.info('Adding onions from "{}" to the queue'.format(url))
-                for link in links:
-                    # Put all scraped links on our queue
-                    self.q.put_nowait((link, False))
+                for url in links:
+                    # Put all scraped links we haven't yet seen on our queue
+                    if url not in self._seen_urls:
+                        self._seen_urls.add(url)
+                        self.q.put_nowait((url, False))
             
             # Does this site mention SecureDrop?
             sd_regex = '[Ss]{1}ecure {0,1}[Dd]{1}rop'
