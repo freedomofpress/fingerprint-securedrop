@@ -36,7 +36,6 @@ class Sorter:
         self.sets = ['master_sd', 'not_sd', 'deprecated_sd', 'mentions_sd']
         for i in self.sets + ['_seen_urls']:
             setattr(self, i, set())
-        self.seen = set()
         logger.info('Creating our asyncio queue...')
         self.q = asyncio.Queue()
 
@@ -136,7 +135,9 @@ class Sorter:
         pickle_jar = 'logging/class-data_{}.pickle'.format(ts)
         with open(pickle_jar, 'wb') as pj:
             for i in self.sets:
-                pickle.dump(getattr(self, i), pj)
+                # Convert to list because urls need a fixed order such that
+                # data crawled across multiple machines can be combined
+                pickle.dump(list(getattr(self, i)), pj)
         utils.symlink_cur_to_latest('class-data', ts, 'pickle')
 
 if __name__ == "__main__":
