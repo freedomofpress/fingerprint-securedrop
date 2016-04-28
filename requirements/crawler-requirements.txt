@@ -2,3 +2,7 @@ selenium
 tld
 pyvirtualdisplay
 pytest
+mock
+pep8
+pyflakes
+stem
