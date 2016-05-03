@@ -31,5 +31,13 @@
   become: yes
   lineinfile:
     dest: /usr/local/etc/tor/torrc
-    line: "UseEntryGuards 0"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
     create: yes
+  withitems:
+    - regexp: "^Entryguards"
+      line: "Entryguards 0"
+    - regexp: "^ControlPort"
+      line: "ControlPort 9051"
+    - regexp: "^CookieAuthentication"
+      line: "CookieAuthentication 1"

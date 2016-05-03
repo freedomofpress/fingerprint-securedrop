@@ -4,7 +4,7 @@
   become_user: "{{ ssh_username }}"
   pip:
     chdir: "~{{ ssh_username }}/FingerprintSecureDrop/"
-    requirements: "requirement/crawler-requirements.txt"
+    requirements: "requirements/crawler-requirements.txt"
     executable: "~{{ ssh_username }}/FingerprintSecureDrop/bin/pip"
     virtualenv_python: python3.5
     virtualenv: "~{{ ssh_username }}/FingerprintSecureDrop/"
