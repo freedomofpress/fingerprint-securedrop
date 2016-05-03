@@ -12,3 +12,10 @@
     line: 'forward-socks5t / 127.0.0.1:9050 .'
     regexp: 'forward-socks5t'
   notify: restart privoxy
+
+- name: Enable and start privoxy.
+  become: yes
+  service:
+    name: privoxy
+    enable: yes
+    state: started
