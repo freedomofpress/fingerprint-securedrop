@@ -77,49 +77,50 @@ class Sorter:
 
     async def fetch(self, url, is_dir_url):
         logger.info('Fetching {}'.format(url))
-        async with self.session.get(url, allow_redirects=True,
-                                    headers=self.headers) as response:
-            try:
-                assert response.status == 200
-            except:
-                # If we don't get a 'OK', log why, and move on to other URLs
-                logger.warning('{} {}'.format(url, response.status))
-                return
+        with aiohttp.Timeout(20):
+            async with self.session.get(url, allow_redirects=True,
+                                        headers=self.headers) as response:
+                try:
+                    assert response.status == 200
+                except:
+                    # If we don't get a 'OK', log why, and move on to other URLs
+                    logger.warning('{} {}'.format(url, response.status))
+                    return
 
-            if is_dir_url == True:
-                logger.info('Parsing .onions from directory "{}"'.format(url))
-                links = await self.parse_hs_links(response)
-                logger.info('Adding onions from "{}" to the queue'.format(url))
-                for url in links:
-                    # Put all scraped links we haven't yet seen on our queue
-                    if url not in self._seen_urls:
-                        self._seen_urls.add(url)
-                        self.q.put_nowait((url, False))
-            
-            # Does this site mention SecureDrop?
-            sd_regex = '[Ss]{1}ecure {0,1}[Dd]{1}rop'
-            if await self.regex_search(sd_regex, response):
-                # Does it have a SD version string?
-                v_str_regex = 'Powered by SecureDrop 0\.[0-3]\.[0-9\.]+'
-                v_str_match = await self.regex_search(v_str_regex, response)
-                if v_str_match:
-                    v_str = v_str_match.group(0)
-                    # Is it up to date?
-                    if self.version in version:
-                        self.master_sd.add(url)
-                        logger.info('SD {}: {}'.format(self.version, url))
+                if is_dir_url == True:
+                    logger.info('Parsing .onions from directory "{}"'.format(url))
+                    links = await self.parse_hs_links(response)
+                    logger.info('Adding onions from "{}" to the queue'.format(url))
+                    for url in links:
+                        # Put all scraped links we haven't yet seen on our queue
+                        if url not in self._seen_urls:
+                            self._seen_urls.add(url)
+                            self.q.put_nowait((url, False))
+
+                # Does this site mention SecureDrop?
+                sd_regex = '[Ss]{1}ecure {0,1}[Dd]{1}rop'
+                if await self.regex_search(sd_regex, response):
+                    # Does it have a SD version string?
+                    v_str_regex = 'Powered by SecureDrop 0\.[0-3]\.[0-9\.]+'
+                    v_str_match = await self.regex_search(v_str_regex, response)
+                    if v_str_match:
+                        v_str = v_str_match.group(0)
+                        # Is it up to date?
+                        if self.version in version:
+                            self.master_sd.add(url)
+                            logger.info('SD {}: {}'.format(self.version, url))
+                        else:
+                            self.deprecated_sd.add(url)
+                            ver_num = re.search('[0-9\.]+', version).group(0)
+                            logger.info('SD {}: {}'.format(ver_num, url))
                     else:
-                        self.deprecated_sd.add(url)
-                        ver_num = re.search('[0-9\.]+', version).group(0)
-                        logger.info('SD {}: {}'.format(ver_num, url))
+                        # Just mentions SD, but not one itself
+                        self.mentions_sd.add(url)
+                        logger.info('Mentions SD: {}'.format(url))
                 else:
-                    # Just mentions SD, but not one itself
-                    self.mentions_sd.add(url)
-                    logger.info('Mentions SD: {}'.format(url))
-            else:
-                # Not an SD, doesn't even mention SD
-                self.not_sd.add(url)
-                logger.info('Not a SD: {}'.format(url))
+                    # Not an SD, doesn't even mention SD
+                    self.not_sd.add(url)
+                    logger.info('Not a SD: {}'.format(url))
                         
     async def regex_search(self, regex, response):
         return re.search(regex, await response.text())
