@@ -8,13 +8,20 @@
 # `import configparse` just below can be set via the ./config.ini file.
 
 import re
+from getpass import getpass
 from time import sleep
+from sys import exit
 from os import environ, getcwd
 from os.path import join, expanduser
 from datetime import datetime as dt
 import configparser
 import pickle
+
 from utils import setup_logging, timestamp
+
+import stem
+from stem.process import launch_tor
+from stem.control import Controller
 
 from site import addsitedir
 addsitedir(join(getcwd(), 'tor-browser-selenium'))
@@ -31,6 +38,9 @@ class Crawler:
         with open(self.class_data, 'rb') as pj:
             self.sds = pickle.load(pj)
             self.not_sds = pickle.load(pj)
+        self.sds_ord = len(self.sds)
+        self.not_sds_ord = len(self.not_sds)
+        self.chunk_ord = int(self.not_sds_ord / self.ratio)
 
     def parse_config(self):
         config = configparser.ConfigParser()
@@ -41,26 +51,72 @@ class Crawler:
         fpsd_path = join(home_path, self.sec['fpsd_path'])
         self.log_path = join(fpsd_path, 'logging')
         self.tbb_logfile_path = join(self.log_path, self.sec['tbb_logfile'])
+        self.torrc_path = self.sec['torrc_path']
+        self.socks_port = int(self.sec['socks_port'])
+        self.control_port = int(self.sec['control_port'])
         self.class_data = join(self.log_path, self.sec['class_data'])
         self.p_load_to = int(self.sec['page_load_timeout'])
         self.take_screenshots = self.sec.getboolean('take_screenshots')
+        self.ratio = int(self.sec['sd_sample_ratio'])
 
     def crawl_classes(self):
+
         logger.info('Creating a virtual framebuffer...')
         virt_framebuffer = start_xvfb()
+
+        logger.info('Starting tor with stem...')
+        launch_tor(torrc_path=self.torrc_path, take_ownership=True)
+
+        logger.info('Attempting authenticate to control port...')
+        try:
+            self.controller = Controller.from_port(port=self.control_port)
+        except stem.SocketError as exc:
+            print('Unable to connect to tor on port {}: {}'.format(self.control_port,
+                                                                   exc))
+            exit(1)
+        try:
+            self.controller.authenticate()
+        except stem.connection.MissingPassword:
+            # The user has a passwd instead of CookieAuth set in their torrc,
+            # so we'll prompt for it
+            pw = getpass("Controller password: ")
+            try:
+                self.controller.authenticate(password = pw)
+            except stem.connection.PasswordAuthFailed:
+                print('Unable to authenticate, password is incorrect')
+                exit(1)
+        except stem.connection.AuthenticationFailure as exc:
+            print('Unable to authenticate: {}'.format(exc))
+            exit(1)
+
 
         logger.info('Starting Tor Browser in virtual framebuffer...')
         with TorBrowserDriver(tbb_path = self.tbb_path,
                               tbb_logfile_path = self.tbb_logfile_path,
                               tor_cfg = USE_RUNNING_TOR) as driver:
+
             # Set maximum time to wait for a page to load (default 15s)
             driver.set_page_load_timeout(self.p_load_to)
-            logger.info('Crawling the SecureDrop class...')
-            self.crawl_class(self.sds, driver)
-            logger.info('Crawling the class of non-SD onion services...')
-            self.crawl_class(self.not_sds, driver)
-            logger.info('Crawling has succesfully completed!')
 
+            # Open the Tor cell log
+            cell_log = open(self.tor_cell_log, 'r')
+
+            # We intersperse our sd_sample_ratio crawls of the SD class between
+            # our singular crawl of the non-SD class
+            for i in range(self.ratio):
+
+                logger.info('Crawling the SecureDrop class...')
+                self.crawl_class(self.sds, driver)
+
+                chunk = self.not_sds[i * self.chunk_ord :
+                                     max((i + 1) * self.chunk_ord,
+                                        self.not_sds_ord)]
+                logger.info('Crawling part {}/{} of non-SDs...'.format(i+1,
+                                                                      self.ratio))
+                self.crawl_class(chunk, driver)
+
+
+        logger.info('Crawling has succesfully completed!')
         logger.info('Stopping the virtual framebuffer...')
         stop_xvfb(virt_framebuffer)
         logger.info('Program successfully exiting...')
@@ -97,8 +153,15 @@ class Crawler:
                     logger.warning('{}: exception: {}'.format(url, exc))
                     continue
 
+            # Sleep 5s to catch traffic after initial onload event
+            sleep(5)
+
+            # Close all open circuits. Since we're only working w/ HSs, which
+            # Tor uses a different circuit for each time 
+            for circuit in self.controller.get_circuits(): # if circuit != 
+                self.controller.close_circuit(circuit.id)
+
             logger.info('{}: succesfully loaded'.format(url))
-            sleep(1)
 
 if __name__ == '__main__':
     # ./logging/crawler-log-latest.txt will be a symlink to the latest log,
