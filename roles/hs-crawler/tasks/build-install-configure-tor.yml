@@ -34,7 +34,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     create: yes
-  withitems:
+  with_items:
     - regexp: "^Entryguards"
       line: "Entryguards 0"
     - regexp: "^ControlPort"
