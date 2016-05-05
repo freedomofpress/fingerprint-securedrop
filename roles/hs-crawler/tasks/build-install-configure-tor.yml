@@ -27,7 +27,7 @@
   args:
     chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
 
-- name: Configure torrc (disable entry guards)
+- name: Configure torrc disable entry guards
   become: yes
   lineinfile:
     dest: /usr/local/etc/tor/torrc
