@@ -17,5 +17,5 @@
   become: yes
   service:
     name: privoxy
-    enable: yes
+    enabled: yes
     state: started
