@@ -35,8 +35,8 @@
     line: "{{ item.line }}"
     create: yes
   with_items:
-    - regexp: "^Entryguards"
-      line: "Entryguards 0"
+    - regexp: "^UseEntryGuards"
+      line: "UseEntryGuards 0"
     - regexp: "^ControlPort"
       line: "ControlPort 9051"
     - regexp: "^CookieAuthentication"
