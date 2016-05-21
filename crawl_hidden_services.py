@@ -10,7 +10,7 @@
 import re
 from getpass import getpass
 from time import sleep
-from sys import exit
+from sys import exit, exc_info
 from os import environ, getcwd, mkdir, remove
 from os.path import join, expanduser
 from datetime import datetime as dt
@@ -184,7 +184,7 @@ class Crawler:
 
                 # Catch unusual exceptions and log them
                 except:
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    exc_type, exc_value, exc_traceback = exc_info()
                     logger.warning('{}: unusual exception encountered:'.format(url))
                     logger.warning(repr(traceback.format_exception(exc_type,
                                                                    exc_value,
