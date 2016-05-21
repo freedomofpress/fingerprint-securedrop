@@ -18,6 +18,7 @@ import configparser
 import pickle
 
 from utils import setup_logging, timestamp
+import traceback
 
 import stem
 from stem.process import launch_tor
@@ -182,9 +183,12 @@ class Crawler:
                             continue
 
                 # Catch unusual exceptions and log them
-                except Exception as exc:
-                        logger.warning('{}: exception: {}'.format(url, exc))
-                        continue
+                except:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    logger.warning('{}: unusual exception encountered:'.format(url))
+                    logger.warning(repr(traceback.format_exception(exc_type,
+                                                                   exc_value,
+                                                                   exc_traceback)))
 
                 # Sleep 5s to catch traffic after initial onload event
                 sleep(5)
