@@ -189,20 +189,20 @@ class Crawler:
                     logger.warning(repr(traceback.format_exception(exc_type,
                                                                    exc_value,
                                                                    exc_traceback)))
+                    continue
 
                 # Sleep 5s to catch traffic after initial onload event
                 sleep(5)
 
+                self.record_cell_seq()
+                logger.info('{}: succesfully loaded'.format(url))
+            finally:
                 # Close all open circuits. Since we're only working w/ HSs, and
                 # Tor opens a new circuit for each unique onion, this is equivalent
                 # to Wang et al's algorithm from their WPES 2013 paper, Appendix C
                 for circuit in self.controller.get_circuits():
                     self.controller.close_circuit(circuit.id)
 
-                self.record_cell_seq()
-
-                logger.info('{}: succesfully loaded'.format(url))
-            finally:
                 self.site_idx += 1
 
     def record_cell_seq(self):
