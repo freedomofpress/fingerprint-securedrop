@@ -5,6 +5,5 @@
   pip:
     chdir: "~/FingerprintSecureDrop" 
     requirements: "requirements/sorter-requirements.txt"
-    executable: "~/FingerprintSecureDrop/bin/pip"
     virtualenv_python: python3.5
     virtualenv: "~/FingerprintSecureDrop"
