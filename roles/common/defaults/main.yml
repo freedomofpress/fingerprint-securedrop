@@ -1,9 +1,7 @@
 ---
 common_apt_packages:
-  - python-virtualenv
   - python3-pip
   - tmux
-  - tree
   - vim
 
 ssh_username: "{{ ansible_ssh_user }}"

@@ -1,4 +1,4 @@
 ---
 - include: upgrade-packages.yml
-- include: common-packages.yml
 - include: install-python35.yml
+- include: common-packages.yml

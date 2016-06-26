@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.5
 
 # Pass any number of hidden service directories to a Sorter instance and watch
 # sort() scrape all the .onions the page, then scrape those .onions in turn,

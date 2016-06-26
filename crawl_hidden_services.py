@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.5
 
 # Automates visiting sites using Tor Browser running in a virtual X11
 # framebuffer. Does not take an arbitrary list of sites, but rather parses a
