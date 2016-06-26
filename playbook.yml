@@ -1,6 +1,18 @@
 ---
-- hosts: all
+- name: Update the Ubuntu image and install the packages both scripts need.
+  hosts: all
   roles: 
     - role: common
-    - role: hs-sorter
-    - role: hs-crawler
+
+- name: Install and configure dependencies for Tor.
+  hosts: all
+  roles:
+    - role: crawler
+
+# Todo: currently sorter depends on crawler role for Tor. The sorter role should
+# see if the custom tor binary has been compiled, and if not just install tor
+# from the tor deb repos to save time.
+- name: Install the Apt and Python dependencies of the sorter script.
+  hosts: all
+  roles: 
+    - { role: sorter, tag: sorter }
