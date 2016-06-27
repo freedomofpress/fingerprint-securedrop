@@ -2,20 +2,35 @@
 - name: Add Deadsnakes PPA for python3.5
   become: yes
   apt_repository:
+    # Prevents Ubuntu's CommandNotFound from yelling scary warnings at us.
+    # "Others" need read access.
+    filename: deadsnakes
+    mode: "0644"
     repo: "ppa:fkrull/deadsnakes"
     update_cache: yes
+
+# - name: Install apt preferences file
+#   become: yes
+#   copy:
+#     src: preferences
+#     dest: /etc/apt/preferences
+#     force: yes
 
 - name: Install python3.5
   become: yes
   apt:
-    name: python3.5
-    state: latest
+    name: "{{ item }}"
   with_items:
+    # - python3-pip
     - python3.5
-    - python3-pip
 
 # This is necessary so that later the Ansible pip module will dependencies to
 # the python3.5 and not python3.4 dist-package directory
 - name: Set python3.5 as default python3 alternative
   become: yes
   command: update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5 1
+
+# This is so Ubuntu's CommandNotFound doesn't yell scary tracebacks at us
+- name: Set python3.4 as alternate python3 alternative
+  become: yes
+  command: update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.4 2
