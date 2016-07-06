@@ -6,6 +6,7 @@
 #
 
 EasyProcess==0.2.2        # via pyvirtualdisplay
+pyasn==1.5.0b7
 pyvirtualdisplay==0.2
 selenium==2.53.2
 stem==1.4.0

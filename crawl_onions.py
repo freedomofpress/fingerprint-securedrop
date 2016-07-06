@@ -1,249 +1,428 @@
 #!/usr/bin/env python3.5
 
-# Automates visiting sites using Tor Browser running in a virtual X11
-# framebuffer. Does not take an arbitrary list of sites, but rather parses a
-# logfile created by running ./sort_hidden_services.py wherein sets of
-# up-and-running hidden services sorted by whether they are SecureDrop or not
-# can be found. Arguments found in the imports/ globals block starting with
-# `import configparse` just below can be set via the ./config.ini file.
+# Automates visiting onion services using Tor Browser in a virtual framebuffer
+# and logs Tor cell traces from them
 
-import re
-from getpass import getpass
-from time import sleep
-from sys import exit, exc_info
-from os import environ, getcwd, mkdir, remove
-from os.path import join, expanduser
-from datetime import datetime as dt
-import configparser
-import pickle
-
-from utils import setup_logging, timestamp
-import traceback
-
+from io import SEEK_END, SEEK_SET
+from os import mkdir
+from os.path import abspath, dirname, expanduser, join
+# import pyasn
+import random
 import stem
-from stem.process import launch_tor
+from stem.process import launch_tor, launch_tor_with_config
 from stem.control import Controller
+from sys import exit, exc_info
+from time import sleep
+import urllib.parse
 
 from site import addsitedir
-addsitedir(join(getcwd(), 'tor-browser-selenium'))
+_repo_root = dirname(abspath(__file__))
+_log_dir = join(_repo_root, "logging")
+_tbselenium_path = join(_repo_root, "tor-browser-selenium")
+addsitedir(_tbselenium_path)
 from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
 from tbselenium.utils import start_xvfb, stop_xvfb
-import selenium.common.exceptions
+
+from utils import setup_logging, timestamp, timestamp_file, symlink_cur_to_latest
+
+from selenium.common.exceptions import WebDriverException, TimeoutException
+import http.client
+from traceback import format_exception
+
+# The Crawler handles most errors internally so the user does not have to worry
+# about exception handling
+class CrawlerException(Exception):
+    """Base class for Crawler exceptions."""
+
+class CrawlerLoggedError(CrawlerException):
+    """Raised when a crawler encounters and logs a boring exception."""
+
+class CrawlerReachedErrorPage(CrawlerException):
+    """Raised when the crawler reaches an error page or the about:newtab
+    page"""
+
+class CrawlerNoRendCircError(CrawlerException):
+    """Raised when no rendezvous circuits are identified for an onion service
+    we have already successfully loaded."""
+
+# These exceptions are known to crash the Crawler
+_sketchy_exceptions = [http.client.RemoteDisconnected]
+
 
 class Crawler:
-    def __init__(self):
-        logger.info('Parsing config.ini...')
-        self.parse_config()
-        logger.info('Unpickling onions...')
-        with open(self.class_data, 'rb') as pj:
-            self.sds = pickle.load(pj)
-            self.not_sds = pickle.load(pj)
-        self.sds_ord = len(self.sds)
-        self.not_sds_ord = len(self.not_sds)
-        self.chunk_ord = int(self.not_sds_ord / self.ratio)
+    """Crawls your onions, but also manages Tor, drives Tor Browser, and uses
+    information from your Tor cell log and stem to collect cell sequences."""
 
-    def parse_config(self):
-        config = configparser.ConfigParser()
-        config.read('config.ini')
-        self.sec = config['Crawl Hidden Services']
-        home_path = expanduser('~')
-        self.tbb_path = join(home_path, self.sec['tbb_path'])
-        fpsd_path = join(home_path, self.sec['fpsd_path'])
-        self.log_dir = join(fpsd_path, 'logging')
+    def __init__(self, 
+                 take_ownership=True, # Tor dies when the Crawler does
+                 torrc_config=None, # torrc override options (dict)
+                 torrc_path="/usr/local/etc/tor/torrc",
+                 tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
+                 control_port=9051,
+                 socks_port=9050, 
+                 tor_cfg=USE_RUNNING_TOR,
+                 run_in_xvfb=True,
+                 tbb_path=join(expanduser("~"),"tbb","tor-browser_en-US"),
+                 tb_log_path=join(_log_dir,"firefox.log"),
+                 page_load_timeout=15,
+                 wait_on_page=5,
+                 restart_on_sketchy_exception=False):
+
+        self.logger = setup_logging(_log_dir, "crawler")
+
+        self.logger.info("Starting tor daemon...")
+        if torrc_config:
+            self.tor_process = launch_tor_with_config(config=torrc_config,
+                                                      take_ownership=take_ownership)
+        else:
+            self.tor_process = launch_tor(torrc_path=torrc_path,
+                                          take_ownership=take_ownership)
+        self.torrc_config = torrc_config
+        self.torrc_path = torrc_path
+        self.take_ownership = take_ownership
+        self.logger.info("Authenticating to the tor controlport...")
+        self.authenticate_to_tor_controlport(control_port)
+        self.control_port = control_port
+
+        self.logger.info("Opening cell log stream...")
+        self.cell_log = open(tor_cell_log, "rb")
+
+        if run_in_xvfb:
+            self.logger.info("Starting Xvfb...")
+            self.run_in_xvfb = True
+            self.virtual_framebuffer = start_xvfb()
+
+        self.logger.info("Starting Tor Browser...")
+        self.tb_driver = TorBrowserDriver(tbb_path=tbb_path,
+                                          tor_cfg=tor_cfg,
+                                          tbb_logfile_path=tb_log_path,
+                                          socks_port=socks_port,
+                                          control_port=control_port)
+        self.tb_driver.set_page_load_timeout(page_load_timeout)
+        self.wait_on_page = wait_on_page
+        self.restart_on_sketchy_exception = restart_on_sketchy_exception
+        # self.control_file = self.get_control_information()
+
+
+    def authenticate_to_tor_controlport(self, control_port):
+        try:
+            self.controller = Controller.from_port(port=control_port)
+        except stem.SocketError as exc:
+            print("Unable to connect to tor on port {}: "
+                  "{}".format(self.control_port, exc))
+            exit(1)
+        try:
+            self.controller.authenticate()
+        except stem.connection.MissingPassword:
+            print("Unable to authenticate to tor controlport. Please add "
+                  "`CookieAuth 1` to your tor configuration file.")
+            exit(1)
+
+    
+    # def get_control_information(self):
+    #     os = os.uname().version
+    #     ip = # tbd
+    #     asn = "dummy" # will use pyasn
+    #     location = #  do reverse ip lookup based on IP
+    #     tb_version = "6.0.2" # read from Ansible yml file?
+    #     sd_version = "0.3.7" # read from _version.py
+    #     crawler_version = "1.0" # shell out to _version.py
+    #     return dict(os, ip, asn, location, tb_version, sd_version,
+    #     crawler_version, self.wait_on_page, self.page_load_timeout)
+
+
+    def __enter__(self):
+        return self
+
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.logger.info("Exiting the Crawler...")
+        self.logger.info("Closing Tor Browser...")
+        self.tb_driver.quit()
+        self.logger.info("Closing the virtual framebuffer...")
+        if self.run_in_xvfb:
+            stop_xvfb(self.virtual_framebuffer)
+        self.logger.info("Closing the Tor cell stream...")
+        self.cell_log.close()
+        self.logger.info("Quitting the Tor process...")
+        self.controller.close()
+        self.logger.info("Crawler exit complete.")
+
+
+    def collect_onion_trace(self, url, extra_fn=None, trace_dir=None,
+                            iteration=0):
+        """Crawl an onion service and collect a complete cell sequence for the
+        activity at the time. Also, record additional information about the
+        circuits with stem. Optionally, pass a function to execute additional
+        actions after the page has loaded."""
+        # Todo: create collect_trace method that works for regular sites as
+        # well
+        assert ".onion" in url, ("This method is only suitable for crawling "
+                                 "onion services.")
+
+        self.logger.info("{url}: closing existing circuits before starting "
+                         "crawl.".format(**locals()))
+        for circuit in self.controller.get_circuits():
+            self.controller.close_circuit(circuit.id)
+
+        if not trace_dir:
+            # trace_dir = self.make_ts_dir(incl_ctrl_file=True)
+            trace_dir = self.make_ts_dir()
+        trace_name = urllib.parse.quote(url, safe="") + "-" + str(iteration)
+        trace_path = join(trace_dir, trace_name)
+
+        start_idx = self.get_cell_log_pos()
+            
+        try:
+            self.crawl_url(url)
+            rend_circ_ids = self.get_rend_circ_ids(url)
+            if extra_fn:
+                self.execute_extra_fn(url, trace_path, start_idx)
+        except CrawlerLoggedError:
+            return "failed"
+        except CrawlerNoRendCircError:
+            self.save_debug_log(url, trace_path, start_idx)
+            return "failed"
+        except:
+            exc_type, exc_value, exc_traceback = exc_info()
+            self.logger.warning("{url}: unusual exception {exc_type} "
+                                "encountered:".format(**locals()))
+            # Log traceback, this is for better formatting
+            [self.logger.warning(line) for line in
+             format_exception(exc_type, exc_value, exc_traceback)]
+            # Also print active circuit info
+            self.controller.get_circuits()
+
+            if exc_type in _sketchy_exceptions:
+                self.save_debug_log(url, trace_path, start_idx)
+                if self.restart_on_sketchy_exception:
+                    self.restart_tor()
+
+            return "failed"
+
+        self.logger.info("{url}: saving full trace...".format(**locals()))
+        end_idx = self.get_cell_log_pos()
+        full_trace = self.get_full_trace(start_idx, end_idx)
+        with open(trace_path+"-full", "wb") as fh:
+            fh.write(full_trace)
+
+        return "succeeded"
+
+
+    def make_ts_dir(self, parent_dir=_log_dir, raw_dir_name="batch"):
+        """Creates a timestamped folder to hold a group of traces."""
+        raw_dirpath = join(parent_dir, raw_dir_name)
         ts = timestamp()
-        self.batch = join(self.log_dir, 'batch-{}'.format(ts))
-        mkdir(self.batch)
-        self.cell_log_dir = join(self.log_dir, self.sec['tor_cell_log'])
-        self.tbb_logfile_path = join(self.log_dir, self.sec['tbb_logfile'])
-        self.torrc_path = self.sec['torrc_path']
-        self.socks_port = int(self.sec['socks_port'])
-        self.control_port = int(self.sec['control_port'])
-        self.class_data = join(self.log_dir, self.sec['class_data'])
-        self.p_load_to = int(self.sec['page_load_timeout'])
-        self.take_screenshots = self.sec.getboolean('take_screenshots')
-        self.ratio = int(self.sec['sd_sample_ratio'])
-
-    def crawl_classes(self):
-
-        logger.info('Creating a virtual framebuffer...')
-        virt_framebuffer = start_xvfb()
+        ts_dir = timestamp_file(raw_dirpath, ts, is_dir=True)
+        # Todo: write control file to ts_dir
+        symlink_cur_to_latest(raw_dirpath, ts)
+        return ts_dir
 
 
-        def cleanup_cell_log():
-            try:
-                remove(self.cell_log_dir)
-            except FileNotFoundError:
-                pass
+    def get_cell_log_pos(self):
+        """Returns the current position of the last byte in the Tor cell log."""
+        return self.cell_log.seek(0, SEEK_END)
 
-        cleanup_cell_log()
+
+    def crawl_url(self, url):
+        """Load a web page in Tor Browser and optionally pass a function
+        to execute custom actions on it."""
+
+        self.logger.info("{url}: starting page load...".format(**locals()))
 
         try:
-            logger.info('Starting tor with stem...')
-            launch_tor(torrc_path=self.torrc_path, take_ownership=True)
+            self.tb_driver.load_url(url, wait_on_page=self.wait_on_page,
+                                    wait_for_page_body=True)
+        except TimeoutException:
+            self.logger.warning("{url}: timed out.".format(**locals()))
+            raise CrawlerLoggedError
+        except http.client.CannotSendRequest:
+            self.logger.warning("{url}: cannot send request--improper "
+                                "connection state.".format(**locals()))
+            raise CrawlerLoggedError
 
-            logger.info('Attempting authenticate to control port...')
-            try:
-                self.controller = Controller.from_port(port=self.control_port)
-            except stem.SocketError as exc:
-                print('Unable to connect to tor on port {}: {}'.format(self.control_port,
-                                                                       exc))
-                exit(1)
-            try:
-                self.controller.authenticate()
-            except stem.connection.MissingPassword:
-                # The user has a passwd instead of CookieAuth set in their torrc,
-                # so we'll prompt for it
-                pw = getpass("Controller password: ")
-                try:
-                    self.controller.authenticate(password = pw)
-                except stem.connection.PasswordAuthFailed:
-                    print('Unable to authenticate, password is incorrect')
-                    exit(1)
-            except stem.connection.AuthenticationFailure as exc:
-                print('Unable to authenticate: {}'.format(exc))
-                exit(1)
+        # Make sure we haven't just hit an error page or nothing loaded
+        try:
+            if (self.tb_driver.is_connection_error_page
+                or self.tb_driver.current_url == "about:newtab"):
+                raise CrawlerReachedErrorPage
+        except CrawlerReachedErrorPage:
+            self.logger.warning("{url}: reached connection error "
+                                "page.".format(**locals()))
+            raise CrawlerLoggedError
+
+        self.logger.info("{url}: successfully loaded.".format(**locals()))
+            
+
+    def get_rend_circ_ids(self, url):
+        """Returns the rendezvous circuit id(s) associated with a given onion
+        service."""
+        self.logger.info("{url}: collecting circuit "
+                         "information...".format(**locals()))
+        active_circs = self.controller.get_circuits()
+        rend_circ_ids = set()
+                  
+        for circ in active_circs:
+            if (circ.purpose == "HS_CLIENT_REND" and
+                circ.socks_username and 
+                circ.socks_username in url):
+                rend_circ_ids.add(circ.id)
+
+        # If everything goes perfect, we should only see one. Multiple indicate
+        # the first failed. Zero indicates one closed abruptly (or there's an
+        # error with stem--still waiting on data to confirm or deny).
+        rend_circ_ct = len(rend_circ_ids)
+        self.logger.info("{url}: {rend_circ_ct} associated rendezvous circuits "
+                         "discovered.".format(**locals()))
+        if rend_circ_ct == 0:
+            raise CrawlerNoRendCircError
+
+        return rend_circ_ids
 
 
-            logger.info('Starting Tor Browser in virtual framebuffer...')
-            with TorBrowserDriver(tbb_path = self.tbb_path,
-                                  tbb_logfile_path = self.tbb_logfile_path,
-                                  tor_cfg = USE_RUNNING_TOR) as driver:
+    def execute_extra_fn(self, url, trace_path, start_idx):
+        self.logger.info("{url}: executing extra function "
+                         "code...".format(**locals()))
+        extra_fn(self, url, trace_path, start_idx)
+        self.logger.info("{url}: extra function executed "
+                         "successfully.".format(**locals()))
 
-                # Set maximum time to wait for a page to load (default 15s)
-                driver.set_page_load_timeout(self.p_load_to)
 
-                # Open the Tor cell log
-                self.cell_log = open(self.cell_log_dir, 'r')
+    def save_debug_log(self, url, trace_path, start_idx):
+        self.logger.warning("{url}: saving debug log...".format(**locals()))
+        exc_time = self.get_cell_log_pos()
+        trace = self.get_full_trace(start_idx, exc_time)
+        with open(trace_path + "@debug", "wb") as fh:
+            fh.write(trace)
+        return None
 
-                # We intersperse our sd_sample_ratio crawls of the SD class between
-                # our singular crawl of the non-SD class
-                for i in range(self.ratio):
 
-                    # self.iteration is used to which iteration through the SD
-                    # class we're on in the filename in the record_cell_seq
-                    # function
-                    self.iteration = '-' + str(i)
-                    # SD class overall index starts at 0
-                    self.site_idx = 0
+    def get_full_trace(self, start_idx, end_idx):
+        """Returns the Tor DATA cells transmitted over a circuit during a
+        specified time period."""
+        # Sanity check
+        assert start_idx >= 0 and end_idx > 0, ("Invalid (negative) logfile "
+                                                "position")
+        assert end_idx >= start_idx, ("logfile section end_idx must come " # s/>=/>
+                                     "after start_idx")
 
-                    logger.info('Crawling the SecureDrop class...')
-                    self.crawl_class(self.sds, driver)
+        self.cell_log.seek(start_idx, SEEK_SET)
+        return self.cell_log.read(end_idx - start_idx)
 
-                    # We don't iterate over the non-SD class
-                    self.iteration = ''
-                    # Queue up the next chunk
-                    chunk_lb = self.chunk_ord * i
-                    chunk_ub = min((i + 1) * self.chunk_ord,
-                                   self.not_sds_ord)
-                    # non-SD class starts at index <size of SD class>
-                    self.site_idx = chunk_lb + self.sds_ord
 
-                    logger.info('Crawling part {}/{} of non-SDs...'.format(i+1,
-                                                                          self.ratio))
-                    self.crawl_class(self.not_sds[chunk_lb:chunk_ub], driver)
+    # The take_ownership directive in the stem docs claims that if we delete
+    # all references to the Popen subprocess returned by starting tor or closed
+    # the connection of a Controller that the tor process will exit. In
+    # practice, this doesn't happen. OTOH, calling stem.process.launch_tor will
+    # restart the tor process. Todo: figure out why.
+    def restart_tor(self):
+        """Restart tor."""
+        self.logger.info("Restarting the tor process...")
+        if self.torrc_config:
+            self.tor_process = launch_tor_with_config(config=self.torrc_config,
+                                                      take_ownership=self.take_ownership)
+        else:
+            self.tor_process = launch_tor(torrc_path=self.torrc_path,
+                                          take_ownership=self.take_ownership)
+        self.controller = Controller.from_port(port=self.control_port)
+        self.authenticate_to_tor_controlport(self.control_port)
+        self.logger.info("Tor successfully restarted.")
 
-            logger.info('Crawling has succesfully completed!')
-            logger.info('Stopping the virtual framebuffer...')
-            stop_xvfb(virt_framebuffer)
 
-        except:
-            cleanup_cell_log()
-            raise
+    def collect_set_of_traces(self, url_set, extra_fn=None, trace_dir=None,
+                              iteration=0, shuffle=True, retry=True):
+        """Collect a set of traces."""
+        if not trace_dir:
+            # trace_dir = self.make_ts_dir(incl_ctrl_file=True)
+            trace_dir = self.make_ts_dir()
+        set_size = len(url_set)
+        self.logger.info("Saving set of {set_size} traces to "
+                         "{trace_dir}.".format(**locals()))
 
-    def crawl_class(self, wf_class, driver):
-        for url in wf_class:
-            try:
-                # Seek to the end of the cell log
-                self.cell_log.seek(0, 2)
+        if shuffle:
+            random.shuffle(url_set)
 
-                try:
-                    try:
-                        logger.info('{}: loading...'.format(url))
-                        driver.get(url)
-                    except selenium.common.exceptions.TimeoutException:
-                        tw = '{}: timed out after {}s'.format(url, self.p_load_to)
-                        logger.warning(tw)
-                        continue
+        failed_urls = []
 
-                    # See if we've hit a connection error page
-                    if driver.is_connection_error_page:
-                        logger.warning('{}: connection error page'.format(url))
-                        continue
+        for url_idx in range(set_size):
+            self.logger.info("Collecting trace {} of "
+                             "{set_size}...".format(url_idx+1, **locals()))
+            url = url_set[url_idx]
 
-                    # Take a screenshot of the page (def. false)
-                    if self.take_screenshots:
-                        logger.info('{}: capturing screen...')
-                        try:
-                            img_fn = '{}_{}.png'.format(url[7:-6], timestamp())
-                            img_path = join(self.log_dir, img_fn)
-                            driver.get_screenshot_as_file(img_path)
-                        except selenium.common.exceptions.WebDriverException:
-                            logger.warning('{}: screenshot failed'.format(url))
-                            continue
+            if (self.collect_onion_trace(url, extra_fn=extra_fn,
+                                         trace_dir=trace_dir,
+                                         iteration=iteration) == "failed"
+                and retry):
+                failed_urls.append(url)
 
-                # Catch unusual exceptions and log them
-                except:
-                    exc_type, exc_value, exc_traceback = exc_info()
-                    logger.warning('{}: unusual exception encountered:'.format(url))
-                    logger.warning(repr(traceback.format_exception(exc_type,
-                                                                   exc_value,
-                                                                   exc_traceback)))
-                    continue
+        if failed_urls:
+            failed_ct = len(failed_urls)
+            self.logger.info("Retrying {failed_ct} of {set_size} traces that "
+                             "failed.".format(**locals()))
+            self.collect_set_of_traces(failed_urls, extra_fn=extra_fn,
+                                       trace_dir=trace_dir,
+                                       iteration=iteration, shuffle=shuffle,
+                                       retry=False)
 
-                # Sleep 5s to catch traffic after initial onload event
-                sleep(5)
 
-                self.record_cell_seq()
-                logger.info('{}: succesfully loaded'.format(url))
-            finally:
-                # Close all open circuits. Since we're only working w/ HSs, and
-                # Tor opens a new circuit for each unique onion, this is equivalent
-                # to Wang et al's algorithm from their WPES 2013 paper, Appendix C
-                for circuit in self.controller.get_circuits():
-                    self.controller.close_circuit(circuit.id)
+    def crawl_monitored_nonmonitored_classes(self,
+                                          monitored_class,
+                                          nonmonitored_class,
+                                          extra_fn=None,
+                                          shuffle=True,
+                                          retry=True,
+                                          monitored_class_name="monitored",
+                                          nonmonitored_class_name="nonmonitored",
+                                          ratio=40):
+        """Crawl a monitored class ratio times interspersed between the
+        crawling of a(n ostensibly larger) non-monitored class."""
+        # trace_dir = self.make_ts_dir(incl_ctrl_file=True)
+        trace_dir = self.make_ts_dir()
+        mon_trace_dir = join(trace_dir, monitored_class_name)
+        mkdir(mon_trace_dir)
+        nonmon_trace_dir = join(trace_dir, nonmonitored_class_name)
+        mkdir(nonmon_trace_dir)
+        
+        nonmonitored_class_ct = len(nonmonitored_class)
+        chunk_size = int(nonmonitored_class_ct / ratio)
 
-                self.site_idx += 1
+        for iteration in range(ratio):
+            
+            self.logger.info("Beggining iteration {} of {ratio} in the "
+                             "{monitored_class_name} "
+                             "class".format(iteration + 1, **locals()))
+            self.collect_set_of_traces(monitored_class,
+                                       trace_dir=mon_trace_dir,
+                                       iteration=iteration)
 
-    def record_cell_seq(self):
-        '''Reads from the current stream position of the cell log to the
-        end and records both a raw and kNN ready log file for the the site
-        just visited'''
+            slice_lb = iteration * chunk_size
+            slice_ub = min((iteration + 1) * chunk_size, nonmonitored_class_ct)
+            self.logger.info("Crawling services {} through {slice_ub} of "
+                             "{nonmonitored_class_ct} in the "
+                             "{nonmonitored_class_name} "
+                             "class".format(slice_lb + 1, **locals()))
+            self.collect_set_of_traces(nonmonitored_class[slice_lb:slice_ub],
+                                       trace_dir=nonmon_trace_dir)
 
-        # Read to the end of the trace
-        full_trace = self.cell_log.readlines()
 
-        fname = join(self.batch, '{}{}'.format(self.site_idx, self.iteration))
+if __name__ == "__main__":
 
-        # Save the raw Tor cell logging data for better introspection
-        with open(fname + '-raw', 'w') as raw_point:
-            for line in full_trace:
-                raw_point.write(line)
+    import configparser
+    import pickle
 
-        # Find the first DATA cell
-        for line in full_trace:
-            if 'DATA' in line:
-                t_zero = float(line.split(' ', 1)[0])
-                break
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    config = config["crawler"]
 
-        # Format the data just the way go-knn likes it
-        with open(fname, 'w') as point:
-            for line in full_trace:
-                if 'DATA' in line:
-                    t_delta = float(line.split(' ', 1)[0]) - t_zero
-                    if 'INCOMING' in line:
-                        point.write('{}\t-1\n'.format(t_delta))
-                    else:
-                        point.write('{}\t1\n'.format(t_delta))
+    with open(join(_log_dir, config["class_data"]), 'rb') as pj:
+        sds = pickle.load(pj)
+        not_sds = pickle.load(pj)
 
-if __name__ == '__main__':
-    # ./logging/crawler-log-latest.txt will be a symlink to the latest log,
-    # which will be timestamped and also in the ./logging folder
-    logger = setup_logging('crawler')
-    # Initialize crawler w/ the options defined in our config.ini file
-    logger.info('Initializing crawler...')
-    crawler = Crawler()
-    # Crawl the SD and non-SD classes sorted by ./sort_hidden_services.py
-    # defined in the hs_sorter_logfile as defined in config.ini
-    crawler.crawl_classes()
-    logger.info('Program exiting successfully...')
+    with Crawler(page_load_timeout=int(config["page_load_timeout"]),
+                 wait_on_page=int(config["wait_on_page"]),
+                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"])) as crawler:
+        crawler.crawl_monitored_nonmonitored_classes(sds, not_sds,
+                                                     monitored_class_name="sds",
+                                                     nonmonitored_class_name="not-sds",
+                                                     ratio=int(config["monitored_nonmonitored_ratio"]))

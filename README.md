@@ -90,8 +90,8 @@ cd ~/FingerprintSecureDrop
 ./sort_onions.py
 ```
 
-To look at the crawler log while it's running run `tail -f
-logging/crawler-log-latest.txt`. Sorter data will be timestamped with
+To look at the sorter log while it's running run `less +F
+logging/sorter-latest.log`. Sorter data will be timestamped with
 `logging/class-data-latest.pickle` being symlinked to the latest data
 (timestamping and symlinking like this is done with all logs and data files that
 are created by the Python processes in this repo).
@@ -104,9 +104,9 @@ cd ~/FingerprintSecureDrop
 ./crawl_onions.py
 ```
 
-To look at the crawler log while it's running run `tail -f
-logging/crawler-log-latest.txt`, and to look at the raw Tor cell log run `tail
--f logging/tor_cell_seq.log`.
+To look at the crawler log while it's running run `less +F
+logging/crawler-latest.log`, and to look at the raw Tor cell log run `less +F
+logging/tor_cell_seq.log`.
 
 ### Deploying to remote servers
 

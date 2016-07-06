@@ -10,7 +10,7 @@ hs_crawler_apt_packages:
   - libgtk2.0-0 # tbb (firefox)
 
 tbb_arch: 64
-tbb_release: 6.0.1
+tbb_release: 6.0.2
 tbb_locale: en-US
 
 tor_release: 0.2.7.6
