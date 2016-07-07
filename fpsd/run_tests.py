@@ -4,4 +4,4 @@ from subprocess import call
 from os.path import dirname, abspath, join
 
 # Run all the tests using py.test
-call(["python3.5", "-m", "unittest", "-f", "-v", "test.test_bad_site_set"])
+call(["python3.5", "-m", "unittest", "-f", "-v", "test.test_sketchy_sites"])
