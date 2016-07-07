@@ -7,20 +7,12 @@
 # you'll need to setup Privoxy. Data is dumped into a pickle file.
 # ./logging/class-data-latest.pickle will point you to the most recent results.
 
-import configparser
-config = configparser.ConfigParser()
-config.read('config.ini')
-config = config['Sort Hidden Services']
-onion_dirs = config['onion_dirs'].split()
-privoxy_listening_port = config['privoxy_listening_port']
-version = config['current_version']
-
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
 import aiohttp
-import re
 import pickle
 import utils
+import re
 
 class Sorter:
     def __init__(self, version, dir_urls):
@@ -142,20 +134,35 @@ class Sorter:
         utils.symlink_cur_to_latest('class-data', ts, 'pickle')
 
 if __name__ == "__main__":
-    logger = utils.setup_logging('sorter')
+    import configparser
+    from os.path import abspath, dirname, join
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    config = config['sorter']
+    onion_dirs = config['onion_dirs'].split()
+    version = config['current_version']
+
+    repo_root = dirname(abspath(__file__))
+    log_dir = join(repo_root, "logging")
+
+    logger = utils.setup_logging(log_dir, "sorter")
+
     logger.info('Starting an asynchronous event loop...')
     loop = asyncio.get_event_loop()
-    proxy = privoxy_listening_port
-    logger.info('Connecting to proxy "{}"'.format(proxy))
+
+    logger.info("Connecting to Privoxy at 127.0.0.1:8118")
     # SSL verification is disabled because we're mostly dealing with almost
     # exclusively self-signed certs in the HS space.
-    conn = aiohttp.ProxyConnector(proxy=proxy, verify_ssl=False)
+    conn = aiohttp.ProxyConnector(proxy="http://localhost:8118", verify_ssl=False)
+
     # The Sorter can begin with any number of directories from which to scrape
     # then sort onion URLs into the four categories in the next block
-    logger.info('''Initializing sorter with: {}...'''.format(onion_dirs))
+    logger.info("Initializing sorter with: {}...".format(onion_dirs))
     sorter = Sorter(version, onion_dirs)
     logger.info('Beginning to scrape and sort from onion directories...')
     loop.run_until_complete(sorter.sort())
+
     logger.info('Closing event loop...')
     loop.close()
     logger.info('Last, but not least, let\'s pickle the onions...')
