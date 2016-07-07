@@ -1,4 +1,4 @@
-logging/
+fpsd/logging/
 
 *.un~
 *.swp

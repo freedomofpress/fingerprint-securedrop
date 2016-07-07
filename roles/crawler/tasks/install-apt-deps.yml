@@ -1,10 +1,10 @@
 ---
-- name: Install hs-crawler apt package dependencies.
+- name: Install crawler apt package dependencies.
   become: yes
   apt:
     name: "{{ item }}"
     state: latest
-  with_items: "{{ hs_crawler_apt_packages }}"
+  with_items: "{{ crawler_apt_packages }}"
 
 - name: Install Tor build dependencies.
   become: yes

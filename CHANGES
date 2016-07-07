@@ -1,0 +1,23 @@
+Fingerprint SecureDrop Changelog
+================================
+
+Here you can see the full list of changes between each Fingerprint SecureDrop
+release.
+
+Version 1
+---------
+* Heavy refactor of the crawler focused on composability, testability, and
+  extensibility.
+* Crawler no longer tries to directly analyze the raw cell log and instead
+  collects full, umodified traces.
+* First steps of the way towards implementing the schema discussed in
+  https://github.com/freedomofpress/FingerprintSecureDrop/issues/16
+* More detailed logging including printing traces for all unexpected exceptions
+  and saving "debug" traces for exceptions known to crash the crawler and
+  one other non-fatal condition we intend to investigate.
+
+Version 1.1
+-----------
+* Rework directory structure to make "fpsd" into a proper Python package.
+* Create the first of a suite of unit tests and a script that will call such
+  suite.

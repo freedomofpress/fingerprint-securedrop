@@ -3,7 +3,7 @@
   become: yes
   become_user: "{{ ssh_username }}"
   copy:
-    src: "~{{ ssh_username }}/FingerprintSecureDrop/relay.c"
+    src: "~{{ ssh_username }}/FingerprintSecureDrop/fpsd/relay.c"
     dest: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}/src/or/relay.c"
     remote_src: True
 
