@@ -71,7 +71,7 @@ class Crawler:
                  run_in_xvfb=True,
                  tbb_path=join(expanduser("~"),"tbb","tor-browser_en-US"),
                  tb_log_path=join(_log_dir,"firefox.log"),
-                 page_load_timeout=15,
+                 page_load_timeout=20,
                  wait_on_page=5,
                  restart_on_sketchy_exception=False,
                  additional_control_fields={}):
