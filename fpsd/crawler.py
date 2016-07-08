@@ -211,15 +211,12 @@ class Crawler:
             self.save_debug_log(url, trace_path, start_idx)
             return "failed"
         except:
-            exc_type, exc_value, exc_traceback = exc_info()
-            self.logger.warning("{url}: unusual exception {exc_type} "
-                                "encountered:".format(**locals()))
-            # Log traceback, this is for better formatting
-            [self.logger.warning(line) for line in
-             format_exception(exc_type, exc_value, exc_traceback)]
-            # Also print active circuit info
+            self.logger.exception("{url}: unusual exception "
+                                  "encountered:".format(**locals()))
+            # Also log active circuit info
             self.controller.get_circuits()
 
+            exc_type, exc_value, exc_traceback = exc_info()
             if exc_type in _sketchy_exceptions:
                 self.save_debug_log(url, trace_path, start_idx)
                 if self.restart_on_sketchy_exception:
