@@ -3,10 +3,14 @@
 # Automates visiting onion services using Tor Browser in a virtual framebuffer
 # and logs Tor cell traces from them
 
+from ast import literal_eval
+import codecs
 from io import SEEK_END, SEEK_SET
 from os import mkdir
 from os.path import abspath, dirname, expanduser, join
-# import pyasn
+import pickle
+import platform
+from poyo import parse_string as parse_yaml
 import random
 import stem
 from stem.process import launch_tor, launch_tor_with_config
@@ -14,6 +18,7 @@ from stem.control import Controller
 from sys import exit, exc_info
 from time import sleep
 import urllib.parse
+from urllib.request import urlopen
 
 from site import addsitedir
 _repo_root = dirname(abspath(__file__))
@@ -25,6 +30,7 @@ from tbselenium.common import USE_RUNNING_TOR
 from tbselenium.utils import start_xvfb, stop_xvfb
 
 from utils import setup_logging, timestamp, timestamp_file, symlink_cur_to_latest
+from version import __version__ as _version
 
 from selenium.common.exceptions import WebDriverException, TimeoutException
 import http.client
@@ -71,6 +77,10 @@ class Crawler:
 
         self.logger = setup_logging(_log_dir, "crawler")
 
+        self.control_data = self.get_control_data()
+        self.control_data["page_load_timeout"] = page_load_timeout
+        self.control_data["wait_on_page"] = wait_on_page
+
         self.logger.info("Starting tor daemon...")
         if torrc_config:
             self.tor_process = launch_tor_with_config(config=torrc_config,
@@ -99,18 +109,20 @@ class Crawler:
                                           tbb_logfile_path=tb_log_path,
                                           socks_port=socks_port,
                                           control_port=control_port)
+
+        self.page_load_timeout = page_load_timeout
         self.tb_driver.set_page_load_timeout(page_load_timeout)
         self.wait_on_page = wait_on_page
         self.restart_on_sketchy_exception = restart_on_sketchy_exception
-        # self.control_file = self.get_control_information()
+
 
 
     def authenticate_to_tor_controlport(self, control_port):
         try:
             self.controller = Controller.from_port(port=control_port)
         except stem.SocketError as exc:
-            print("Unable to connect to tor on port {}: "
-                  "{}".format(self.control_port, exc))
+            print("Unable to connect to tor on port {self.control_port}: "
+                  "{exc}".format(**locals()))
             exit(1)
         try:
             self.controller.authenticate()
@@ -120,16 +132,31 @@ class Crawler:
             exit(1)
 
     
-    # def get_control_information(self):
-    #     os = os.uname().version
-    #     ip = # tbd
-    #     asn = "dummy" # will use pyasn
-    #     location = #  do reverse ip lookup based on IP
-    #     tb_version = "6.0.2" # read from Ansible yml file?
-    #     sd_version = "0.3.7" # read from _version.py
-    #     crawler_version = "1.0" # shell out to _version.py
-    #     return dict(os, ip, asn, location, tb_version, sd_version,
-    #     crawler_version, self.wait_on_page, self.page_load_timeout)
+    def get_control_data(self):
+        """Gather metadata about the crawler instance."""
+        control_data = {}
+        control_data["kernel"] = platform.system()
+        control_data["kernel_version"] = platform.release()
+        control_data["os_distribution"] = platform.version()
+        control_data["python_version"] = platform.python_version()
+        ip = urlopen("https://api.ipify.org").read().decode()
+        control_data["ip"] = ip
+        asn_geoip = urlopen("http://api.moocher.io/ip/{}".format(ip))
+        asn_geoip = literal_eval(asn_geoip.read().decode())
+        control_data["asn"] = asn_geoip.get("ip").get("as").get("asn")
+        control_data["city"] = asn_geoip.get("ip").get("city")
+        control_data["country"] = asn_geoip.get("ip").get("country")
+        with codecs.open(join(_repo_root,
+                              "../roles/crawler/defaults/main.yml")) as y_fh:
+            yml_str = y_fh.read()
+        yml = parse_yaml(yml_str)
+        control_data["tor_version"] = yml.get("tor_release")
+        control_data["tb_version"] = yml.get("tbb_release")
+        # Hardcoding this for now, will probably modify sorter to include it in
+        # the pickle file, but want to think more about how best to do it
+        control_data["sd_version"] = "0.3.8"
+        control_data["crawler_version"] = _version
+        return control_data
 
 
     def __enter__(self):
@@ -167,7 +194,6 @@ class Crawler:
             self.controller.close_circuit(circuit.id)
 
         if not trace_dir:
-            # trace_dir = self.make_ts_dir(incl_ctrl_file=True)
             trace_dir = self.make_ts_dir()
         trace_name = urllib.parse.quote(url, safe="") + "-" + str(iteration)
         trace_path = join(trace_dir, trace_name)
@@ -215,8 +241,11 @@ class Crawler:
         raw_dirpath = join(parent_dir, raw_dir_name)
         ts = timestamp()
         ts_dir = timestamp_file(raw_dirpath, ts, is_dir=True)
-        # Todo: write control file to ts_dir
         symlink_cur_to_latest(raw_dirpath, ts)
+
+        with open(join(ts_dir, "control.pickle"), "wb") as fh:
+            pickle.dump(self.control_data, fh)
+
         return ts_dir
 
 
@@ -334,7 +363,6 @@ class Crawler:
                               iteration=0, shuffle=True, retry=True):
         """Collect a set of traces."""
         if not trace_dir:
-            # trace_dir = self.make_ts_dir(incl_ctrl_file=True)
             trace_dir = self.make_ts_dir()
         set_size = len(url_set)
         self.logger.info("Saving set of {set_size} traces to "
@@ -377,7 +405,6 @@ class Crawler:
                                           ratio=40):
         """Crawl a monitored class ratio times interspersed between the
         crawling of a(n ostensibly larger) non-monitored class."""
-        # trace_dir = self.make_ts_dir(incl_ctrl_file=True)
         trace_dir = self.make_ts_dir()
         mon_trace_dir = join(trace_dir, monitored_class_name)
         mkdir(mon_trace_dir)

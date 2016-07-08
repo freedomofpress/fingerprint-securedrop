@@ -130,7 +130,7 @@ class Sorter:
             for i in self.sets:
                 # Convert to list because urls need a fixed order such that
                 # data crawled across multiple machines can be combined
-                pickle.dump(list(getattr(self, i)), pj)
+                pickle.dump(getattr(self, i), pj)
         utils.symlink_cur_to_latest('class-data', ts, 'pickle')
 
 if __name__ == "__main__":

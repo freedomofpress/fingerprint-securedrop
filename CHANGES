@@ -21,3 +21,12 @@ Version 1.1
 * Rework directory structure to make "fpsd" into a proper Python package.
 * Create the first of a suite of unit tests and a script that will call such
   suite.
+
+Version 1.2
+-----------
+* Implement the `self.control_data` object in Crawler. This collects metadata
+  about the the OS, tor and TBB version, Python version, IP, ASN, location, SD
+  version, configuration settings of the crawler, and the crawler version
+  itself. Currently, this is saved as a pickle file inside each "batch" dir, but
+  will be entered directly into our PostgresSQL database in the next major
+  release.

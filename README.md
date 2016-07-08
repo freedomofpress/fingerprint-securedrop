@@ -86,8 +86,8 @@ running can be figured out by reading through the Ansible playbook.
 
 ```
 vagrant ssh
-cd ~/FingerprintSecureDrop
-./sort_onions.py
+cd ~/FingerprintSecureDrop/fpsd
+./sorter.py
 ```
 
 To look at the sorter log while it's running run `less +F
@@ -100,13 +100,14 @@ are created by the Python processes in this repo).
 
 ```
 vagrant ssh
-cd ~/FingerprintSecureDrop
-./crawl_onions.py
+cd ~/FingerprintSecureDrop/fpsd
+./crawler.py
 ```
 
 To look at the crawler log while it's running run `less +F
 logging/crawler-latest.log`, and to look at the raw Tor cell log run `less +F
-logging/tor_cell_seq.log`.
+logging/tor_cell_seq.log`. You can also check out the traces it's collecting as
+it runs: `cd logging/batch-latest`.
 
 ### Deploying to remote servers
 
