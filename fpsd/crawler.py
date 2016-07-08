@@ -73,13 +73,17 @@ class Crawler:
                  tb_log_path=join(_log_dir,"firefox.log"),
                  page_load_timeout=15,
                  wait_on_page=5,
-                 restart_on_sketchy_exception=False):
+                 restart_on_sketchy_exception=False,
+                 additional_control_fields={}):
 
         self.logger = setup_logging(_log_dir, "crawler")
 
         self.control_data = self.get_control_data()
         self.control_data["page_load_timeout"] = page_load_timeout
         self.control_data["wait_on_page"] = wait_on_page
+        if additional_control_fields:
+            self.control_data = {**self.control_data,
+                                 **additional_control_fields}
 
         self.logger.info("Starting tor daemon...")
         if torrc_config:
@@ -152,9 +156,6 @@ class Crawler:
         yml = parse_yaml(yml_str)
         control_data["tor_version"] = yml.get("tor_release")
         control_data["tb_version"] = yml.get("tbb_release")
-        # Hardcoding this for now, will probably modify sorter to include it in
-        # the pickle file, but want to think more about how best to do it
-        control_data["sd_version"] = "0.3.8"
         control_data["crawler_version"] = _version
         return control_data
 
@@ -443,9 +444,15 @@ if __name__ == "__main__":
         sds = pickle.load(pj)
         not_sds = pickle.load(pj)
 
+    additional_control_fields = {}
+    # Todo: save this as in the pickle file and read it from there instead of
+    # hardcoding. Requires modification to sorter.py
+    additional_control_fields["sd_version"] = "0.3.8"
+
     with Crawler(page_load_timeout=int(config["page_load_timeout"]),
                  wait_on_page=int(config["wait_on_page"]),
-                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"])) as crawler:
+                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"]),
+                 additional_control_fields=additional_control_fields) as crawler:
         crawler.crawl_monitored_nonmonitored_classes(sds, not_sds,
                                                      monitored_class_name="sds",
                                                      nonmonitored_class_name="not-sds",
