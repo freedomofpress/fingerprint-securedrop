@@ -73,6 +73,7 @@ class Crawler:
                  tb_log_path=join(_log_dir,"firefox.log"),
                  page_load_timeout=20,
                  wait_on_page=5,
+                 wait_after_closing_circuits=0,
                  restart_on_sketchy_exception=False,
                  additional_control_fields={}):
 
@@ -81,6 +82,8 @@ class Crawler:
         self.control_data = self.get_control_data()
         self.control_data["page_load_timeout"] = page_load_timeout
         self.control_data["wait_on_page"] = wait_on_page
+        self.control_data["wait_after_closing_circuits"] = \
+                wait_after_closing_circuits
         if additional_control_fields:
             self.control_data = {**self.control_data,
                                  **additional_control_fields}
@@ -114,6 +117,7 @@ class Crawler:
                                           socks_port=socks_port,
                                           control_port=control_port)
 
+        self.wait_after_closing_circuits = wait_after_closing_circuits
         self.page_load_timeout = page_load_timeout
         self.tb_driver.set_page_load_timeout(page_load_timeout)
         self.wait_on_page = wait_on_page
@@ -135,7 +139,7 @@ class Crawler:
                   "`CookieAuth 1` to your tor configuration file.")
             exit(1)
 
-    
+
     def get_control_data(self):
         """Gather metadata about the crawler instance."""
         control_data = {}
@@ -194,13 +198,15 @@ class Crawler:
         for circuit in self.controller.get_circuits():
             self.controller.close_circuit(circuit.id)
 
+        sleep(self.wait_after_closing_circuits)
+
         if not trace_dir:
             trace_dir = self.make_ts_dir()
         trace_name = urllib.parse.quote(url, safe="") + "-" + str(iteration)
         trace_path = join(trace_dir, trace_name)
 
         start_idx = self.get_cell_log_pos()
-            
+
         try:
             self.crawl_url(url)
             rend_circ_ids = self.get_rend_circ_ids(url)
@@ -280,7 +286,7 @@ class Crawler:
             raise CrawlerLoggedError
 
         self.logger.info("{url}: successfully loaded.".format(**locals()))
-            
+
 
     def get_rend_circ_ids(self, url):
         """Returns the rendezvous circuit id(s) associated with a given onion
@@ -289,7 +295,7 @@ class Crawler:
                          "information...".format(**locals()))
         active_circs = self.controller.get_circuits()
         rend_circ_ids = set()
-                  
+
         for circ in active_circs:
             if (circ.purpose == "HS_CLIENT_REND" and
                 circ.socks_username and 
@@ -322,7 +328,6 @@ class Crawler:
         trace = self.get_full_trace(start_idx, exc_time)
         with open(trace_path + "@debug", "wb") as fh:
             fh.write(trace)
-        return None
 
 
     def get_full_trace(self, start_idx, end_idx):
@@ -332,7 +337,7 @@ class Crawler:
         assert start_idx >= 0 and end_idx > 0, ("Invalid (negative) logfile "
                                                 "position")
         assert end_idx >= start_idx, ("logfile section end_idx must come " # s/>=/>
-                                     "after start_idx")
+                                      "after start_idx")
 
         self.cell_log.seek(start_idx, SEEK_SET)
         return self.cell_log.read(end_idx - start_idx)
@@ -393,14 +398,14 @@ class Crawler:
 
 
     def crawl_monitored_nonmonitored_classes(self,
-                                          monitored_class,
-                                          nonmonitored_class,
-                                          extra_fn=None,
-                                          shuffle=True,
-                                          retry=True,
-                                          monitored_class_name="monitored",
-                                          nonmonitored_class_name="nonmonitored",
-                                          ratio=40):
+                                             monitored_class,
+                                             nonmonitored_class,
+                                             extra_fn=None,
+                                             shuffle=True,
+                                             retry=True,
+                                             monitored_class_name="monitored",
+                                             nonmonitored_class_name="nonmonitored",
+                                             ratio=40):
         """Crawl a monitored class ratio times interspersed between the
         crawling of a(n ostensibly larger) non-monitored class."""
         trace_dir = self.make_ts_dir()
@@ -408,12 +413,12 @@ class Crawler:
         mkdir(mon_trace_dir)
         nonmon_trace_dir = join(trace_dir, nonmonitored_class_name)
         mkdir(nonmon_trace_dir)
-        
+
         nonmonitored_class_ct = len(nonmonitored_class)
         chunk_size = int(nonmonitored_class_ct / ratio)
 
         for iteration in range(ratio):
-            
+
             self.logger.info("Beggining iteration {} of {ratio} in the "
                              "{monitored_class_name} "
                              "class".format(iteration + 1, **locals()))
@@ -451,6 +456,7 @@ if __name__ == "__main__":
 
     with Crawler(page_load_timeout=int(config["page_load_timeout"]),
                  wait_on_page=int(config["wait_on_page"]),
+                 wait_after_closing_circuits=int(config["wait_after_closing_circuits"]),
                  restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"]),
                  additional_control_fields=additional_control_fields) as crawler:
         crawler.crawl_monitored_nonmonitored_classes(sds, not_sds,

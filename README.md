@@ -43,6 +43,8 @@ https://cypherpunks.ca/~iang/pubs/webfingerprint-wpes.pdf, Appendix A, Algorithm
     * Write these as `(time, direction)` pairs in a file on disk, adjusted so
         the first cell is time zero
 * Close all circuits with stem
+* Pause 5s (we're currently experimenting with this value to see if it's
+  necessary and how it affects our results)
 
 The adversary model we are assuming is as follows. First, our adversary is in
 control of our guard node. Thus, they are able to separate individual streams
