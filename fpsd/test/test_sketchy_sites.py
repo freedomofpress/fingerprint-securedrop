@@ -13,8 +13,8 @@ class CrawlBadSitesTest(unittest.TestCase):
                  "http://22222222aziwzse2.onion"]
 
     def test_crawl_of_bad_sites(self):
-        with Crawler() as crawler:
-            crawler.collect_set_of_traces(self.bad_sites, shuffle=False)
+        with Crawler(restart_on_sketchy_exception=True) as crawler:
+            crawler.collect_set_of_traces(self.bad_sites)
 
 if __name__ == "__main__":
     unittest.main()
