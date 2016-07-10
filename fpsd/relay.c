@@ -51,7 +51,7 @@ get_logfile_path()
 {
   if (!webfp_logfile_path) {
     char *home_path = getenv("HOME");
-    char* logfile_path = "/FingerprintSecureDrop/logging/tor_cell_seq.log";
+    char* logfile_path = "/FingerprintSecureDrop/fpsd/logging/tor_cell_seq.log";
     int x = strlen(home_path) + strlen(logfile_path) + 1;
     char* abs_logfile_path = (char*) malloc(x);
     strcpy(abs_logfile_path, home_path);
