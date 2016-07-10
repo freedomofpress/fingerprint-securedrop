@@ -35,9 +35,19 @@
     line: "{{ item.line }}"
     create: yes
   with_items:
-    - regexp: "^UseEntryGuards"
-      line: "UseEntryGuards 0"
+    - regexp: "^EntryNodes"
+      line: "EntryNodes {{ entry_node }}"
     - regexp: "^ControlPort"
       line: "ControlPort 9051"
     - regexp: "^CookieAuthentication"
       line: "CookieAuthentication 1"
+
+# We used to set `UseEntryGuards 0` in torrc. This is so this line will be
+# removed when re-provision existing crawlers
+- name: Remove UseEntryGuards line from torrc
+  become: yes
+  lineinfile:
+    dest: /usr/local/etc/tor/torrc
+    regexp: "^UseEntryGuards"
+    state: absent
+

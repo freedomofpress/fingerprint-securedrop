@@ -57,6 +57,12 @@ and is capable of fingerprinting our rendezvous circuits with 100% accuracy. The
 way we collect traces described above is representative of the capabilities of
 such an adversary.
 
+We have begun to use a fixed entry node because it seems that a malicious actor
+in control of one or more guard nodes would train a separate classifier on each
+guard node for fingerprinting the traffic that goes through that guard node.
+Training on data produced under the same network conditions as you would wish to
+perform real-world attacks should produce more accurate results.
+
 Lastly, `config.ini` is a general configuration file, for those who just want to
 run the script and tinker with some parameters. This should be expanded in the
 future to expose even more functionality and make it easy to swap out your own
