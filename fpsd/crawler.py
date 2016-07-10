@@ -160,6 +160,7 @@ class Crawler:
         yml = parse_yaml(yml_str)
         control_data["tor_version"] = yml.get("tor_release")
         control_data["tb_version"] = yml.get("tbb_release")
+        control_data["entry_node"] = yml.get("entry_node")
         control_data["crawler_version"] = _version
         return control_data
 
