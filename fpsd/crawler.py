@@ -337,8 +337,8 @@ class Crawler:
         # Sanity check
         assert start_idx >= 0 and end_idx > 0, ("Invalid (negative) logfile "
                                                 "position")
-        assert end_idx >= start_idx, ("logfile section end_idx must come " # s/>=/>
-                                      "after start_idx")
+        assert end_idx > start_idx, ("logfile section end_idx must come "
+                                     "after start_idx")
 
         self.cell_log.seek(start_idx, SEEK_SET)
         return self.cell_log.read(end_idx - start_idx)
