@@ -10,7 +10,10 @@ class CrawlBadSitesTest(unittest.TestCase):
 
     bad_sites = ["http://jlve2diknf45qwjv.onion/",
                  "http://money2mxtcfcauot.onion", 
-                 "http://22222222aziwzse2.onion"]
+                 "http://22222222aziwzse2.onion",
+                 "http://xnsoeplvch4fhk3s.onion",
+                 "http://uptgsidhuvcsquoi.onion",
+                 "http://cubie3atuvex2gdw.onion"]
 
     def test_crawl_of_bad_sites(self):
         with Crawler(restart_on_sketchy_exception=True) as crawler:
