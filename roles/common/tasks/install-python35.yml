@@ -1,28 +1,9 @@
 ---
-- name: Add Deadsnakes PPA for python3.5
-  become: yes
-  apt_repository:
-    # Prevents Ubuntu's CommandNotFound from yelling scary warnings at us.
-    # "Others" need read access.
-    filename: deadsnakes
-    mode: "0644"
-    repo: "ppa:fkrull/deadsnakes"
-    update_cache: yes
-
-# - name: Install apt preferences file
-#   become: yes
-#   copy:
-#     src: preferences
-#     dest: /etc/apt/preferences
-#     force: yes
-
 - name: Install python3.5
   become: yes
   apt:
-    name: "{{ item }}"
-  with_items:
-    # - python3-pip
-    - python3.5
+    name: python3.5
+    state: present
 
 # This is necessary so that later the Ansible pip module will dependencies to
 # the python3.5 and not python3.4 dist-package directory
