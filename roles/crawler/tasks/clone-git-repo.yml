@@ -9,4 +9,6 @@
   # Under vagrant the project will be mounted as a shared directory,
   # so no need to clone it. Deploying to prod, however, means we'll need
   # to pull, so check the SSH username as a proxy for vagrant environment.
-  when: ssh_username != 'vagrant'
+  # The Xenial image uses "ubuntu" as default SSH user, so check that as
+  # well as the more common "vagrant" username.
+  when: ssh_username not in ['vagrant', 'ubuntu']
