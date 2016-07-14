@@ -1,8 +1,8 @@
 ---
 common_apt_packages:
+  - aptitude # needed by Ansible for apt 'upgrade'
   - python3-pip
-  # - python3-virtualenv
-    # based
+  - python3.5
   - tmux
   - vim
 

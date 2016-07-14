@@ -1,6 +1,6 @@
 ---
-- name: Install crawler.py pip dependencies to python3.5 local distribution package directory.
+- name: Install crawler.py pip dependencies.
   become: yes
-  command: pip3 install -t /usr/local/lib/python3.5/dist-packages -r crawler-requirements.txt
-  args:
-    chdir: "~{{ ssh_username }}/FingerprintSecureDrop/fpsd/requirements"
+  pip:
+    executable: pip3
+    requirements: "~{{ ssh_username }}/FingerprintSecureDrop/fpsd/requirements/crawler-requirements.txt"
