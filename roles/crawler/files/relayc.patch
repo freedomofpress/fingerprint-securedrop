@@ -1,0 +1,63 @@
+41a42,64
+> // not tao, but still easy to find w/ the same search
+> 
+> #include "stdlib.h"
+> #include "memory.h"
+> 
+> static char* webfp_logfile_path = NULL;
+> 
+> static char*
+> get_logfile_path()
+> {
+>   if (!webfp_logfile_path) {
+>     char *home_path = getenv("HOME");
+>     char* logfile_path = "/FingerprintSecureDrop/fpsd/logging/tor_cell_seq.log";
+>     int x = strlen(home_path) + strlen(logfile_path) + 1;
+>     char* abs_logfile_path = (char*) malloc(x);
+>     strcpy(abs_logfile_path, home_path);
+>     strcat(abs_logfile_path, logfile_path);
+>     webfp_logfile_path = abs_logfile_path;
+>   }
+>   return webfp_logfile_path;
+> }
+> //
+> 
+572a596,612
+>   //tao
+> 
+>   FILE* fp;
+>   char* abs_logfile_path = get_logfile_path();
+>   fp = fopen(abs_logfile_path, "a");
+>   if (fp != NULL) {
+>     struct timeval tp;
+>     gettimeofday(&tp, NULL);
+>     fprintf(fp, "%f ", tp.tv_sec + tp.tv_usec/1000000.0);
+>     fprintf(fp, "OUTGOING CIRC %u, STREAM %d, ", circ->n_circ_id, stream_id);
+>     fprintf(fp, "COMMAND %s(%d), ", relay_command_to_string(relay_command), relay_command);
+>     fprintf(fp, "length %zu\n", payload_len);
+>     fprintf(fp, "\n");
+>     fflush(fp);
+>     fclose(fp);
+>   }
+> 
+1433a1474,1493
+> 
+>   //tao
+> 
+>   FILE* fp;
+>   char* abs_logfile_path = get_logfile_path();
+>   fp = fopen(abs_logfile_path, "a");
+> 
+>   if (fp != NULL) {
+>     struct timeval tp;
+>     gettimeofday(&tp, NULL);
+>     fprintf(fp, "%f ", tp.tv_sec + tp.tv_usec/1000000.0);
+>     fprintf(fp, "INCOMING CIRC %u, STREAM %d, ", circ->n_circ_id, rh.stream_id);
+>     fprintf(fp, "COMMAND %s(%d), ", relay_command_to_string(rh.command), rh.command);
+>     fprintf(fp, "length %d\n", rh.length);
+>     fprintf(fp, "\n");
+>     fflush(fp);
+>     fclose(fp);
+>   }
+> 
+> 

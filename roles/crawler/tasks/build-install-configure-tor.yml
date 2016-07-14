@@ -2,10 +2,13 @@
 - name: Clobber relay.c in Tor {{ tor_release }} with custom relay.c from repo
   become: yes
   become_user: "{{ ssh_username }}"
-  copy:
-    src: "~{{ ssh_username }}/FingerprintSecureDrop/fpsd/relay.c"
-    dest: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}/src/or/relay.c"
-    remote_src: True
+  patch:
+    src: relayc.patch
+    # Not using the ~username prefix to the full patch because the patch module
+    # doesn't expand the path correctly. It's less explicit to omit the prefix,
+    # but the become_user setting ensures that we're in the home directory.
+    dest: tbb/tor-{{ tor_release }}/src/or/relay.c
+  register: tor_relay_patch_result
 
 - name: Configure Tor {{ tor_release }}
   become: yes
@@ -13,6 +16,7 @@
   command: ./configure
   args:
     chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+  when: tor_relay_patch_result|changed
 
 - name: Make Tor {{ tor_release }}
   become: yes
@@ -20,12 +24,14 @@
   command: make
   args:
     chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+  when: tor_relay_patch_result|changed
 
 - name: Install Tor {{ tor_release }}
   become: yes
   command: make install
   args:
     chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+  when: tor_relay_patch_result|changed
 
 - name: Configure torrc disable entry guards
   become: yes
