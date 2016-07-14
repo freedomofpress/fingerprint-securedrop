@@ -5,6 +5,7 @@
     name: aptitude
     state: present
     update-cache: yes
+    cache_valid_time: 86400
 
 # - name: Install sid repo
 #   become: yes
