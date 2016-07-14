@@ -40,9 +40,8 @@ def symlink_cur_to_latest(filepath, ts, ext=""):
     if ext:
         latest += ".{}".format(ext)
     try:
-        if os.stat(latest):
-            os.remove(latest)
-    except FileNotFoundError:
+        os.remove(latest)
+    except OSError:
         pass
     finally:
         os.symlink(current, latest)
