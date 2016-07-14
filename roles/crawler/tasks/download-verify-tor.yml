@@ -25,20 +25,6 @@
   args:
     chdir: "~{{ ssh_username }}/tbb/"
 
-# The unarchive module is relying on tar's --diff option, which does not check
-# file hashes, just that the same filenames are present. Thus you can change a
-# file inside the unarchived folder, while preserving it's name, and tar --diff
-# will consider it unchanged. tar's --skip-old-files behaves in the same way.
-# When we re-run our playbook it's necessary we ensure the same end-state and
-# overwrite a potentially polluted browser profile. Hence the following:
-
-- name: Remove the dir the Tor {{ tor_release }} tarball will be extracted to.
-  become: yes
-  become_user: "{{ ssh_username }}"
-  file:
-    path: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
-    state: absent
-
 - name: Extract Tor {{ tbb_release }} archive.
   become: yes
   become_user: "{{ ssh_username }}"
@@ -46,3 +32,6 @@
     copy: no
     src: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}.tar.gz"
     dest: "~{{ ssh_username }}/tbb/"
+    # Don't reextract on subsequent runs, since reextracting would needlessly
+    # revert the custom patch to the relay.c file in subsequent tasks.
+    creates: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
