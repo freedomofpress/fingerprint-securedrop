@@ -4,10 +4,10 @@
   become_user: "{{ ssh_username }}"
   patch:
     src: relay.c.patch
-    # Not using the ~username prefix to the full patch because the patch module
-    # doesn't expand the path correctly. It's less explicit to omit the prefix,
-    # but the become_user setting ensures that we're in the home directory.
-    basedir: tbb/tor-{{ tor_release }}/src/or
+    # Not using the ~username prefix to the fullpath because the patch module
+    # doesn't expand the path correctly. Technically it's an assumption that
+    # the user's home directory resides in /home/<username>, but a reasonable one.
+    basedir: /home/{{ ssh_username }}/tbb/tor-{{ tor_release }}/src/or
   register: tor_relay_patch_result
 
 - name: Configure Tor {{ tor_release }}
