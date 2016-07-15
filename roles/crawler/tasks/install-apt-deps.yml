@@ -8,6 +8,10 @@
 
 - name: Install Tor build dependencies.
   become: yes
-  apt: 
+  apt:
     name: tor
     state: build-dep
+  # Ansible is always reporting changed for this task, so let's
+  # inspect the output to determine changed status.
+  register: tor_build_dep_result
+  changed_when: "'0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.' not in tor_build_dep_result.stdout_lines"
