@@ -17,7 +17,7 @@ import re
 class Sorter:
     def __init__(self, version, dir_urls):
         # Let's pretend we're Tor Browser
-        u = 'Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0'
+        u = "Mozilla/5.0 (Windows NT 6.1; rv:45.0) Gecko/20100101 Firefox/45.0"
         self.headers = {'user-agent': u}
         # SD 0.3.6 still has 0.3.5 in the version string, so it's impossible to
         # differentiate between the two...
