@@ -7,3 +7,6 @@ common_apt_packages:
   - vim
 
 ssh_username: "{{ ansible_ssh_user }}"
+
+crawler_project_directory: "/usr/local/src/FingerprintSecureDrop"
+crawler_git_repo: "https://github.com/freedomofpress/FingerprintSecureDrop"

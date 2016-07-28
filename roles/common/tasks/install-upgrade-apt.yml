@@ -1,0 +1,17 @@
+---
+- name: Install common packages.
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    # Only update if it's been 24 hours since last time
+    cache_valid_time: 86400
+  with_items: "{{ common_apt_packages }}"
+
+- name: Upgrade all packages.
+  become: yes
+  apt:
+    upgrade: safe
+    update_cache: yes
+    cache_valid_time: 86400

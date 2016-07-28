@@ -1,0 +1,14 @@
+[Unit]
+Description=Start the crawler as a daemon.
+Requires=network-online.target
+After=network.target
+
+[Service]
+User=%i
+ExecStart=/home/%u/FingerprintSecureDrop/fpsd/crawler.py
+KillSignal=SIGUSR2
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

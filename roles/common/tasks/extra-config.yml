@@ -1,0 +1,10 @@
+---
+- name: Set tmux mode to vim, avoid that rsi.
+  become: yes
+  lineinfile:
+    dest: "/etc/tmux.conf"
+    line: "setw -g mode-keys vi"
+    create: yes
+    owner: root
+    group: root
+    mode: "0644"
