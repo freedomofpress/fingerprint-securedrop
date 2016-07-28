@@ -443,7 +443,7 @@ if __name__ == "__main__":
     import pickle
 
     config = configparser.ConfigParser()
-    config.read("config.ini")
+    config.read(join(_repo_root, "config.ini"))
     config = config["crawler"]
 
     with open(join(_log_dir, config["class_data"]), 'rb') as pj:

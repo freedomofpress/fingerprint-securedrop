@@ -5,8 +5,7 @@ After=network.target
 
 [Service]
 User=%i
-ExecStart=/home/%u/FingerprintSecureDrop/fpsd/crawler.py
-KillSignal=SIGUSR2
+ExecStart=/usr/bin/python3.5 /home/%i/FingerprintSecureDrop/fpsd/crawler.py
 Restart=always
 
 [Install]

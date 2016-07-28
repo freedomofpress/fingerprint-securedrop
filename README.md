@@ -117,6 +117,10 @@ logging/crawler-latest.log`, and to look at the raw Tor cell log run `less +F
 logging/tor_cell_seq.log`. You can also check out the traces it's collecting as
 it runs: `cd logging/batch-latest`.
 
+A systemd unit is also provided to run the crawler on repeat. Simply run
+`systemctl start crawler@<your username>.service` to start the crawler running
+on repeat.
+
 ### Deploying to remote servers
 
 Todo: write
