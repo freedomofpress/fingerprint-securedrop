@@ -1,18 +1,29 @@
+# logs
 fpsd/logging/
 
+# vim
 *.un~
 *.swp
 
+# Python bytecode
 *.pyc
 *__pycache__*
 
+# Vagrant/ Virtualbox
 .vagrant/
+*cloudimg-console.log
+
+# Ansible
 playbook.retry
 
+# virtualenv
+.env/
 bin/
+env/
 lib/
 lib64
 local/
 selenium/
 
-env/
+
+
