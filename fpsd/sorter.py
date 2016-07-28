@@ -10,161 +10,294 @@
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
 import aiohttp
+import aiosocks
+from aiosocks.connector import SocksConnector
+from collections import OrderedDict
+from os.path import abspath, dirname, join
 import pickle
-import utils
+from utils import setup_logging, symlink_cur_to_latest, timestamp
 import re
+from stem.process import launch_tor_with_config
+import ssl
+
+_repo_root = dirname(abspath(__file__))
+_log_dir = join(_repo_root, "logging")
+
+# The Sorter handles most errors internally so the user does not have to worry
+# about exception handling
+class SorterException(Exception):
+    """Base class for Sorter exceptions."""
+
+class SorterLoggedError(SorterException):
+    """Raised when a Sorter encounters and logs a boring exception."""
+
+class SorterResponseCodeError(SorterLoggedError):
+    """Raised when the Sorter gets a non 200/"OK" response code from a page."""
+
+class SorterTimeoutError(SorterLoggedError):
+    """Raised when a page load times out."""
+
+class SorterConnectionError(SorterLoggedError):
+    """Raised when an error occurs in the connection to the server."""
+
+class SorterCertError(SorterLoggedError):
+    """Raised when a SSL certificate fails to be validated. This is common in
+    onionspace due to limited availability of CA certs."""
+
+class SorterEmptyDirectoryError(SorterException):
+    """Raised when a directory URL seems to load correctly, but contains no
+    .onion links."""
+
 
 class Sorter:
-    def __init__(self, version, dir_urls):
-        # Let's pretend we're Tor Browser
-        u = "Mozilla/5.0 (Windows NT 6.1; rv:45.0) Gecko/20100101 Firefox/45.0"
-        self.headers = {'user-agent': u}
-        # SD 0.3.6 still has 0.3.5 in the version string, so it's impossible to
-        # differentiate between the two...
-        self.version = version
-        # 10 is a good balance between speed and not overloading connections,
-        # increasing the chances of errors
-        self.max_tasks = 10
-        self.sets = ['master_sd', 'not_sd', 'deprecated_sd', 'mentions_sd']
-        for i in self.sets + ['_seen_urls']:
-            setattr(self, i, set())
-        logger.info('Creating our asyncio queue...')
+    def __init__(self,
+                 take_ownership=True, # Tor dies when the Sorter does
+                 torrc_config={"ControlPort": "9051",
+                               "CookieAuth": "1"},
+                 socks_port=9050,
+                 page_load_timeout=20,
+                 max_tasks=10):
+
+        self.logger = setup_logging(_log_dir, "sorter")
+
+        self.logger.info("Opening event loop for Sorter...")
+        self.loop = asyncio.get_event_loop()
+        self.max_tasks = max_tasks
+        self.logger.info("Creating Sorter queue...")
         self.q = asyncio.Queue()
+
+        # Start tor and create an aiohttp tor connector
+        self.logger.info("Starting tor process with config "
+                         "{torrc_config}.".format(**locals()))
+        self.tor_process = launch_tor_with_config(config=torrc_config,
+                                                       take_ownership=take_ownership)
+        onion_proxy = aiosocks.Socks5Addr('127.0.0.1', socks_port)
+        conn = SocksConnector(proxy=onion_proxy, remote_resolve=True)
 
         # aiohttp's ClientSession does connection pooling and HTTP keep-alives
         # for us
-        self.session = aiohttp.ClientSession(loop=loop, connector=conn)
+        self.logger.info("Creating aiohttp ClientSession with our event loop "
+                         "and tor proxy connector...")
+        self.session = aiohttp.ClientSession(loop=self.loop, connector=conn)
 
-        logger.info('Putting directory URLs in the queue...')
-        for dir_url in dir_urls:
-            self.q.put_nowait((dir_url, True))
+        # Pretend we're Tor Browser in order to get rejected by less sites/WAFs
+        u = "Mozilla/5.0 (Windows NT 6.1; rv:45.0) Gecko/20100101 Firefox/45.0"
+        self.headers = {'user-agent': u}
+
+        self.page_load_timeout = page_load_timeout
 
 
-    async def sort(self):
-        """Run the sorter until all work is done."""
-        workers = [asyncio.Task(self.work()) for _ in range(self.max_tasks)]
+    def __enter__(self):
+        return self
 
-        logger.info('Starting {} workers on queue...'.format(self.max_tasks))
-        # When all work is done, exit and close client
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.logger.info("Closing out any lingering HTTP connections...")
+        self.session.close()
+        self.logger.info("Closing event loop...")
+        self.loop.close()
+        return self
+
+
+    def scrape_directories(self, onion_dirs):
+        """Creates the self.onions set attribute of the Sorter from all the
+        .onion URLs found by scraping the directory URLs."""
+        self.loop.run_until_complete(self._scrape_directories(onion_dirs))
+
+
+    async def _scrape_directories(self, onion_dirs):
+        self.onions = set()
+        self.failed_onion_dirs = set()
+
+        self.logger.info("Putting directory URLs {onion_dirs} in the "
+                         "queue...".format(**locals()))
+        for onion_dir in onion_dirs:
+            self.q.put_nowait(onion_dir)
+
+        self.logger.info("Starting {self.max_tasks} workers scraping .onion "
+                         "URLs from the directory URLs...".format(**locals()))
+        workers = [asyncio.Task(self.scrape_directory()) for _ in range(self.max_tasks)]
+
         await self.q.join()
-        logger.info('Queue is empty, let\'s lay off these workers...')
+
+        if self.failed_onion_dirs:
+            self.logger.info("Retrying directory URLs "
+                             "{self.failed_onion_dirs} unable to be "
+                             "processed on first "
+                             "attempt.".format(**locals()))
+            for failed_dir in self.failed_onion_dirs:
+                self.q.put_nowait(failed_dir)
+
+        await self.q.join()
+        self.logger.info("All directory URLs have been scraped. "
+                         "{} unique .onion URLs have been "
+                         "stored.".format(len(self.onions), **locals()))
+        self.logger.info("Stopping all workers...")
         for w in workers:
             w.cancel()
-        logger.info('Closing out any lingering HTTP connections...')
-        self.session.close()
 
-    async def work(self):
+
+    async def scrape_directory(self):
         while True:
-            url, is_dir_url = await self.q.get()
-
-            # Download page and add new links to self.q
+            onion_dir = await self.q.get()
+            self.onions.add(onion_dir)
             try:
-                await self.fetch(url, is_dir_url)
-            except Exception as exc:
-            # We probably got an 'OK' response code, but something else went
-            # wrong. Let's log the error.
-                logger.warning('{} {}'.format(url, exc))
+                response = await self.fetch(onion_dir)
+                self.logger.info("{onion_dir}: parsing hidden service links "
+                                 "on page...".format(**locals()))
+                onions = await self.parse_onion_links(response)
+                self.logger.info("{onion_dir}: found {} links on "
+                                 "page...".format(len(onions), **locals()))
+                self.onions.update(onions)
+            except SorterLoggedError:
+                self.failed_onion_dirs.add(onion_dir)
+            except SorterEmptyDirectoryError:
+                msg = ("{onion_dir}: seems to be an empty "
+                       "directory".format(**locals()))
+                self.logger.warning(msg)
+                print(msg)
+                # Could be user error, but we'll retry it in case the page just
+                # didn't load properly
+                self.failed_onion_dirs.add(onion_dir)
+            except:
+                self.logger.exception("{onion_dir}: unusual exception "
+                                      "encountered:".format(**locals()))
+                self.failed_onion_dirs.add(onion_dir)
             finally:
                 self.q.task_done()
 
-    async def fetch(self, url, is_dir_url):
-        logger.info('Fetching {}'.format(url))
-        with aiohttp.Timeout(20):
-            async with self.session.get(url, allow_redirects=True,
-                                        headers=self.headers) as response:
-                try:
-                    assert response.status == 200
-                except:
-                    # If we don't get a 'OK', log why, and move on to other URLs
-                    logger.warning('{} {}'.format(url, response.status))
-                    return
 
-                if is_dir_url == True:
-                    logger.info('Parsing .onions from directory "{}"'.format(url))
-                    links = await self.parse_hs_links(response)
-                    logger.info('Adding onions from "{}" to the queue'.format(url))
-                    for url in links:
-                        # Put all scraped links we haven't yet seen on our queue
-                        if url not in self._seen_urls:
-                            self._seen_urls.add(url)
-                            self.q.put_nowait((url, False))
+    async def fetch(self, url):
+        """Load a webpage and read return the body as plaintext."""
+        self.logger.info("{url}: loading...".format(**locals()))
+        try:
+            with aiohttp.Timeout(self.page_load_timeout, loop=self.loop):
+                async with self.session.get(url,
+                                            allow_redirects=True,
+                                            headers=self.headers) as resp:
 
-                # Does this site mention SecureDrop?
-                sd_regex = '[Ss]{1}ecure {0,1}[Dd]{1}rop'
-                if await self.regex_search(sd_regex, response):
-                    # Does it have a SD version string?
-                    v_str_regex = 'Powered by SecureDrop 0\.[0-3]\.[0-9\.]+'
-                    v_str_match = await self.regex_search(v_str_regex, response)
-                    if v_str_match:
-                        v_str = v_str_match.group(0)
-                        # Is it up to date?
-                        if self.version in version:
-                            self.master_sd.add(url)
-                            logger.info('SD {}: {}'.format(self.version, url))
-                        else:
-                            self.deprecated_sd.add(url)
-                            ver_num = re.search('[0-9\.]+', version).group(0)
-                            logger.info('SD {}: {}'.format(ver_num, url))
-                    else:
-                        # Just mentions SD, but not one itself
-                        self.mentions_sd.add(url)
-                        logger.info('Mentions SD: {}'.format(url))
-                else:
-                    # Not an SD, doesn't even mention SD
-                    self.not_sd.add(url)
-                    logger.info('Not a SD: {}'.format(url))
-                        
-    async def regex_search(self, regex, response):
-        return re.search(regex, await response.text())
+                    if resp.status != 200:
+                        self.logger.warning("{url} was not reachable. HTTP "
+                                            "error code {resp.status} was "
+                                            "returned".format(**locals()))
+                        raise SorterResponseCodeError
 
-    async def parse_hs_links(self, response):
-        onion_regex = '[0-9a-z]{16}\.onion'
-        onions = re.findall(onion_regex, await response.text())
-        # Need to have the http prefix for aiohttp to know what to do
-        return set(['http://' + x for x in onions])
+                    self.logger.info("{url}: loaded "
+                                     "successfully.".format(**locals()))
+                    return await resp.text()
+        except asyncio.TimeoutError:
+            self.logger.warning("{url}: timed out after "
+                                "{self.page_load_timeout}.".format(**locals()))
+            raise SorterTimeoutError
+        except (aiosocks.errors.SocksError,
+                aiohttp.errors.ServerDisconnectedError,
+                aiohttp.errors.ClientResponseError) as exc:
+            self.logger.warning("{url} was not reachable: "
+                                "{exc}".format(**locals()))
+            raise SorterConnectionError
+        except aiohttp.errors.ClientOSError as exception_msg:
+            if "SSL" in exception_msg:
+                self.logger.warning("{url}: certificate error (probably due to "
+                                    "use of a self-signed "
+                                    "cert.".format(**locals()))
+                raise SorterCertError
+            else:
+                raise
+        except (ssl.CertificateError, aiohttp.errors.ClientOSError):
+            self.logger.warning("{url}: certificate error (probably due to "
+                                "use of a self-signed "
+                                "cert.".format(**locals()))
+            raise SorterCertError
+
+
+    async def parse_onion_links(self, response):
+        """Find all .onion URLs in a webpage text."""
+        onion_regex = "[0-9a-z]{16}\.onion"
+        onions = re.findall(onion_regex, response)
+        if not onions:
+            raise SorterEmptyDirectoryError
+        return set(["http://" + x for x in onions])
+
+
+    def sort_onions(self, class_tests):
+        """Sort the self.onions set of onion services into the sets defined by
+        the keys of the class_tests dictionary using the tests given by the
+        associated values."""
+        self.loop.run_until_complete(self._sort_onions(class_tests))
+
+
+    async def _sort_onions(self, class_tests):
+        self.class_data = OrderedDict()
+        for class_name in class_tests.keys():
+            self.class_data[class_name] = set()
+        self.failed_onions = set()
+
+        self.logger.info("Putting {} onions on the queue to be "
+                         "sorted...".format(len(self.onions)))
+        for onion_service in self.onions:
+            self.q.put_nowait(onion_service)
+
+        self.logger.info("Starting {self.max_tasks} workers sorting .onion "
+                         "URLs into the sets {}...".format(class_tests.keys(),
+                                                          **locals()))
+        workers = [asyncio.Task(self.sort_onion(class_tests)) for _ in range(self.max_tasks)]
+
+        await self.q.join()
+
+        if self.failed_onions:
+            self.logger.info("Retrying {} onion services that the sorter "
+                             "was unable to reach on first "
+                             "attempt.".format(len(self.failed_onions)))
+            for failed_onion in self.failed_onions:
+                self.q.put_nowait(failed_onion)
+
+        await self.q.join()
+        self.logger.info("Sorting onions process completed.")
+        self.logger.info("Stopping all workers...")
+        for w in workers:
+            w.cancel()
+
+        self.pickle_onions()
+
+
+    async def sort_onion(self, class_tests):
+        while True:
+            onion_service = await self.q.get()
+            try:
+                response = await self.fetch(onion_service)
+                for class_key in class_tests:
+                    lambda_fn = eval("lambda text: " + class_tests[class_key])
+                    if lambda_fn(response):
+                        self.logger.info("{onion_service}: sorted into "
+                                         "{class_key}.".format(**locals()))
+                        self.class_data[class_key].add(onion_service)
+                        break
+            except SorterLoggedError:
+                self.failed_onions.add(onion_service)
+            except:
+                self.logger.exception("{onion_service}: unusual exception "
+                                      "encountered:".format(**locals()))
+                self.failed_onions.add(onion_service)
+            finally:
+                self.q.task_done()
+
 
     def pickle_onions(self):
-        ts = utils.timestamp()
-        pickle_jar = 'logging/class-data_{}.pickle'.format(ts)
-        with open(pickle_jar, 'wb') as pj:
-            for i in self.sets:
-                # Convert to list because urls need a fixed order such that
-                # data crawled across multiple machines can be combined
-                pickle.dump(getattr(self, i), pj)
-        utils.symlink_cur_to_latest('class-data', ts, 'pickle')
+        ts = timestamp()
+        pickle_jar = join(_log_dir, "class-data_{}.pickle".format(ts))
+        self.logger.info("Pickling class data to "
+                         "{pickle_jar}".format(**locals()))
+        with open(pickle_jar, "wb") as pj:
+                pickle.dump(self.class_data, pj)
+        symlink_cur_to_latest("class-data", ts, "pickle")
 
 if __name__ == "__main__":
     import configparser
-    from os.path import abspath, dirname, join
-
     config = configparser.ConfigParser()
-    config.read('config.ini')
-    config = config['sorter']
-    onion_dirs = config['onion_dirs'].split()
-    version = config['current_version']
-
-    repo_root = dirname(abspath(__file__))
-    log_dir = join(repo_root, "logging")
-
-    logger = utils.setup_logging(log_dir, "sorter")
-
-    logger.info('Starting an asynchronous event loop...')
-    loop = asyncio.get_event_loop()
-
-    logger.info("Connecting to Privoxy at 127.0.0.1:8118")
-    # SSL verification is disabled because we're mostly dealing with almost
-    # exclusively self-signed certs in the HS space.
-    conn = aiohttp.ProxyConnector(proxy="http://localhost:8118", verify_ssl=False)
-
-    # The Sorter can begin with any number of directories from which to scrape
-    # then sort onion URLs into the four categories in the next block
-    logger.info("Initializing sorter with: {}...".format(onion_dirs))
-    sorter = Sorter(version, onion_dirs)
-    logger.info('Beginning to scrape and sort from onion directories...')
-    loop.run_until_complete(sorter.sort())
-
-    logger.info('Closing event loop...')
-    loop.close()
-    logger.info('Last, but not least, let\'s pickle the onions...')
-    sorter.pickle_onions()
-    logger.info('Program exiting succesfully...')
+    config.read("config.ini")
+    config = config["sorter"]
+    
+    with Sorter(page_load_timeout = int(config["page_load_timeout"]),
+                max_tasks = int(config["max_tasks"])) as sorter:
+        sorter.scrape_directories(config["onion_dirs"].split())
+        sorter.sort_onions(eval("OrderedDict(" + config["class_tests"] + ")"))

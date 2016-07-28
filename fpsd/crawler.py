@@ -13,7 +13,7 @@ import platform
 from poyo import parse_string as parse_yaml
 import random
 import stem
-from stem.process import launch_tor, launch_tor_with_config
+from stem.process import launch_tor_with_config
 from stem.control import Controller
 from sys import exit, exc_info
 from time import sleep
@@ -44,7 +44,7 @@ class CrawlerException(Exception):
 class CrawlerLoggedError(CrawlerException):
     """Raised when a crawler encounters and logs a boring exception."""
 
-class CrawlerReachedErrorPage(CrawlerException):
+class CrawlerReachedErrorPage(CrawlerLoggedError):
     """Raised when the crawler reaches an error page or the about:newtab
     page"""
 
@@ -62,8 +62,9 @@ class Crawler:
 
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
-                 torrc_config=None, # torrc override options (dict)
-                 torrc_path="/usr/local/etc/tor/torrc",
+                 torrc_config={"EntryNodes": "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
+                               "ControlPort": "9051",
+                               "CookieAuth": "1"},
                  tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
                  control_port=9051,
                  socks_port=9050, 
@@ -88,15 +89,11 @@ class Crawler:
             self.control_data = {**self.control_data,
                                  **additional_control_fields}
 
-        self.logger.info("Starting tor daemon...")
-        if torrc_config:
-            self.tor_process = launch_tor_with_config(config=torrc_config,
-                                                      take_ownership=take_ownership)
-        else:
-            self.tor_process = launch_tor(torrc_path=torrc_path,
-                                          take_ownership=take_ownership)
+        self.logger.info("Starting tor process with config "
+                         "{torrc_config}.".format(**locals()))
+        self.tor_process = launch_tor_with_config(config=torrc_config,
+                                                  take_ownership=take_ownership)
         self.torrc_config = torrc_config
-        self.torrc_path = torrc_path
         self.take_ownership = take_ownership
         self.logger.info("Authenticating to the tor controlport...")
         self.authenticate_to_tor_controlport(control_port)
@@ -352,12 +349,8 @@ class Crawler:
     def restart_tor(self):
         """Restart tor."""
         self.logger.info("Restarting the tor process...")
-        if self.torrc_config:
-            self.tor_process = launch_tor_with_config(config=self.torrc_config,
-                                                      take_ownership=self.take_ownership)
-        else:
-            self.tor_process = launch_tor(torrc_path=self.torrc_path,
-                                          take_ownership=self.take_ownership)
+        self.tor_process = launch_tor_with_config(config=self.torrc_config,
+                                                  take_ownership=self.take_ownership)
         self.controller = Controller.from_port(port=self.control_port)
         self.authenticate_to_tor_controlport(self.control_port)
         self.logger.info("Tor successfully restarted.")
@@ -372,6 +365,7 @@ class Crawler:
         self.logger.info("Saving set of {set_size} traces to "
                          "{trace_dir}.".format(**locals()))
 
+        url_set = list(url_set)
         if shuffle:
             random.shuffle(url_set)
 
@@ -417,6 +411,9 @@ class Crawler:
 
         nonmonitored_class_ct = len(nonmonitored_class)
         chunk_size = int(nonmonitored_class_ct / ratio)
+        nonmonitored_class = list(nonmonitored_class)
+        if shuffle:
+            random.shuffle(nonmonitored_class)
 
         for iteration in range(ratio):
 
@@ -438,7 +435,6 @@ class Crawler:
 
 
 if __name__ == "__main__":
-
     import configparser
     import pickle
 
@@ -447,20 +443,15 @@ if __name__ == "__main__":
     config = config["crawler"]
 
     with open(join(_log_dir, config["class_data"]), 'rb') as pj:
-        sds = pickle.load(pj)
-        not_sds = pickle.load(pj)
-
-    additional_control_fields = {}
-    # Todo: save this as in the pickle file and read it from there instead of
-    # hardcoding. Requires modification to sorter.py
-    additional_control_fields["sd_version"] = "0.3.8"
+        class_data = pickle.load(pj)
+    monitored_class_name, nonmonitored_class_name = class_data.keys()
 
     with Crawler(page_load_timeout=int(config["page_load_timeout"]),
                  wait_on_page=int(config["wait_on_page"]),
                  wait_after_closing_circuits=int(config["wait_after_closing_circuits"]),
-                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"]),
-                 additional_control_fields=additional_control_fields) as crawler:
-        crawler.crawl_monitored_nonmonitored_classes(sds, not_sds,
-                                                     monitored_class_name="sds",
-                                                     nonmonitored_class_name="not-sds",
+                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"])) as crawler:
+        crawler.crawl_monitored_nonmonitored_classes(class_data[monitored_class_name],
+                                                     class_data[nonmonitored_class_name],
+                                                     monitored_class_name=monitored_class_name,
+                                                     nonmonitored_class_name=nonmonitored_class_name,
                                                      ratio=int(config["monitored_nonmonitored_ratio"]))
