@@ -289,7 +289,7 @@ class Sorter:
                          "{pickle_jar}".format(**locals()))
         with open(pickle_jar, "wb") as pj:
                 pickle.dump(self.class_data, pj)
-        symlink_cur_to_latest("class-data", ts, "pickle")
+        symlink_cur_to_latest(join(_log_dir, "class-data"), ts, "pickle")
 
 if __name__ == "__main__":
     import configparser
