@@ -5,6 +5,8 @@
 #    pip-compile --output-file sorter-requirements.txt sorter-requirements.in
 #
 
+psycopg2==2.6.2
+SQLAlchemy==1.0.14
 aiohttp==0.22.0a0
 aiosocks==0.1.6
 chardet==2.3.0            # via aiohttp
