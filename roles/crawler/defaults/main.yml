@@ -10,10 +10,10 @@ crawler_apt_packages:
   - libgtk2.0-0 # tbb (firefox)
 
 tbb_arch: 64
-tbb_release: 6.0.2
+tbb_release: 6.0.3
 tbb_locale: en-US
 
-tor_release: 0.2.7.6
+tor_release: 0.2.8.6
 
 entry_node: 1B60184DB9B96EA500A19C52D88F145BA5EC93CD
 
