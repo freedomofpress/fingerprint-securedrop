@@ -1,3 +1,2 @@
 ---
 - include: install-python-deps.yml
-- include: install-systemd-unit.yml
