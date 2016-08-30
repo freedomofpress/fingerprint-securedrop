@@ -19,6 +19,7 @@ from sys import exit, exc_info
 from time import sleep
 import urllib.parse
 from urllib.request import urlopen
+import datetime
 
 from site import addsitedir
 _repo_root = dirname(abspath(__file__))
@@ -35,6 +36,9 @@ from version import __version__ as _version
 from selenium.common.exceptions import WebDriverException, TimeoutException
 import http.client
 from traceback import format_exception
+
+import database
+
 
 # The Crawler handles most errors internally so the user does not have to worry
 # about exception handling
@@ -76,7 +80,8 @@ class Crawler:
                  wait_on_page=5,
                  wait_after_closing_circuits=0,
                  restart_on_sketchy_exception=False,
-                 additional_control_fields={}):
+                 additional_control_fields={},
+                 db_handler=None):
 
         self.logger = setup_logging(_log_dir, "crawler")
 
@@ -119,8 +124,9 @@ class Crawler:
         self.tb_driver.set_page_load_timeout(page_load_timeout)
         self.wait_on_page = wait_on_page
         self.restart_on_sketchy_exception = restart_on_sketchy_exception
-
-
+        self.db_handler = db_handler
+        if db_handler:
+            self.crawlid = self.db_handler.add_crawl(self.control_data)
 
     def authenticate_to_tor_controlport(self, control_port):
         try:
@@ -135,7 +141,6 @@ class Crawler:
             print("Unable to authenticate to tor controlport. Please add "
                   "`CookieAuth 1` to your tor configuration file.")
             exit(1)
-
 
     def get_control_data(self):
         """Gather metadata about the crawler instance."""
@@ -155,6 +160,7 @@ class Crawler:
         except urllib.error.HTTPError:
             self.logger.warning("Unable to query ASN API and thus some "
                                 "control data may be missing from this run.")
+            control_data["asn"], control_data["city"], control_data["country"] = (None,)*3
         with codecs.open(join(_repo_root,
                               "../roles/crawler/defaults/main.yml")) as y_fh:
             yml_str = y_fh.read()
@@ -165,10 +171,8 @@ class Crawler:
         control_data["crawler_version"] = _version
         return control_data
 
-
     def __enter__(self):
         return self
-
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.logger.info("Exiting the Crawler...")
@@ -182,7 +186,6 @@ class Crawler:
         self.logger.info("Quitting the Tor process...")
         self.controller.close()
         self.logger.info("Crawler exit complete.")
-
 
     def collect_onion_trace(self, url, extra_fn=None, trace_dir=None,
                             iteration=0):
@@ -239,6 +242,13 @@ class Crawler:
         with open(trace_path+"-full", "wb") as fh:
             fh.write(full_trace)
 
+        # at this point, save the example and trace to the database
+        if self.db_handler:
+            new_example = {'hsid': self.hs_url_to_id_mapping[url],
+                           'crawlid': self.crawlid,
+                           't_scrape': datetime.datetime.now().isoformat()} 
+            exampleid = self.db_handler.add_example(new_example)
+            self.db_handler.add_trace(str(full_trace), exampleid)
         return "succeeded"
 
 
@@ -415,13 +425,20 @@ class Crawler:
 
         nonmonitored_class_ct = len(nonmonitored_class)
         chunk_size = int(nonmonitored_class_ct / ratio)
+
+        # let's see if the database integration is on
+        if type(nonmonitored_class) == dict:
+             # then we are using the database integration
+             self.hs_url_to_id_mapping = nonmonitored_class
+             self.hs_url_to_id_mapping.update(monitored_class)
+
         nonmonitored_class = list(nonmonitored_class)
         if shuffle:
             random.shuffle(nonmonitored_class)
 
         for iteration in range(ratio):
 
-            self.logger.info("Beggining iteration {} of {ratio} in the "
+            self.logger.info("Beginning iteration {} of {ratio} in the "
                              "{monitored_class_name} "
                              "class".format(iteration + 1, **locals()))
             self.collect_set_of_traces(monitored_class,
@@ -446,14 +463,19 @@ if __name__ == "__main__":
     config.read(join(_repo_root, "config.ini"))
     config = config["crawler"]
 
-    with open(join(_log_dir, config["class_data"]), 'rb') as pj:
-        class_data = pickle.load(pj)
-    monitored_class_name, nonmonitored_class_name = class_data.keys()
+    if config["use_database"]:
+        fpdb = database.RawStorage()
+        class_data = fpdb.get_onions(config["hs_history_lookback"])
+    else:
+        fpdb = None 
+        with open(join(_log_dir, config["class_data"]), 'rb') as pj:
+            class_data = pickle.load(pj)
+    nonmonitored_class_name, monitored_class_name = class_data.keys()
 
     with Crawler(page_load_timeout=int(config["page_load_timeout"]),
                  wait_on_page=int(config["wait_on_page"]),
                  wait_after_closing_circuits=int(config["wait_after_closing_circuits"]),
-                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"])) as crawler:
+                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"]), db_handler=fpdb) as crawler:
         crawler.crawl_monitored_nonmonitored_classes(class_data[monitored_class_name],
                                                      class_data[nonmonitored_class_name],
                                                      monitored_class_name=monitored_class_name,
