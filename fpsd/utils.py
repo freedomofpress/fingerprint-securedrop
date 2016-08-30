@@ -3,6 +3,33 @@
 import os
 import logging
 from datetime import datetime as dt
+import datetime
+
+
+def get_lookback(lookback_length):
+    """Take a string from the user and return a 
+    datetime.timedelta object
+    """
+
+    time_units = {'weeks': 0, 'days': 0, 'hours': 0} 
+    time_shortunits = [x[0] for x in time_units.keys()]
+    lookback_unit = lookback_length[-1:]
+    lookback_value = lookback_length[:-1]
+
+    if not str.isalpha(lookback_unit):
+        raise TypeError("No unit found")
+    elif lookback_unit not in time_shortunits: 
+        raise TypeError("That unit is not suppported")
+
+    for unit in list(time_units.keys()):
+        # if the last letter of lookback_length is supported
+        if unit[0] == lookback_unit:
+            time_units[unit] = int(lookback_value)
+
+    lookback_timedelta = datetime.timedelta(weeks=time_units['weeks'],
+                                            days=time_units['days'],
+                                            hours=time_units['hours'])
+    return lookback_timedelta
 
 
 def timestamp():
