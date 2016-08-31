@@ -71,10 +71,12 @@ service.
 
 ## Getting Started
 
-This repo uses submodules, so use `git clone --recursive`.
+This repo uses submodules, so use `git clone --recursive`. You will also need to
+install the following:
 
-* Requires Ansible >= 2.0
-* Requires Vagrant
+* Ansible 1.9.6
+* Vagrant 1.8.5
+* VirtualBox 5.1.4
 
 To get a properly configured VM bootstrapped for crawling, run:
 
