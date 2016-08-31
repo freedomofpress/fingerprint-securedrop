@@ -4,8 +4,7 @@
 #
 #    pip-compile --output-file sorter-requirements.txt sorter-requirements.in
 #
-
-aiohttp==0.22.0a0
-aiosocks==0.1.6
+aiohttp==0.22.5
+aiosocks==0.1.7
 chardet==2.3.0            # via aiohttp
-multidict==1.0.3          # via aiohttp
+multidict==1.2.2          # via aiohttp
