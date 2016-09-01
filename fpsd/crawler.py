@@ -146,11 +146,15 @@ class Crawler:
         control_data["python_version"] = platform.python_version()
         ip = urlopen("https://api.ipify.org").read().decode()
         control_data["ip"] = ip
-        asn_geoip = urlopen("http://api.moocher.io/ip/{}".format(ip))
-        asn_geoip = literal_eval(asn_geoip.read().decode())
-        control_data["asn"] = asn_geoip.get("ip").get("as").get("asn")
-        control_data["city"] = asn_geoip.get("ip").get("city")
-        control_data["country"] = asn_geoip.get("ip").get("country")
+        try:
+            asn_geoip = urlopen("http://api.moocher.io/ip/{}".format(ip))
+            asn_geoip = literal_eval(asn_geoip.read().decode())
+            control_data["asn"] = asn_geoip.get("ip").get("as").get("asn")
+            control_data["city"] = asn_geoip.get("ip").get("city")
+            control_data["country"] = asn_geoip.get("ip").get("country")
+        except urllib.error.HTTPError:
+            self.logger.warning("Unable to query ASN API and thus some "
+                                "control data may be missing from this run.")
         with codecs.open(join(_repo_root,
                               "../roles/crawler/defaults/main.yml")) as y_fh:
             yml_str = y_fh.read()
