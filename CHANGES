@@ -4,6 +4,39 @@ Fingerprint SecureDrop Changelog
 Here you can see the full list of changes between each Fingerprint SecureDrop
 release.
 
+Version 1.3.1
+-------------
+* Switch to bento boxes to avoid workaround to provision process due to
+  ubuntu/xenial64's lack of vboxfs support.
+* Update Python dependencies.
+* Update version of tor-browser-selenium submodule.
+* Update tor and Tor Browser versions.
+* Include pip-update.sh script to update dependencies.
+* Fix missing task to install crawler systemd unit.
+
+Version 1.3
+-----------
+* Heavy refactor of crawler (see
+  https://github.com/freedomofpress/FingerprintSecureDrop/commit/74f04daf03a88e99e5be8ba8c7dde05aa8dec17c)
+* Updates to idempotence of building custom Tor binary--drastically increasing
+  re-provisioning speed.
+* Add systemd unit for crawler.
+
+Version 1.2
+-----------
+* Implement the `self.control_data` object in Crawler. This collects metadata
+  about the the OS, tor and TBB version, Python version, IP, ASN, location, SD
+  version, configuration settings of the crawler, and the crawler version
+  itself. Currently, this is saved as a pickle file inside each "batch" dir, but
+  will be entered directly into our PostgresSQL database in the next major
+  release.
+
+Version 1.1
+-----------
+* Rework directory structure to make "fpsd" into a proper Python package.
+* Create the first of a suite of unit tests and a script that will call such
+  suite.
+
 Version 1
 ---------
 * Heavy refactor of the crawler focused on composability, testability, and
@@ -15,18 +48,3 @@ Version 1
 * More detailed logging including printing traces for all unexpected exceptions
   and saving "debug" traces for exceptions known to crash the crawler and
   one other non-fatal condition we intend to investigate.
-
-Version 1.1
------------
-* Rework directory structure to make "fpsd" into a proper Python package.
-* Create the first of a suite of unit tests and a script that will call such
-  suite.
-
-Version 1.2
------------
-* Implement the `self.control_data` object in Crawler. This collects metadata
-  about the the OS, tor and TBB version, Python version, IP, ASN, location, SD
-  version, configuration settings of the crawler, and the crawler version
-  itself. Currently, this is saved as a pickle file inside each "batch" dir, but
-  will be entered directly into our PostgresSQL database in the next major
-  release.
