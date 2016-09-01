@@ -1,0 +1,7 @@
+---
+- name: Install the crawler systemd unit.
+  become: yes
+  copy: 
+    src: "crawler@.service"
+    dest: "/etc/systemd/system/crawler@.service"
+    mode: "0644"
