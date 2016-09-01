@@ -4,7 +4,6 @@
   apt:
     name: "{{ item }}"
     state: latest
-    update_cache: yes
   with_items: "{{ crawler_apt_packages }}"
 
 - name: Download universe sources for tor.
@@ -19,6 +18,7 @@
   apt:
     name: tor
     state: build-dep
+    update_cache: yes
   # Ansible is always reporting changed for this task, so let's
   # inspect the output to determine changed status.
   register: tor_build_dep_result
