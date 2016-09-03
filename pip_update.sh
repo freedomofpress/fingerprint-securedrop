@@ -1,51 +1,42 @@
 #!/bin/bash
-
+#
+# Run periodically to keep Python requirements up-to-date.
 # Usage: ./pip_update.sh
-# Run periodically to keep Python requirements up-to-date
+
 set -e
 
-dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-requirements_dir="${dir}/fpsd/requirements"
-venv="review_env"
+readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+readonly REQUIREMENTS_DIR="${SCRIPT_DIR}/fpsd/requirements"
+readonly VENV="review_env"
+
+# A helper function that prints an error and then exits with failure.
+err() {
+  echo "ERROR: $@" >&2
+  exit 1
+}
 
 # This script should not be run with an active virtualenv. Calling deactivate
-# does not work reliably, so instead we warn then quit.
-if [[ -n $VIRTUAL_ENV ]]; then
-  echo "Please deactivate your virtualenv before running this script."
-  exit 1
+# does not work reliably, so we require the user do it themself.
+if [[ -n "${VIRTUAL_ENV}" ]]; then
+  err "Please deactivate your virtualenv before running this script."
 fi
 
-# Test if pip and virtualenv are available and install them if not
-command -v pip > /dev/null
-pip_installed=$?
-command -v virtualenv > /dev/null
-virualenv_installed=$?
-
-if [[ $pip_installed -ne 0 ]] || [[ $virtualenv_installed -ne 0 ]]; then
-  if [[ -e /etc/os-release ]] && $(grep -i "debian" /etc/os-release > /dev/null); then
-    sudo apt-get install -y python-pip virtualenv
-  else
-    echo "This script requires pip and virtualenv to run."
-    exit
-  fi
-fi
+hash pip3 virtualenv || err "This script requires pip and virtualenv to run."
 
 # Create a temporary virtualenv for the SecureDrop Python packages in our
-# requirements directory
-cd $requirements_dir
+# requirements directory.
+cd "${REQUIREMENTS_DIR}"
 
-trap "rm -rf ${venv}" EXIT
+trap "rm -rf ${VENV}" EXIT
 
-virtualenv -p python $venv
-source "${venv}/bin/activate"
+virtualenv -p python3 "${VENV}" > /dev/null
+source "${VENV}/bin/activate"
 
-pip install --upgrade pip
-pip install pip-tools
+pip install -U pip > /dev/null
+pip install -U pip-tools > /dev/null
 
 # Compile new requirements (.txt) files from our top-level dependency (.in)
 # files. See http://nvie.com/posts/better-package-management/
 for r in "crawler" "sorter"; do
-  # Maybe pip-tools will get its act together and standardize their cert-pinning
-  # syntax and this line will break. One can only hope.
-  pip-compile -U -o "${r}-requirements.txt" "${r}-requirements.in"
+  pip-compile -U -o "${r}-requirements.txt" "${r}-requirements.in" > /dev/null
 done
