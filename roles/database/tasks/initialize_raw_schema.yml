@@ -1,0 +1,29 @@
+---
+- name: List all schemas in the fpsd database.
+  become: true
+  become_user: postgres
+  command: psql -c '\dn'
+  environment: "{{ psql_env }}"
+  register: schemas
+
+- name: Create the raw schema.
+  become: true
+  become_user: postgres
+  command: psql -c 'CREATE SCHEMA raw;'
+  environment: "{{ psql_env }}"
+  when: "'raw' not in schemas.stdout"
+
+- name: List all tables in the raw schema.
+  become: true
+  become_user: postgres
+  command: psql -c '\dt raw.*'
+  environment: "{{ psql_env }}"
+  register: tables
+
+- name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
+  become: true
+  become_user: postgres
+  command: psql -c '{{ lookup("file", item) }}'
+  environment: "{{ psql_env }}"
+  with_items: "{{ raw_schema_tables }}"
+  when: "item[13:-4] not in tables.stdout"

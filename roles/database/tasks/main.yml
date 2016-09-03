@@ -1,0 +1,4 @@
+---
+- include: install-apt-deps.yml
+- include: initialize-fpsd-db.yml
+- include: initialize_raw_schema.yml

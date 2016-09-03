@@ -11,11 +11,15 @@
     - role: crawler
       tags: crawler
 
-# Todo: currently sorter depends on crawler role for Tor. The sorter role should
-# see if the custom tor binary has been compiled, and if not just install tor
-# from the tor deb repos to save time.
 - name: Install the Apt and Python dependencies of the sorter script.
   hosts: all
   roles:
     - role: sorter
       tags: sorter
+
+- name: Install PostgrSQL and configure the fpsd database.
+  hosts: all
+  roles:
+    - role: database
+      tags: database
+

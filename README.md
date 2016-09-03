@@ -74,9 +74,17 @@ service.
 This repo uses submodules, so use `git clone --recursive`. You will also need to
 install the following:
 
-* Ansible 1.9.6
+* Ansible 2.1.1.0
 * Vagrant 1.8.5
 * VirtualBox 5.1.4
+
+We recommend installing Ansible to a dedicated virtual environment for
+provisioning the VM:
+
+```
+$ mkvirtualenv -p python2.7 fpsd
+(fpsd)$ pip install -U ansible==2.1.1.0
+```
 
 To get a properly configured VM bootstrapped for crawling, run:
 
@@ -122,6 +130,13 @@ it runs: `cd logging/batch-latest`.
 A systemd unit is also provided to run the crawler on repeat. Simply run
 `systemctl start crawler@<your username>.service` to start the crawler running
 on repeat.
+
+### Using PostgreSQL for data storage and queries
+
+A random password will be generated for you automatically and will be saved to
+`/tmp/passwordfile` on the Ansible controller (your host machine), and saved to
+a `PGPASSFILE`, `/var/lib/postgresql/pgpass.conf`, on the remote host (the VM
+Ansible provisions for you).
 
 ### Deploying to remote servers
 
