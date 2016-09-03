@@ -1,4 +1,10 @@
 ---
+- name: Record present roles.
+  become: true
+  become_user: postgres
+  command: psql -c "SELECT rolname FROM pg_roles;"
+  register: postgres_roles
+
 - name: Create fp_user PostgreSQL user.
   become: true
   become_user: postgres
@@ -7,6 +13,14 @@
     # We don't include punctuation to avoid needing to escape ':' and '\' in the
     # PGPASSFILE
     password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters,digits') }}"
+  when: "'fp_user' not in postgres_roles.stdout"
+
+- name: Test if a PostgreSQL password file is present.
+  become: true
+  stat:
+    path: /var/lib/postgresql/pgpass.conf
+  register: password_file
+  
 
 - name: Create the PostgreSQL password file.
   become: true
@@ -16,6 +30,7 @@
     mode: "0600"
     owner: postgres
     group: postgres
+  when: not password_file.stat.exists
 
 - name: Create the fpsd database.
   become: true
