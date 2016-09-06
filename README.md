@@ -133,10 +133,28 @@ on repeat.
 
 ### Using PostgreSQL for data storage and queries
 
-A random password will be generated for you automatically and will be saved to
+The data collection programs - the sorter and crawler - are integrated with a PostgreSQL database. When the `use_database` option is set to True in the sorter part of `config.ini`, the sorter will save its sorted onion addresses in the database. When the `use_database` option is set to True in the crawler part of `config.ini`, the crawler will grab onions from the database, connect to them, measure traces and store them back in the database. In order to use these features, the following PostgreSQL environmental variables must be defined: 
+
+```
+export PGHOST=localhost
+export PGUSER=myusername
+export PGPORT=5432
+export PGPASSWORD=mypassword
+export PGDATABASE=mydb
+```
+
+On the vagrant machine, a random password will be generated for you automatically and will be saved to
 `/tmp/passwordfile` on the Ansible controller (your host machine), and saved to
 a `PGPASSFILE`, `/var/lib/postgresql/pgpass.conf`, on the remote host (the VM
 Ansible provisions for you).
+
+#### Database Design
+
+We store the raw data in the `raw` schema and the derived features in the `features` schema. The sorter writes to `raw.hs_history`, inserting one row per sorted onion address. The crawler reads from `raw.hs_history` and writes one row per crawl session to `raw.crawls`, one row per trace to `raw.frontpage_examples`, and one row per cell in the trace to `raw.frontpage_traces`. 
+
+The current design of the database is shown in the following figure:
+
+![](doc/images/dbdesign.png)
 
 ### Deploying to remote servers
 
