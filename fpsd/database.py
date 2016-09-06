@@ -5,6 +5,10 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, MetaData
 import datetime
+import re
+import os
+
+from utils import get_lookback
 
 
 @contextmanager
@@ -24,18 +28,12 @@ def safe_session(engine):
 
 class RawStorage(object):
     """Store raw crawled data in the database"""
-    def __init__(self, dbconfig):
+    def __init__(self):
         """Read current structure from database"""
 
-        dbcreds = {}
-        with open(dbconfig) as f:
-            for line in f.readlines():
-                row = line.split(" ")[1].split("=")
-                dbcreds[row[0]] = row[1].strip()
-
         self.engine = create_engine('postgresql://{}:{}@{}/{}'.format(
-            dbcreds['PGUSER'], dbcreds['PGPASSWORD'],
-            dbcreds['PGHOST'], dbcreds['PGDATABASE']))
+            os.environ['PGUSER'], os.environ['PGPASSWORD'],
+            os.environ['PGHOST'], os.environ['PGDATABASE']))
 
         # Generate mappings from existing tables
         metadata = MetaData(schema='raw')

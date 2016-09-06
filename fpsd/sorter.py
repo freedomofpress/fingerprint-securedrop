@@ -20,6 +20,9 @@ import re
 from stem.process import launch_tor_with_config
 import ssl
 
+import database
+
+
 _repo_root = dirname(abspath(__file__))
 _log_dir = join(_repo_root, "logging")
 
@@ -291,6 +294,11 @@ class Sorter:
                 pickle.dump(self.class_data, pj)
         symlink_cur_to_latest(join(_log_dir, "class-data"), ts, "pickle")
 
+    def upload_onions(self):
+        db = database.RawStorage()
+        db.add_onions(self.class_data) 
+
+
 if __name__ == "__main__":
     import configparser
     config = configparser.ConfigParser()
@@ -301,3 +309,5 @@ if __name__ == "__main__":
                 max_tasks = int(config["max_tasks"])) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
         sorter.sort_onions(eval("OrderedDict(" + config["class_tests"] + ")"))
+        if config.getboolean("use_database"):
+            sorter.upload_onions()
