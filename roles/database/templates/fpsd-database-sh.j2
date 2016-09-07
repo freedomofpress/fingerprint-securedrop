@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Set environment variables for all users/shells on system to access the 
+# website fingerprinting Postgres database.
+#
+# This file was auto-generated during provisioning of this machine by Ansible
+# using a Jinja2 template.
+
+{% for k, v in psql_env.items() %}
+export {{ k }}={{ v }}
+{% endfor %}

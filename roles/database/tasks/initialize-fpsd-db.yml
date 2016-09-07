@@ -42,3 +42,12 @@
     lc_collate: en_US.UTF-8
     lc_ctype: en_US.UTF-8
     template: template0
+
+- name: Set database environment variables in `/etc/profile.d/fpsd-database.sh`.
+  become: true
+  template:
+    src: fpsd-database-sh.j2
+    dest: /etc/profile.d/fpsd-database.sh
+    mode: "0644"
+    owner: root
+    group: root
