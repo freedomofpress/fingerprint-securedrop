@@ -2,7 +2,7 @@
 - name: List all schemas in the fpsd database.
   become: true
   become_user: postgres
-  command: psql -c '\dn'
+  command: psql -c '\dn' fpsd
   environment: "{{ psql_env }}"
   register: schemas
 
