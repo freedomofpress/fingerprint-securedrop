@@ -114,23 +114,8 @@ class RawStorage(object):
         return class_data
 
     def add_crawl(self, control_data):
-        """Insert row for new crawl into the crawls table"""
-        new_crawl = self.Crawl(
-            page_load_timeout=control_data["page_load_timeout"],
-            wait_on_page=control_data["wait_on_page"],
-            wait_after_closing_circuits=control_data["wait_after_closing_circuits"],
-            entry_node=control_data["entry_node"],
-            os=control_data["os_distribution"],
-            kernel=control_data["kernel"],
-            kernel_version=control_data["kernel_version"],
-            python_version=control_data["python_version"],
-            tor_version=control_data["tor_version"],
-            tb_version=control_data["tb_version"],
-            crawler_version=control_data["crawler_version"],
-            city=control_data["city"],
-            country=control_data["country"],
-            asn=control_data["asn"],
-            ip=control_data["ip"])
+        """Insert row for new crawl into the crawls table."""
+        new_crawl = self.Crawl(**control_data)
 
         with safe_session(self.engine) as session:
             session.add(new_crawl)

@@ -147,7 +147,7 @@ class Crawler:
         control_data = {}
         control_data["kernel"] = platform.system()
         control_data["kernel_version"] = platform.release()
-        control_data["os_distribution"] = platform.version()
+        control_data["os"] = platform.version()
         control_data["python_version"] = platform.python_version()
         ip = urlopen("https://api.ipify.org").read().decode()
         control_data["ip"] = ip
