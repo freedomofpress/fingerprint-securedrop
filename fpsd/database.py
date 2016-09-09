@@ -8,6 +8,7 @@ from collections import OrderedDict
 import datetime
 import re
 import os
+from sys import exit
 
 from utils import get_lookback
 
@@ -31,10 +32,22 @@ class RawStorage(object):
     """Store raw crawled data in the database"""
     def __init__(self):
         """Read current structure from database"""
-
-        self.engine = create_engine('postgresql://{}:{}@{}/{}'.format(
-            os.environ['PGUSER'], os.environ['PGPASSWORD'],
-            os.environ['PGHOST'], os.environ['PGDATABASE']))
+        try:
+            self.engine = create_engine(
+                'postgresql://{}:@{}/{}'.format(
+                    *[os.environ[i] for i in
+                      ["PGUSER", "PGHOST", "PGDATABASE"]]))
+        except KeyError as exc:
+            print("The following env vars must be set in order to know which "
+                  "database to connect to: PGUSER, PGHOST, & PGDATABASE."
+                  "\n{}.".format(exc))
+            exit(1)
+        except OperationalError as exc:
+            print("FingerprintSecureDrop Postgres support relies on use of a "
+                  "PGPASSFILE. Make sure this file and the env var pointing "
+                  "to it exist and set 0600 permissions & user ownership."
+                  "\n{}.".format(exc))
+            exit(1)
 
         # Generate mappings from existing tables
         metadata = MetaData(schema='raw')

@@ -16,19 +16,17 @@
   when: "'fp_user' not in postgres_roles.stdout"
 
 - name: Test if a PostgreSQL password file is present.
-  become: true
   stat:
-    path: /var/lib/postgresql/pgpass.conf
+    path: "~{{ ansible_ssh_user }}/.pgpass"
   register: password_file
   
 - name: Create the PostgreSQL password file.
-  become: true
   template:
     src: pgpass_conf.j2
-    dest: /var/lib/postgresql/pgpass.conf
+    dest: "~{{ ansible_ssh_user }}/.pgpass"
     mode: "0600"
-    owner: postgres
-    group: postgres
+    owner: "{{ ansible_ssh_user }}"
+    group: "{{ ansible_ssh_user }}"
   when: not password_file.stat.exists
 
 - name: Create the fpsd database.
