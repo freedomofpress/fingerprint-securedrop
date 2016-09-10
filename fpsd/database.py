@@ -1,13 +1,12 @@
-#!/usr/bin/env python3.5
-
+from collections import OrderedDict
 from contextlib import contextmanager
+from datetime import datetime as dt
+import os
+import re
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.engine.url import URL as SQL_connect_URL
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, MetaData
-from collections import OrderedDict
-import datetime
-import re
-import os
 
 from utils import get_lookback, panic
 

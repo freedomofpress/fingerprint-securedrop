@@ -1,7 +1,8 @@
 #!/usr/bin/env python3.5
-
+#
 # Automates visiting onion services using Tor Browser in a virtual framebuffer
-# and logs Tor cell traces from them
+# and logs Tor cell traces from them to either a Postgres database or plaintext
+# files.
 
 from ast import literal_eval
 import codecs
@@ -36,8 +37,6 @@ from version import __version__ as _version
 from selenium.common.exceptions import WebDriverException, TimeoutException
 import http.client
 from traceback import format_exception
-
-import database
 
 
 # The Crawler handles most errors internally so the user does not have to worry
@@ -149,6 +148,8 @@ class Crawler:
         control_data["python_version"] = platform.python_version()
         ip = urlopen("https://api.ipify.org").read().decode()
         control_data["ip"] = ip
+        # This API seems to be unstable and we haven't found a suitable
+        # alternative :(
         try:
             asn_geoip = urlopen("http://api.moocher.io/ip/{}".format(ip))
             asn_geoip = literal_eval(asn_geoip.read().decode())
@@ -458,13 +459,12 @@ class Crawler:
 
 if __name__ == "__main__":
     import configparser
-    import pickle
-
     config = configparser.ConfigParser()
     config.read(join(_repo_root, "config.ini"))
     config = config["crawler"]
 
     if config["use_database"]:
+        import database
         fpdb = database.RawStorage()
         class_data = fpdb.get_onions(config["hs_history_lookback"])
     else:

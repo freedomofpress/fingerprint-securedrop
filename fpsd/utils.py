@@ -1,8 +1,6 @@
-#!/usr/bin/env python3.5
-
-import os
 from datetime import datetime, timedelta
 import logging
+import os
 from sys import exit
 
 def panic(error_msg):
