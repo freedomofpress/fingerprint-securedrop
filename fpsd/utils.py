@@ -1,9 +1,8 @@
 #!/usr/bin/env python3.5
 
 import os
+from datetime import datetime, timedelta
 import logging
-from datetime import datetime as dt
-import datetime
 from sys import exit
 
 def panic(error_msg):
@@ -39,8 +38,11 @@ def get_lookback(lookback_length):
     return lookback_timedelta
 
 
-def timestamp():
-    return dt.now().strftime('%m-%d_%H:%M:%S')
+def get_timestamp(format):
+    if type == "log":
+        return datetime.now().strftime('%m-%d_%H:%M:%S')
+    elif type == "db":
+        return datetime.now().isoformat()
 
 def timestamp_file(filepath, ts, ext="", is_dir=False):
     filepath += "_{}".format(ts)
@@ -53,7 +55,7 @@ def timestamp_file(filepath, ts, ext="", is_dir=False):
 
 def setup_logging(dir, filename):
     filepath = os.path.join(dir, filename)
-    ts = timestamp()
+    ts = get_timestamp("log")
     ts_filepath = timestamp_file(filepath, ts, ext="log")
 
     logging.basicConfig(level=logging.INFO,

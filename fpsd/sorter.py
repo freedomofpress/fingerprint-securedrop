@@ -15,7 +15,7 @@ from aiosocks.connector import SocksConnector
 from collections import OrderedDict
 from os.path import abspath, dirname, join
 import pickle
-from utils import setup_logging, symlink_cur_to_latest, timestamp
+from utils import setup_logging, symlink_cur_to_latest, get_timestamp
 import re
 from stem.process import launch_tor_with_config
 import ssl
@@ -286,7 +286,7 @@ class Sorter:
 
 
     def pickle_onions(self):
-        ts = timestamp()
+        ts = get_timestamp("log")
         pickle_jar = join(_log_dir, "class-data_{}.pickle".format(ts))
         self.logger.info("Pickling class data to "
                          "{pickle_jar}".format(**locals()))

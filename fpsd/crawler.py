@@ -19,7 +19,6 @@ from sys import exc_info
 from time import sleep
 import urllib.parse
 from urllib.request import urlopen
-import datetime
 
 from site import addsitedir
 _repo_root = dirname(abspath(__file__))
@@ -246,7 +245,7 @@ class Crawler:
             try:
                 new_example = {'hsid': hsid,
                                'crawlid': self.crawlid,
-                               't_scrape': get_timestamp("db")} 
+                               't_scrape': get_timestamp("db")}
             except NameError:
                 panic("If using the database, and calling collect_onion_trace "
                       "directly, you must specify the hsid of the site.")
@@ -258,7 +257,7 @@ class Crawler:
     def make_ts_dir(self, parent_dir=_log_dir, raw_dir_name="batch"):
         """Creates a timestamped folder to hold a group of traces."""
         raw_dirpath = join(parent_dir, raw_dir_name)
-        ts = timestamp()
+        ts = get_timestamp("log")
         ts_dir = timestamp_file(raw_dirpath, ts, is_dir=True)
         symlink_cur_to_latest(raw_dirpath, ts)
 

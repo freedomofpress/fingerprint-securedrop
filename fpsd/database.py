@@ -61,7 +61,7 @@ class RawStorage(object):
     def add_onions(self, class_data):
         """Add sorted onions into the HS history table"""
         onions = []
-        ts = datetime.datetime.now().isoformat()
+        ts = dt.now().isoformat()
         for class_type in class_data:
             for hs_entry in class_data[class_type]:
                 onions.append(self.Onion(
