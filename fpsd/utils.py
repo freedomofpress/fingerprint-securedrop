@@ -12,18 +12,16 @@ def panic(error_msg):
     exit(1)
 
 def get_lookback(lookback_length):
-    """Take a string from the user and return a 
-    datetime.timedelta object
-    """
-
+    """Take a string from the user and return a datetime.timedelta object."""
     time_units = {'weeks': 0, 'days': 0, 'hours': 0} 
     time_shortunits = [x[0] for x in time_units.keys()]
-    lookback_unit = lookback_length[-1:]
+    lookback_unit = lookback_length[-1]
     lookback_value = lookback_length[:-1]
 
-    try: 
-        lookback_unit = time_units.keys()[time_shortunits.index(lookback_unit)]
-    except ValueError:
+    try:
+        lookback_unit = next(i for i in list(time_units) if
+                             i.startswith(lookback_unit))
+    except StopIteration:
         panic("hs_history_lookback time unit {lookback_unit} is not "
             "suppported. Please choose one of: "
             "{time_shortunits}.".format(**locals()))
@@ -34,14 +32,10 @@ def get_lookback(lookback_length):
               "single time unit element from {time_shortunits}.\n"
               "ValueError: {exc}".format(**locals()))
 
-    for unit in list(time_units.keys()):
-        # if the last letter of lookback_length is supported
-        if unit[0] == lookback_unit:
-            time_units[unit] = int(lookback_value)
+    lookback_timedelta = timedelta(weeks=time_units['weeks'],
+                                   days=time_units['days'],
+                                   hours=time_units['hours'])
 
-    lookback_timedelta = datetime.timedelta(weeks=time_units['weeks'],
-                                            days=time_units['days'],
-                                            hours=time_units['hours'])
     return lookback_timedelta
 
 
