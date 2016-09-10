@@ -71,19 +71,18 @@ service.
 
 ## Getting Started
 
-This repo uses submodules, so use `git clone --recursive`. You will also need to
-install the following:
+This repo uses submodules, so use `git clone --recursive`. You'll also need:
 
-* Ansible 2.1.1.0
-* Vagrant 1.8.5
-* VirtualBox 5.1.4
+* Ansible >=2
+* Vagrant
+* VirtualBox
 
 We recommend installing Ansible to a dedicated virtual environment for
 provisioning the VM:
 
 ```
-$ mkvirtualenv -p python2.7 fpsd
-(fpsd)$ pip install -U ansible==2.1.1.0
+$ mkvirtualenv -p python2 fpsd
+(fpsd)$ pip install -U ansible
 ```
 
 To get a properly configured VM bootstrapped for crawling, run:
