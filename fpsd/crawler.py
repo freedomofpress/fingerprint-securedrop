@@ -158,7 +158,6 @@ class Crawler:
         except urllib.error.HTTPError:
             self.logger.warning("Unable to query ASN API and thus some "
                                 "control data may be missing from this run.")
-            control_data["asn"], control_data["city"], control_data["country"] = (None,)*3
         with codecs.open(join(_repo_root,
                               "../roles/crawler/defaults/main.yml")) as y_fh:
             yml_str = y_fh.read()
