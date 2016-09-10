@@ -185,7 +185,7 @@ class Crawler:
         self.controller.close()
         self.logger.info("Crawler exit complete.")
 
-    def collect_onion_trace(self, url, extra_fn=None, trace_dir=None,
+    def collect_onion_trace(self, url, hsid=None, extra_fn=None, trace_dir=None,
                             iteration=0):
         """Crawl an onion service and collect a complete cell sequence for the
         activity at the time. Also, record additional information about the
@@ -237,8 +237,6 @@ class Crawler:
         self.logger.info("{url}: saving full trace...".format(**locals()))
         end_idx = self.get_cell_log_pos()
         full_trace = self.get_full_trace(start_idx, end_idx)
-        with open(trace_path+"-full", "wb") as fh:
-            fh.write(full_trace)
 
         # Save the trace to the database or write to file
         if self.db_handler:
@@ -251,6 +249,10 @@ class Crawler:
                       "directly, you must specify the hsid of the site.")
             exampleid = self.db_handler.add_example(new_example)
             self.db_handler.add_trace(str(full_trace), exampleid)
+        else:
+            with open(trace_path+"-full", "wb") as fh:
+                fh.write(full_trace)
+
         return "succeeded"
 
 
@@ -373,14 +375,22 @@ class Crawler:
 
 
     def collect_set_of_traces(self, url_set, extra_fn=None, trace_dir=None,
-                              iteration=0, shuffle=True, retry=True):
+                              iteration=0, shuffle=True, retry=True,
+                              url_to_id_mapping=None):
         """Collect a set of traces."""
-        if not trace_dir:
-            trace_dir = self.make_ts_dir()
+        if self.db_handler:
+            if not url_to_id_mapping:
+                url_to_id_mapping = url_set
+            trace_dir = None
+        elif not self.trace_dir:
+                trace_dir = self.make_ts_dir()
+
         set_size = len(url_set)
         self.logger.info("Saving set of {set_size} traces to "
                          "{trace_dir}.".format(**locals()))
 
+        # Converts both sets (from pickle files) and dicts (whose keys are
+        # URLs--from database) to URL lists
         url_set = list(url_set)
         if shuffle:
             random.shuffle(url_set)
@@ -391,8 +401,12 @@ class Crawler:
             self.logger.info("Collecting trace {} of "
                              "{set_size}...".format(url_idx+1, **locals()))
             url = url_set[url_idx]
+            if self.db_handler:
+                hsid = url_to_id_mapping[url]
+            else:
+                hsid = None
 
-            if (self.collect_onion_trace(url, extra_fn=extra_fn,
+            if (self.collect_onion_trace(url, hsid=hsid, extra_fn=extra_fn,
                                          trace_dir=trace_dir,
                                          iteration=iteration) == "failed"
                 and retry):
@@ -408,50 +422,49 @@ class Crawler:
                                        retry=False)
 
 
-    def crawl_monitored_nonmonitored_classes(self,
-                                             monitored_class,
-                                             nonmonitored_class,
-                                             extra_fn=None,
-                                             shuffle=True,
-                                             retry=True,
-                                             monitored_class_name="monitored",
-                                             nonmonitored_class_name="nonmonitored",
-                                             ratio=40):
+    def crawl_monitored_nonmonitored(self, monitored_class, nonmonitored_class,
+                                     extra_fn=None, shuffle=True, retry=True,
+                                     monitored_name="monitored",
+                                     nonmonitored_name="nonmonitored",
+                                     url_to_id_mapping=None, ratio=40):
         """Crawl a monitored class ratio times interspersed between the
         crawling of a(n ostensibly larger) non-monitored class."""
-        trace_dir = self.make_ts_dir()
-        mon_trace_dir = join(trace_dir, monitored_class_name)
-        mkdir(mon_trace_dir)
-        nonmon_trace_dir = join(trace_dir, nonmonitored_class_name)
-        mkdir(nonmon_trace_dir)
+        if self.db_handler:
+            if not url_to_id_mapping:
+                url_to_id_mapping = nonmonitored_class.update(monitored_class)
+            trace_dir, mon_trace_dir, non_mon_trace_dir = (None,) * 3
+            # Calling list on a dict returns a list of its keys (URLs)
+            nonmonitored_class = list(nonmonitored_class)
+            monitored_class = list(monitored_class)
+        else:
+            trace_dir = self.make_ts_dir()
+            mon_trace_dir = join(trace_dir, monitored_name)
+            mkdir(mon_trace_dir)
+            nonmon_trace_dir = join(trace_dir, nonmonitored_name)
+            mkdir(nonmon_trace_dir)
 
         nonmonitored_class_ct = len(nonmonitored_class)
         chunk_size = int(nonmonitored_class_ct / ratio)
 
-        # let's see if the database integration is on
-        if type(nonmonitored_class) == dict:
-             # then we are using the database integration
-             self.hs_url_to_id_mapping = nonmonitored_class
-             self.hs_url_to_id_mapping.update(monitored_class)
-
-        nonmonitored_class = list(nonmonitored_class)
         if shuffle:
             random.shuffle(nonmonitored_class)
+            random.shuffle(monitored_class)
 
         for iteration in range(ratio):
 
-            self.logger.info("Beginning iteration {} of {ratio} in the "
-                             "{monitored_class_name} "
-                             "class".format(iteration + 1, **locals()))
+            self.logger.info("Beginning iteration {i} of {ratio} in the "
+                             "{monitored_name} class".format(i=iteration+1,
+                                                             **locals()))
             self.collect_set_of_traces(monitored_class,
                                        trace_dir=mon_trace_dir,
-                                       iteration=iteration)
+                                       iteration=iteration,
+                                       url_to_id_mapping=url_to_id_mapping)
 
             slice_lb = iteration * chunk_size
             slice_ub = min((iteration + 1) * chunk_size, nonmonitored_class_ct)
             self.logger.info("Crawling services {} through {slice_ub} of "
                              "{nonmonitored_class_ct} in the "
-                             "{nonmonitored_class_name} "
+                             "{nonmonitored_name} "
                              "class".format(slice_lb + 1, **locals()))
             self.collect_set_of_traces(nonmonitored_class[slice_lb:slice_ub],
                                        trace_dir=nonmon_trace_dir)
@@ -471,14 +484,16 @@ if __name__ == "__main__":
         fpdb = None 
         with open(join(_log_dir, config["class_data"]), 'rb') as pj:
             class_data = pickle.load(pj)
-    nonmonitored_class_name, monitored_class_name = class_data.keys()
+
+    nonmonitored_name, monitored_name = class_data.keys()
 
     with Crawler(page_load_timeout=int(config["page_load_timeout"]),
                  wait_on_page=int(config["wait_on_page"]),
                  wait_after_closing_circuits=int(config["wait_after_closing_circuits"]),
-                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"]), db_handler=fpdb) as crawler:
-        crawler.crawl_monitored_nonmonitored_classes(class_data[monitored_class_name],
-                                                     class_data[nonmonitored_class_name],
-                                                     monitored_class_name=monitored_class_name,
-                                                     nonmonitored_class_name=nonmonitored_class_name,
-                                                     ratio=int(config["monitored_nonmonitored_ratio"]))
+                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"]),
+                 db_handler=fpdb) as crawler:
+        crawler.crawl_monitored_nonmonitored(class_data[monitored__name],
+                                             class_data[nonmonitored__name],
+                                             monitored__name=monitored__name,
+                                             nonmonitored__name=nonmonitored__name,
+                                             ratio=int(config["monitored_nonmonitored_ratio"]))
