@@ -15,7 +15,7 @@ import random
 import stem
 from stem.process import launch_tor_with_config
 from stem.control import Controller
-from sys import exit, exc_info
+from sys import exc_info
 from time import sleep
 import urllib.parse
 from urllib.request import urlopen
@@ -30,7 +30,8 @@ from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
 from tbselenium.utils import start_xvfb, stop_xvfb
 
-from utils import setup_logging, timestamp, timestamp_file, symlink_cur_to_latest
+from utils import (panic, get_timestamp, setup_logging, symlink_cur_to_latest,
+                   timestamp_file)
 from version import __version__ as _version
 
 from selenium.common.exceptions import WebDriverException, TimeoutException
@@ -132,15 +133,13 @@ class Crawler:
         try:
             self.controller = Controller.from_port(port=control_port)
         except stem.SocketError as exc:
-            print("Unable to connect to tor on port {self.control_port}: "
+            panic("Unable to connect to tor on port {self.control_port}: "
                   "{exc}".format(**locals()))
-            exit(1)
         try:
             self.controller.authenticate()
         except stem.connection.MissingPassword:
-            print("Unable to authenticate to tor controlport. Please add "
+            panic("Unable to authenticate to tor controlport. Please add "
                   "`CookieAuth 1` to your tor configuration file.")
-            exit(1)
 
     def get_control_data(self):
         """Gather metadata about the crawler instance."""
@@ -242,11 +241,15 @@ class Crawler:
         with open(trace_path+"-full", "wb") as fh:
             fh.write(full_trace)
 
-        # at this point, save the example and trace to the database
+        # Save the trace to the database or write to file
         if self.db_handler:
-            new_example = {'hsid': self.hs_url_to_id_mapping[url],
-                           'crawlid': self.crawlid,
-                           't_scrape': datetime.datetime.now().isoformat()} 
+            try:
+                new_example = {'hsid': hsid,
+                               'crawlid': self.crawlid,
+                               't_scrape': get_timestamp("db")} 
+            except NameError:
+                panic("If using the database, and calling collect_onion_trace "
+                      "directly, you must specify the hsid of the site.")
             exampleid = self.db_handler.add_example(new_example)
             self.db_handler.add_trace(str(full_trace), exampleid)
         return "succeeded"

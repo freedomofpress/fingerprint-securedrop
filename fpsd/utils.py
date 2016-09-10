@@ -4,7 +4,12 @@ import os
 import logging
 from datetime import datetime as dt
 import datetime
+from sys import exit
 
+def panic(error_msg):
+    """Helper function prints a message to stdout and then exits 1."""
+    print(error_msg)
+    exit(1)
 
 def get_lookback(lookback_length):
     """Take a string from the user and return a 
@@ -16,10 +21,18 @@ def get_lookback(lookback_length):
     lookback_unit = lookback_length[-1:]
     lookback_value = lookback_length[:-1]
 
-    if not str.isalpha(lookback_unit):
-        raise TypeError("No unit found")
-    elif lookback_unit not in time_shortunits: 
-        raise TypeError("That unit is not suppported")
+    try: 
+        lookback_unit = time_units.keys()[time_shortunits.index(lookback_unit)]
+    except ValueError:
+        panic("hs_history_lookback time unit {lookback_unit} is not "
+            "suppported. Please choose one of: "
+            "{time_shortunits}.".format(**locals()))
+    try:
+        time_units[lookback_unit] = int(lookback_value)
+    except ValueError as exc:
+        panic("hs_history_lookback should be an integer value followed by a "
+              "single time unit element from {time_shortunits}.\n"
+              "ValueError: {exc}".format(**locals()))
 
     for unit in list(time_units.keys()):
         # if the last letter of lookback_length is supported

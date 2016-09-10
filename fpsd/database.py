@@ -8,9 +8,8 @@ from collections import OrderedDict
 import datetime
 import re
 import os
-from sys import exit
 
-from utils import get_lookback
+from utils import get_lookback, panic
 
 
 @contextmanager
@@ -38,16 +37,14 @@ class RawStorage(object):
                     *[os.environ[i] for i in
                       ["PGUSER", "PGHOST", "PGDATABASE"]]))
         except KeyError as exc:
-            print("The following env vars must be set in order to know which "
+            panic("The following env vars must be set in order to know which "
                   "database to connect to: PGUSER, PGHOST, & PGDATABASE."
                   "\n{}.".format(exc))
-            exit(1)
         except OperationalError as exc:
-            print("FingerprintSecureDrop Postgres support relies on use of a "
+            panic("FingerprintSecureDrop Postgres support relies on use of a "
                   "PGPASSFILE. Make sure this file and the env var pointing "
                   "to it exist and set 0600 permissions & user ownership."
                   "\n{}.".format(exc))
-            exit(1)
 
         # Generate mappings from existing tables
         metadata = MetaData(schema='raw')
