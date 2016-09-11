@@ -1,4 +1,7 @@
 ---
 - include: install-apt-deps.yml
+  when: initialize_local_db
 - include: initialize-fpsd-db.yml
+  when: initialize_local_db
+- include: set-environment-variables.yml
 - include: initialize-raw-schema.yml

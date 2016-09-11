@@ -5,16 +5,14 @@ postgresql_apt_packages:
   - python-psycopg2
 
 psql_env:
-  PGHOST: localhost
-  PGPORT: "5432"
-  PGDATABASE: fpsd
-  PGUSER: fp_user
-  PGPASSFILE: /var/lib/postgresql/pgpass.conf
+  PGHOST: "{{ PGHOST }}"
+  PGPORT: "{{ PGPORT }}"
+  PGDATABASE: "{{ PGDATABASE }}"
+  PGUSER: "{{ PGUSER }}"
+  PGPASSFILE: .pgpass
 
 raw_schema_tables:
   - create_table_crawls.sql
   - create_table_hs_history.sql
   - create_table_frontpage_examples.sql
   - create_table_frontpage_traces.sql
-
-ssh_username: "{{ ansible_ssh_user }}"

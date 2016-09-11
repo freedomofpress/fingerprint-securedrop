@@ -1,4 +1,7 @@
 # This file was auto-generated during provisioning of this machine by Ansible
 # using a Jinja2 template
-{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:{{ psql_env.PGDATABASE }}:{{
-psql_env.PGUSER }}:{{ lookup('file', '/tmp/passwordfile') }}
+{% if password %}
+{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ password }}
+{% else %}
+{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ lookup('file', '/tmp/passwordfile') }}
+{% endif %}

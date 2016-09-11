@@ -17,9 +17,10 @@
     - role: sorter
       tags: sorter
 
-- name: Install PostgrSQL and configure the fpsd database.
+- name: Install PostgreSQL and configure the fpsd database.
   hosts: all
   roles:
     - role: database
       tags: database
-
+  vars_files:
+    - database-vars.yml

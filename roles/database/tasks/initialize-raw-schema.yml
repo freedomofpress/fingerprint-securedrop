@@ -1,29 +1,24 @@
 ---
-- name: List all schemas in the fpsd database.
-  become: true
-  become_user: postgres
-  command: psql -c '\dn' fpsd
-  environment: "{{ psql_env }}"
-  register: schemas
+- block:
+  - name: List all schemas in the fpsd database.
+    command: psql -c '\dn' fpsd
+    register: schemas
+    changed_when: false
 
-- name: Create the raw schema.
-  become: true
-  become_user: postgres
-  command: psql -c 'CREATE SCHEMA raw;'
-  environment: "{{ psql_env }}"
-  when: "'raw' not in schemas.stdout"
+  - name: Create the raw schema.
+    command: psql -c 'CREATE SCHEMA raw;'
+    when: "'raw' not in schemas.stdout"
 
-- name: List all tables in the raw schema.
-  become: true
-  become_user: postgres
-  command: psql -c '\dt raw.*'
-  environment: "{{ psql_env }}"
-  register: tables
+  - name: List all tables in the raw schema.
+    command: psql -c '\dt raw.*'
+    register: tables
+    changed_when: false
 
-- name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
-  become: true
-  become_user: postgres
-  command: psql -c '{{ lookup("file", item) }}'
+  - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
+    command: psql -c '{{ lookup("file", item) }}'
+    with_items: "{{ raw_schema_tables }}"
+    # Each file is of the form create_table_<table name>.sql, hence the magic
+    # numbers
+    when: "item[13:-4] not in tables.stdout"
+
   environment: "{{ psql_env }}"
-  with_items: "{{ raw_schema_tables }}"
-  when: "item[13:-4] not in tables.stdout"
