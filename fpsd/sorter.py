@@ -1,11 +1,14 @@
 #!/usr/bin/env python3.5
-
-# Pass any number of hidden service directories to a Sorter instance and watch
-# sort() scrape all the .onions the page, then scrape those .onions in turn,
-# searching for SDs and sites that mention SD, sorting them accordingly. Be
-# sure to read the note at the bottom regarding the ProxyConnector and how
-# you'll need to setup Privoxy. Data is dumped into a pickle file.
-# ./logging/class-data-latest.pickle will point you to the most recent results.
+#
+# Call scrape_directories() on any number of hidden service directories and
+# then call sort_onions() on a dict, the keys of which are class names and the
+# values boolean lambda expressions that operate on the object reference "text"
+# (the HTML text of a web page), returning True when the page belongs to the
+# class named by the corresponding key.
+#
+# Data may either be written to a PostgreSQL database or to a pickle file,
+# `fpsd/logging/class-data_<timestamp>.pickle`. Either way, `fpsd/crawler.py`
+# has the utilities to fetch and operate on the data.
 
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
@@ -15,13 +18,12 @@ from aiosocks.connector import SocksConnector
 from collections import OrderedDict
 from os.path import abspath, dirname, join
 import pickle
-from utils import setup_logging, symlink_cur_to_latest, get_timestamp
 import re
 from stem.process import launch_tor_with_config
 import ssl
 
 import database
-
+from utils import get_timestamp, setup_logging, symlink_cur_to_latest
 
 _repo_root = dirname(abspath(__file__))
 _log_dir = join(_repo_root, "logging")
