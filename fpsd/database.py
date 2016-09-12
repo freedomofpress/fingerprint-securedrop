@@ -74,7 +74,7 @@ class RawStorage(object):
         with safe_session(self.engine) as session:
             session.bulk_save_objects(onions)
 
-    def _get_single_onion_class(self, is_monitored):
+    def get_onion_class(self, start_sort_time, is_monitored):
         """Get a class of onions from the database
 
         Args:
@@ -90,7 +90,7 @@ class RawStorage(object):
         onion_class = {}
         with safe_session(self.engine) as session:
             for row in session.query(self.Onion).\
-                       filter(self.Onion.t_sort >= self.start_sort_time).\
+                       filter(self.Onion.t_sort >= start_sort_time).\
                        filter(self.Onion.is_sd == is_monitored):
                 onion_class.update({row.hs_url: row.hsid})
             class_name = row.sorted_class
@@ -99,10 +99,10 @@ class RawStorage(object):
     def get_onions(self, timespan):
         """Get sorted HSes from the database"""
         # Define what time we should pull traces from
-        self.start_sort_time = datetime.datetime.now() - get_lookback(timespan)
+        start_sort_time = dt.now() - get_lookback(timespan)
 
-        hs_mon, hs_mon_name = self._get_single_onion_class(is_monitored=True)
-        hs_nonmon, _ = self._get_single_onion_class(is_monitored=False)
+        hs_mon, hs_mon_name = self.get_onion_class(start_sort_time, is_monitored=True)
+        hs_nonmon, _ = self.get_onion_class(start_sort_time, is_monitored=False)
         
         class_data = OrderedDict()
         class_data['non-monitored'] = hs_nonmon
