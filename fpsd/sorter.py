@@ -61,9 +61,11 @@ class Sorter:
                                "CookieAuth": "1"},
                  socks_port=9050,
                  page_load_timeout=20,
-                 max_tasks=10):
+                 max_tasks=10,
+                 use_database=False):
 
         self.logger = setup_logging(_log_dir, "sorter")
+        self.use_database = use_database
 
         self.logger.info("Opening event loop for Sorter...")
         self.loop = asyncio.get_event_loop()
@@ -262,7 +264,10 @@ class Sorter:
         for w in workers:
             w.cancel()
 
-        self.pickle_onions()
+        if self.use_database:
+            self.upload_onions()
+        else:
+            self.pickle_onions()
 
 
     async def sort_onion(self, class_tests):
@@ -291,14 +296,16 @@ class Sorter:
         ts = get_timestamp("log")
         pickle_jar = join(_log_dir, "class-data_{}.pickle".format(ts))
         self.logger.info("Pickling class data to "
-                         "{pickle_jar}".format(**locals()))
+                         "{pickle_jar}...".format(**locals()))
         with open(pickle_jar, "wb") as pj:
                 pickle.dump(self.class_data, pj)
         symlink_cur_to_latest(join(_log_dir, "class-data"), ts, "pickle")
 
+
     def upload_onions(self):
+        self.logger.info("Saving class data to database...")
         db = database.RawStorage()
-        db.add_onions(self.class_data) 
+        db.add_onions(self.class_data)
 
 
 if __name__ == "__main__":
@@ -307,9 +314,8 @@ if __name__ == "__main__":
     config.read("config.ini")
     config = config["sorter"]
     
-    with Sorter(page_load_timeout = int(config["page_load_timeout"]),
-                max_tasks = int(config["max_tasks"])) as sorter:
+    with Sorter(page_load_timeout = config.getint("page_load_timeout"),
+                max_tasks = config.getint("max_tasks"),
+                use_database = config.getboolean("use_database")) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
         sorter.sort_onions(eval("OrderedDict(" + config["class_tests"] + ")"))
-        if config.getboolean("use_database"):
-            sorter.upload_onions()
