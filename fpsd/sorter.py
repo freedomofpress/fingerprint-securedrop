@@ -275,12 +275,12 @@ class Sorter:
             onion_service = await self.q.get()
             try:
                 response = await self.fetch(onion_service)
-                for class_key in class_tests:
-                    lambda_fn = eval("lambda text: " + class_tests[class_key])
+                for class_name, class_test in class_tests.items():
+                    lambda_fn = eval("lambda text: " + class_test)
                     if lambda_fn(response):
                         self.logger.info("{onion_service}: sorted into "
-                                         "{class_key}.".format(**locals()))
-                        self.class_data[class_key].add(onion_service)
+                                         "{class_name}.".format(**locals()))
+                        self.class_data[class_name].add(onion_service)
                         break
             except SorterLoggedError:
                 self.failed_onions.add(onion_service)
