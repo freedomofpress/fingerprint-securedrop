@@ -61,15 +61,15 @@ class RawStorage(object):
         """Add sorted onions into the HS history table"""
         onions = []
         ts = get_timestamp("db")
-        for class_type in class_data:
-            for hs_entry in class_data[class_type]:
-                onions.append(self.Onion(
-                hs_url='{}{}'.format(hs_entry.split('onion')[0], 'onion'),
-                is_sd=True if 'sd' in class_type else False,
-                sd_version=class_type.split('_')[1] if 'sd' in class_type else 'N/A',
+        for class_name, class_urls in class_data.items():
+            onions += [self.Onion(
+                hs_url='{}{}'.format(hs_url.split('onion')[0], 'onion'),
+                is_sd=True if 'sd' in class_name else False,
+                sd_version=class_name.split('_')[1] if 'sd' in class_name else 'N/A',
                 is_current=True,
-                sorted_class=class_type,
-                t_sort=ts))
+                sorted_class=class_name,
+                t_sort=ts)
+                for hs_url in class_urls]
 
         with safe_session(self.engine) as session:
             session.bulk_save_objects(onions)

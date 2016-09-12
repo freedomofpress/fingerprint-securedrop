@@ -1,8 +1,8 @@
 #!/usr/bin/env python3.5
 #
 # Automates visiting onion services using Tor Browser in a virtual framebuffer
-# and logs Tor cell traces from them to either a Postgres database or plaintext
-# files.
+# and logs Tor cell traces from them to either a PostgreSQL database or
+# plaintext files.
 
 from ast import literal_eval
 import codecs
@@ -487,14 +487,15 @@ if __name__ == "__main__":
             class_data = pickle.load(pj)
 
     nonmonitored_name, monitored_name = class_data.keys()
+    nonmonitored_class, monitored_class = class_data.values()
 
-    with Crawler(page_load_timeout=int(config["page_load_timeout"]),
-                 wait_on_page=int(config["wait_on_page"]),
-                 wait_after_closing_circuits=int(config["wait_after_closing_circuits"]),
-                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"]),
+    with Crawler(page_load_timeout=config.getint("page_load_timeout"),
+                 wait_on_page=config.getint("wait_on_page"),
+                 wait_after_closing_circuits=config.getint("wait_after_closing_circuits"),
+                 restart_on_sketchy_exception=config.getbool("restart_on_sketchy_exception"),
                  db_handler=fpdb) as crawler:
-        crawler.crawl_monitored_nonmonitored(class_data[monitored__name],
-                                             class_data[nonmonitored__name],
-                                             monitored__name=monitored__name,
-                                             nonmonitored__name=nonmonitored__name,
-                                             ratio=int(config["monitored_nonmonitored_ratio"]))
+        crawler.crawl_monitored_nonmonitored(monitored_class,
+                                             nonmonitored_class
+                                             monitored_name=monitored_name,
+                                             nonmonitored_name=nonmonitored_name,
+                                             ratio=config.getint("monitored_nonmonitored_ratio")
