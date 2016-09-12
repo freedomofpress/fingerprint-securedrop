@@ -431,7 +431,8 @@ class Crawler:
         crawling of a(n ostensibly larger) non-monitored class."""
         if self.db_handler:
             if not url_to_id_mapping:
-                url_to_id_mapping = nonmonitored_class.update(monitored_class)
+                url_to_id_mapping = nonmonitored_class
+                url_to_id_mapping.update(monitored_class)
             trace_dir, mon_trace_dir, non_mon_trace_dir = (None,) * 3
             # Calling list on a dict returns a list of its keys (URLs)
             nonmonitored_class = list(nonmonitored_class)
