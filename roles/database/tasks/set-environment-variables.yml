@@ -19,3 +19,11 @@
     dest: "~{{ ansible_user }}/.bashrc"
     mode: "0644"
   with_dict: "{{ psql_env }}"
+
+# A hack
+- name: Set the PGPASSFILE environment variable.
+  lineinfile:
+    line: "export PGPASSFILE=~{{ ansible_user }}/{{psql_env.PGPASSFILE}}"
+    regexp: "^export PGPASSFILE"
+    dest: "~{{ ansible_user }}/.bashrc"
+    mode: "0644"
