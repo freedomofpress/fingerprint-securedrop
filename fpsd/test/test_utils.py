@@ -1,10 +1,7 @@
-#!/usr/bin/env python3.5
-
-import unittest
 import datetime
+import unittest
 
 from utils import get_lookback
-
 
 class LookbackTimeTest(unittest.TestCase):
     def test_one_week(self):
