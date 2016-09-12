@@ -121,9 +121,7 @@ class RawStorage(object):
 
     def add_example(self, example):
         """Insert row for new example into the frontpage_examples table"""
-        new_example = self.Example(
-            hsid=example["hsid"], crawlid=example["crawlid"],
-            t_scrape=example["t_scrape"])
+        new_example = self.Example(**example)
 
         with safe_session(self.engine) as session:
             session.add(new_example)
