@@ -8,7 +8,7 @@
 - name: Create the PostgreSQL password file for a local database.
   template:
     src: pgpass_conf.j2
-    dest: "{{ psql_env.PGPASSFILE }}"
+    dest: "~{{ansible_user}}/{{ psql_env.PGPASSFILE }}"
     mode: "0600"
   when: not password_file.stat.exists
 
