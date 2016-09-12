@@ -88,12 +88,13 @@ class RawStorage(object):
         """
 
         onion_class = {}
+        class_name = ""
         with safe_session(self.engine) as session:
             for row in session.query(self.Onion).\
                        filter(self.Onion.t_sort >= start_sort_time).\
                        filter(self.Onion.is_sd == is_monitored):
                 onion_class.update({row.hs_url: row.hsid})
-            class_name = row.sorted_class
+                class_name = row.sorted_class
         return onion_class, class_name
 
     def get_onions(self, timespan):
