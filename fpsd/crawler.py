@@ -382,7 +382,7 @@ class Crawler:
             if not url_to_id_mapping:
                 url_to_id_mapping = url_set
             trace_dir = None
-        elif not self.trace_dir:
+        elif not trace_dir:
                 trace_dir = self.make_ts_dir()
 
         set_size = len(url_set)
@@ -495,7 +495,7 @@ if __name__ == "__main__":
                  restart_on_sketchy_exception=config.getbool("restart_on_sketchy_exception"),
                  db_handler=fpdb) as crawler:
         crawler.crawl_monitored_nonmonitored(monitored_class,
-                                             nonmonitored_class
+                                             nonmonitored_class,
                                              monitored_name=monitored_name,
                                              nonmonitored_name=nonmonitored_name,
-                                             ratio=config.getint("monitored_nonmonitored_ratio")
+                                             ratio=config.getint("monitored_nonmonitored_ratio"))
