@@ -4,6 +4,7 @@ fpsd/logging/
 # vim
 *.un~
 *.swp
+*.swo
 
 # Python bytecode
 *.pyc
