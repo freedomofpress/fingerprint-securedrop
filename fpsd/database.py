@@ -74,19 +74,19 @@ class RawStorage(object):
         with safe_session(self.engine) as session:
             session.bulk_save_objects(onions)
 
-    def get_onion_class(self, start_sort_time, is_monitored):
-        """Get a class of onions from the database
-
+    def get_onion_class(self, timespan, is_monitored):
+        """Get a class of onions from the database.
         Args:
-            is_monitored: boolean determining whether to get
-            monitored HSes or non-monitored HSes
-
+            timespan: string of the form "<integer>{w,m,h}", which determines
+            from which point forward to consider onion services.
+            is_monitored: boolean determining whether to get monitored HSes or
+            non-monitored HSes.
         Returns:
-            onion_class: a dict mapping individual HS URLs to
-            their ID in the database
-            class_name: a string describing the selected class
+            onion_class: a dict mapping individual HS URLs to their ID in the
+            database.
+            class_name: a string describing the selected class.
         """
-
+        start_sort_time = dt.now() - get_lookback(timespan)
         onion_class = {}
         class_name = ""
         with safe_session(self.engine) as session:
@@ -98,16 +98,12 @@ class RawStorage(object):
         return onion_class, class_name
 
     def get_onions(self, timespan):
-        """Get sorted HSes from the database"""
-        # Define what time we should pull traces from
-        start_sort_time = dt.now() - get_lookback(timespan)
-
-        hs_mon, hs_mon_name = self.get_onion_class(start_sort_time, is_monitored=True)
-        hs_nonmon, _ = self.get_onion_class(start_sort_time, is_monitored=False)
-        
+        """Get sorted HSes from the database."""
+        monitored_class, monitored_name = self.get_onion_class(timespan, is_monitored=True)
+        nonmonitored_class, _ = self.get_onion_class(timespan, is_monitored=False)
         class_data = OrderedDict()
-        class_data['non-monitored'] = hs_nonmon
-        class_data[hs_mon_name] = hs_mon
+        class_data['non-monitored'] = nonmonitored_class
+        class_data[monitored_name] = monitored_class
         return class_data
 
     def add_crawl(self, control_data):
