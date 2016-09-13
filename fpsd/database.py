@@ -8,7 +8,7 @@ from sqlalchemy.engine.url import URL as SQL_connect_URL
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 
-from utils import get_lookback, panic
+from utils import get_lookback, get_timestamp, panic
 
 
 @contextmanager
