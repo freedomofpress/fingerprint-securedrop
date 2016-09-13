@@ -9,7 +9,7 @@ psql_env:
   PGPORT: "{{ PGPORT }}"
   PGDATABASE: "{{ PGDATABASE }}"
   PGUSER: "{{ PGUSER }}"
-  PGPASSFILE: .pgpass
+  PGPASSFILE: "{{ ansible_env.HOME }}/.pgpass"
 
 raw_schema_tables:
   - create_table_crawls.sql

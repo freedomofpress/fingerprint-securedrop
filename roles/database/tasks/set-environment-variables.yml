@@ -1,14 +1,14 @@
 ---
 - name: Test if a PostgreSQL password file is present.
   stat:
-    path: "~{{ ansible_user }}/.pgpass"
+    path: "{{ psql_env.PGPASSFILE }}"
   register: password_file
   changed_when: false
   
 - name: Create the PostgreSQL password file for a local database.
   template:
     src: pgpass_conf.j2
-    dest: "~{{ansible_user}}/{{ psql_env.PGPASSFILE }}"
+    dest: "{{ psql_env.PGPASSFILE }}"
     mode: "0600"
   when: not password_file.stat.exists
 
@@ -19,11 +19,3 @@
     dest: "~{{ ansible_user }}/.bashrc"
     mode: "0644"
   with_dict: "{{ psql_env }}"
-
-# A hack
-- name: Set the PGPASSFILE environment variable.
-  lineinfile:
-    line: "export PGPASSFILE=~{{ ansible_user }}/{{psql_env.PGPASSFILE}}"
-    regexp: "^export PGPASSFILE"
-    dest: "~{{ ansible_user }}/.bashrc"
-    mode: "0644"
