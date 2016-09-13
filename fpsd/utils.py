@@ -37,9 +37,9 @@ def get_lookback(lookback_length):
 
 
 def get_timestamp(format):
-    if type == "log":
+    if format == "log":
         return datetime.now().strftime('%m-%d_%H:%M:%S')
-    elif type == "db":
+    elif format == "db":
         return datetime.now().isoformat()
 
 def timestamp_file(filepath, ts, ext="", is_dir=False):
