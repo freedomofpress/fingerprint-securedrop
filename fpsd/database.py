@@ -77,8 +77,11 @@ class RawStorage(object):
     def get_onion_class(self, timespan, is_monitored):
         """Get a class of onions from the database.
         Args:
-            timespan: string of the form "<integer>{w,m,h}", which determines
-            from which point forward to consider onion services.
+            timespan: either (i) a string of the form "<integer>{w,m,h}", which determines
+            from which point forward to consider onion services or (ii) a
+            datetime.timedelta object when more precision is needed
+            (get_onion_class uses utils.get_lookback to convert timespan to a
+            datetime.timedelta anyway if it is a str).
             is_monitored: boolean determining whether to get monitored HSes or
             non-monitored HSes.
         Returns:
@@ -86,7 +89,11 @@ class RawStorage(object):
             database.
             class_name: a string describing the selected class.
         """
-        start_sort_time = dt.now() - get_lookback(timespan)
+        if isinstance(timespan, str):
+            start_sort_time = dt.now() - get_lookback(timespan)
+        else:
+            start_sort_time = dt.now() - timespan
+
         onion_class = {}
         class_name = ""
         with safe_session(self.engine) as session:
