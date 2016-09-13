@@ -62,10 +62,10 @@ class Sorter:
                  socks_port=9050,
                  page_load_timeout=20,
                  max_tasks=10,
-                 use_database=False):
+                 db_handler=None):
 
         self.logger = setup_logging(_log_dir, "sorter")
-        self.use_database = use_database
+        self.db_handler = db_handler
 
         self.logger.info("Opening event loop for Sorter...")
         self.loop = asyncio.get_event_loop()
@@ -264,7 +264,7 @@ class Sorter:
         for w in workers:
             w.cancel()
 
-        if self.use_database:
+        if self.db_handler:
             self.upload_onions()
         else:
             self.pickle_onions()
@@ -304,8 +304,7 @@ class Sorter:
 
     def upload_onions(self):
         self.logger.info("Saving class data to database...")
-        db = database.RawStorage()
-        db.add_onions(self.class_data)
+        self.db_handler.add_onions(self.class_data)
 
 
 if __name__ == "__main__":
@@ -313,9 +312,13 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read("config.ini")
     config = config["sorter"]
+    if config.getboolean("use_database"):
+        fpdb = database.RawStorage()
+    else:
+        fpdb = None
     
     with Sorter(page_load_timeout = config.getint("page_load_timeout"),
                 max_tasks = config.getint("max_tasks"),
-                use_database = config.getboolean("use_database")) as sorter:
+                db_handler = fpdb) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
         sorter.sort_onions(eval("OrderedDict(" + config["class_tests"] + ")"))
