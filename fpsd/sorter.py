@@ -245,7 +245,7 @@ class Sorter:
             self.q.put_nowait(onion_service)
 
         self.logger.info("Starting {self.max_tasks} workers sorting .onion "
-                         "URLs into the sets {}...".format(class_tests.keys(),
+                         "URLs into the sets {}...".format(list(class_tests),
                                                           **locals()))
         workers = [asyncio.Task(self.sort_onion(class_tests)) for _ in range(self.max_tasks)]
 
