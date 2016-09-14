@@ -30,7 +30,8 @@ class DatabaseTest(unittest.TestCase):
             sortbot9k.sort_onions(self.class_tests)
 
         uptodate_class, uptodate_name = \
-                self.db_handler.get_onion_class(datetime.now-self.test_start_time, True)
+                self.db_handler.get_onion_class(
+                    datetime.now() - self.test_start_time, True)
         # At least 10 of our instances should be on the latest version
         self.assertGreater(len(uptodate_class), 9)
         self.assertRegex(list(uptodate_class)[0], "http")
@@ -38,12 +39,23 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(uptodate_name, "sd_038")
 
         outofdate_class, outofdate_name = \
-                self.db_handler.get_onion_class(datetime.now-self.test_start_time, False)
+                self.db_handler.get_onion_class(
+                    datetime.now() - self.test_start_time, False)
         # At least 2 of our instances will be lagging behind versions :'(
         self.assertGreater(len(outofdate_class), 1)
         self.assertRegex(list(outofdate_class)[0], "http")
         self.assertRegex(list(outofdate_class)[0], ".onion")
         self.assertEqual(outofdate_name, "out_of_date")
+
+    def test_crawl_securedrops(self):
+        sleep(15)
+        class_data = self.db_handler.get_onions(
+            datetime.now() - self.test_start_time)
+        nonmonitored_name, monitored_name = class_data.keys()
+        nonmonitored_class, monitored_class = class_data.values()
+
+        with Crawler(db_handler=self.db_handler) as crawlbot9k:
+            crawlbot9k.collect_set_of_traces(nonmonitored_class)
 
 
 if __name__ == "__main__":
