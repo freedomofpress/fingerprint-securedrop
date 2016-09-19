@@ -2,6 +2,8 @@
 # using a Jinja2 template
 {% if password %}
 {{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ password }}
+{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:test{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ password }}
 {% else %}
 {{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ lookup('file', '/tmp/passwordfile') }}
+{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:test{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ lookup('file', '/tmp/passwordfile') }}
 {% endif %}
