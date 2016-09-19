@@ -40,8 +40,11 @@ class TestDatabaseMethods(unittest.TestCase):
 
     def tearDown(self):
         # Delete entries while keeping table structure intact
-        self.db_handler.wipe_db()
-        # Todo: make sure wipe_db() method works as expected
+        self.db_handler.wipe_database()
+        with safe_session(self.db_handler.engine) as sessionbot9k:
+            for table in [self.db_handler.Cell, self.db_handler.Example,
+                          self.db_handler.Onion, self.db_handler.Crawl]:
+                self.assertEqual(sessionbot9k.query(table).count(), 0)
 
 
     def test_sort_securedrop_directory(self):

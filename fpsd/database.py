@@ -57,6 +57,19 @@ class RawStorage(object):
         self.Cell = Base.classes.frontpage_traces
         self.Crawl = Base.classes.crawls
 
+
+    def wipe_database(self):
+        """Like with a cloth. Delete entries while keeping table structure
+        intact."""
+        if not os.getenv("PGDATABASE").startswith("test"):
+            panic("The wipe_database method can only be called when the "
+                  "database handler was initialized with a test database (its "
+                  "name must literally start with 'test').")
+        with safe_session(self.engine) as session:
+            for table in self.Cell, self.Example, self.Onion, self.Crawl:
+                session.query(table).delete()
+
+
     def add_onions(self, class_data):
         """Add sorted onions into the HS history table"""
         onions = []
