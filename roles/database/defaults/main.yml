@@ -1,17 +1,17 @@
 ---
-postgresql_apt_packages:
+fpsd_database_apt_packages:
   - postgresql
   - libpq-dev
   - python-psycopg2
 
-psql_env:
+fpsd_database_psql_env:
   PGHOST: "{{ PGHOST }}"
   PGPORT: "{{ PGPORT }}"
   PGDATABASE: "{{ PGDATABASE }}"
   PGUSER: "{{ PGUSER }}"
   PGPASSFILE: "{{ ansible_env.HOME }}/.pgpass"
 
-raw_schema_tables:
+fpsd_database_raw_schema_tables:
   - create_table_crawls.sql
   - create_table_hs_history.sql
   - create_table_frontpage_examples.sql

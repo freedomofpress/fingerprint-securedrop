@@ -16,9 +16,9 @@
 
   - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
     command: psql -c '{{ lookup("file", item) }}'
-    with_items: "{{ raw_schema_tables }}"
+    with_items: "{{ fpsd_database_raw_schema_tables }}"
     # Each file is of the form create_table_<table name>.sql, hence the magic
     # numbers
     when: "item[13:-4] not in tables.stdout"
 
-  environment: "{{ psql_env }}"
+  environment: "{{ fpsd_database_psql_env }}"
