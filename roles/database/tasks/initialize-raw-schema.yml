@@ -17,8 +17,8 @@
   - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
     command: psql -c '{{ lookup("file", item) }}'
     with_items: "{{ fpsd_database_raw_schema_tables }}"
-    # Each file is of the form create_table_<table name>.sql, hence the magic
-    # numbers
-    when: "item[13:-4] not in tables.stdout"
+    # Each file is of the form create_table_<table name>.sql, so let's extract the
+    # expected table name and inspect the table list to check if it already exists.
+    when: item|regex_replace('^create_table_(.*)\\.sql$', '\\1') not in tables.stdout
 
   environment: "{{ fpsd_database_psql_env }}"
