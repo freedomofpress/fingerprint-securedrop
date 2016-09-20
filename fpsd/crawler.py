@@ -63,20 +63,21 @@ class Crawler:
     information from your Tor cell log and stem to collect cell sequences."""
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
-                 torrc_config={"EntryNodes": "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
-                               "ControlPort": "9051",
+                 torrc_config={"EntryNodes": 
+                               "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
                                "CookieAuth": "1"},
+                 # torrc_config={"CookieAuth": "1"},
                  tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
                  control_port=9051,
                  socks_port=9050, 
-                 tor_cfg=USE_RUNNING_TOR,
                  run_in_xvfb=True,
                  tbb_path=join(expanduser("~"),"tbb","tor-browser_en-US"),
                  tb_log_path=join(_log_dir,"firefox.log"),
+                 tb_tor_cfg=USE_RUNNING_TOR,
                  page_load_timeout=20,
                  wait_on_page=5,
                  wait_after_closing_circuits=0,
-                 restart_on_sketchy_exception=False,
+                 restart_on_sketchy_exception=True,
                  additional_control_fields={},
                  db_handler=None):
 
@@ -166,21 +167,28 @@ class Crawler:
         control_data["crawler_version"] = _version
         return control_data
 
+
     def __enter__(self):
         return self
 
+
     def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return self
+
+
+    def close(self):
         self.logger.info("Exiting the Crawler...")
         self.logger.info("Closing Tor Browser...")
         self.tb_driver.quit()
-        self.logger.info("Closing the virtual framebuffer...")
         if self.run_in_xvfb:
+            self.logger.info("Closing the virtual framebuffer...")
             stop_xvfb(self.virtual_framebuffer)
         self.logger.info("Closing the Tor cell stream...")
         self.cell_log.close()
-        self.logger.info("Quitting the Tor process...")
-        self.controller.close()
-        self.logger.info("Crawler exit complete.")
+        self.logger.info("Killing the tor process...")
+        self.tor_process.kill()
+
 
     def collect_onion_trace(self, url, hsid=None, extra_fn=None, trace_dir=None,
                             iteration=0):
@@ -356,19 +364,22 @@ class Crawler:
         return self.cell_log.read(end_idx - start_idx)
 
 
-    # The take_ownership directive in the stem docs claims that if we delete
-    # all references to the Popen subprocess returned by starting tor or closed
-    # the connection of a Controller that the tor process will exit. In
-    # practice, this doesn't happen. OTOH, calling stem.process.launch_tor will
-    # restart the tor process. Todo: figure out why.
     def restart_tor(self):
-        """Restart tor."""
+        """Restarts tor and the Tor Browser."""
+        self.logger.info("Quitting the Tor Browser...")
+        self.tb_driver.quit()
         self.logger.info("Restarting the tor process...")
+        self.tor_process.kill()
         self.tor_process = launch_tor_with_config(config=self.torrc_config,
-                                                  take_ownership=self.take_ownership)
+                                                  take_ownership=take_ownership)
         self.controller = Controller.from_port(port=self.control_port)
-        self.authenticate_to_tor_controlport(self.control_port)
-        self.logger.info("Tor successfully restarted.")
+        self.authenticate_to_tor_controlport()
+        self.logger.info("Starting Tor Browser...")
+        self.tb_driver = TorBrowserDriver(tbb_path=tbb_path,
+                                          tor_cfg=USE_RUNNING_TOR,
+                                          tbb_logfile_path=tb_log_path,
+                                          socks_port=self.socks_port,
+                                          control_port=self.control_port)
 
 
     def collect_set_of_traces(self, url_set, extra_fn=None, trace_dir=None,
@@ -489,7 +500,7 @@ if __name__ == "__main__":
     with Crawler(page_load_timeout=config.getint("page_load_timeout"),
                  wait_on_page=config.getint("wait_on_page"),
                  wait_after_closing_circuits=config.getint("wait_after_closing_circuits"),
-                 restart_on_sketchy_exception=config.getbool("restart_on_sketchy_exception"),
+                 restart_on_sketchy_exception=config.getboolean("restart_on_sketchy_exception"),
                  db_handler=fpdb) as crawler:
         crawler.crawl_monitored_nonmonitored(monitored_class,
                                              nonmonitored_class,

@@ -105,11 +105,17 @@ class Sorter:
 
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return self
+
+
+    def close(self):
         self.logger.info("Closing out any lingering HTTP connections...")
         self.session.close()
         self.logger.info("Closing event loop...")
         self.loop.close()
-        return self
+        self.logger.info("Killing the Tor process...")
+        self.tor_process.kill()
 
 
     def scrape_directories(self, onion_dirs):
