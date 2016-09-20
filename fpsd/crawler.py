@@ -6,6 +6,7 @@
 
 from ast import literal_eval
 import codecs
+import http.client
 from io import SEEK_END, SEEK_SET
 from os import mkdir
 from os.path import abspath, dirname, expanduser, join
@@ -13,15 +14,17 @@ import pickle
 import platform
 from poyo import parse_string as parse_yaml
 import random
+from selenium.common.exceptions import WebDriverException, TimeoutException
+from site import addsitedir
 import stem
 from stem.process import launch_tor_with_config
 from stem.control import Controller
 from sys import exc_info
 from time import sleep
+from traceback import format_exception
 import urllib.parse
 from urllib.request import urlopen
 
-from site import addsitedir
 _repo_root = dirname(abspath(__file__))
 _log_dir = join(_repo_root, "logging")
 _tbselenium_path = join(_repo_root, "tor-browser-selenium")
@@ -29,14 +32,10 @@ addsitedir(_tbselenium_path)
 from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
 from tbselenium.utils import start_xvfb, stop_xvfb
-
-from utils import (panic, get_timestamp, setup_logging, symlink_cur_to_latest,
-                   timestamp_file)
+from utils import (find_free_port, get_timestamp, panic, setup_logging,
+                   symlink_cur_to_latest, timestamp_file)
 from version import __version__ as _version
 
-from selenium.common.exceptions import WebDriverException, TimeoutException
-import http.client
-from traceback import format_exception
 
 
 # The Crawler handles most errors internally so the user does not have to worry
@@ -62,7 +61,6 @@ _sketchy_exceptions = [http.client.RemoteDisconnected]
 class Crawler:
     """Crawls your onions, but also manages Tor, drives Tor Browser, and uses
     information from your Tor cell log and stem to collect cell sequences."""
-
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
                  torrc_config={"EntryNodes": "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
@@ -84,24 +82,16 @@ class Crawler:
 
         self.logger = setup_logging(_log_dir, "crawler")
 
-        self.control_data = self.get_control_data()
-        self.control_data["page_load_timeout"] = page_load_timeout
-        self.control_data["wait_on_page"] = wait_on_page
-        self.control_data["wait_after_closing_circuits"] = \
-                wait_after_closing_circuits
-        if additional_control_fields:
-            self.control_data = {**self.control_data,
-                                 **additional_control_fields}
-
+        self.torrc_config = torrc_config
+        self.socks_port = find_free_port(socks_port, control_port)
+        self.torrc_config.update({"SocksPort": str(self.socks_port)})
+        self.control_port = find_free_port(control_port, self.socks_port)
+        self.torrc_config.update({"ControlPort": str(self.control_port)})
         self.logger.info("Starting tor process with config "
                          "{torrc_config}.".format(**locals()))
-        self.tor_process = launch_tor_with_config(config=torrc_config,
+        self.tor_process = launch_tor_with_config(config=self.torrc_config,
                                                   take_ownership=take_ownership)
-        self.torrc_config = torrc_config
-        self.take_ownership = take_ownership
-        self.logger.info("Authenticating to the tor controlport...")
-        self.authenticate_to_tor_controlport(control_port)
-        self.control_port = control_port
+        self.authenticate_to_tor_controlport()
 
         self.logger.info("Opening cell log stream...")
         self.cell_log = open(tor_cell_log, "rb")
@@ -113,23 +103,30 @@ class Crawler:
 
         self.logger.info("Starting Tor Browser...")
         self.tb_driver = TorBrowserDriver(tbb_path=tbb_path,
-                                          tor_cfg=tor_cfg,
+                                          tor_cfg=tb_tor_cfg,
                                           tbb_logfile_path=tb_log_path,
-                                          socks_port=socks_port,
-                                          control_port=control_port)
+                                          socks_port=self.socks_port,
+                                          control_port=self.control_port)
 
         self.wait_after_closing_circuits = wait_after_closing_circuits
         self.page_load_timeout = page_load_timeout
         self.tb_driver.set_page_load_timeout(page_load_timeout)
         self.wait_on_page = wait_on_page
         self.restart_on_sketchy_exception = restart_on_sketchy_exception
+
+        self.control_data = self.get_control_data(page_load_timeout,
+                                                  wait_on_page,
+                                                  wait_after_closing_circuits,
+                                                  additional_control_fields)
         self.db_handler = db_handler
         if db_handler:
             self.crawlid = self.db_handler.add_crawl(self.control_data)
 
-    def authenticate_to_tor_controlport(self, control_port):
+
+    def authenticate_to_tor_controlport(self):
+        self.logger.info("Authenticating to the tor controlport...")
         try:
-            self.controller = Controller.from_port(port=control_port)
+            self.controller = Controller.from_port(port=self.control_port)
         except stem.SocketError as exc:
             panic("Unable to connect to tor on port {self.control_port}: "
                   "{exc}".format(**locals()))

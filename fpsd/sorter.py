@@ -18,12 +18,15 @@ from aiosocks.connector import SocksConnector
 from collections import OrderedDict
 from os.path import abspath, dirname, join
 import pickle
+import random
 import re
 from stem.process import launch_tor_with_config
+import socket
 import ssl
 
 import database
-from utils import get_timestamp, setup_logging, symlink_cur_to_latest
+from utils import (find_free_port, get_timestamp, setup_logging,
+                   symlink_cur_to_latest)
 
 _repo_root = dirname(abspath(__file__))
 _log_dir = join(_repo_root, "logging")
@@ -74,10 +77,13 @@ class Sorter:
         self.q = asyncio.Queue()
 
         # Start tor and create an aiohttp tor connector
+        self.torrc_config = torrc_config
+        self.socks_port = str(find_free_port(socks_port))
+        self.torrc_config.update({"SocksPort": self.socks_port})
         self.logger.info("Starting tor process with config "
-                         "{torrc_config}.".format(**locals()))
-        self.tor_process = launch_tor_with_config(config=torrc_config,
-                                                       take_ownership=take_ownership)
+                         "{self.torrc_config}.".format(**locals()))
+        self.tor_process = launch_tor_with_config(config=self.torrc_config,
+                                                  take_ownership=take_ownership)
         onion_proxy = aiosocks.Socks5Addr('127.0.0.1', socks_port)
         conn = SocksConnector(proxy=onion_proxy, remote_resolve=True)
 
@@ -317,8 +323,8 @@ if __name__ == "__main__":
     else:
         fpdb = None
     
-    with Sorter(page_load_timeout = config.getint("page_load_timeout"),
-                max_tasks = config.getint("max_tasks"),
-                db_handler = fpdb) as sorter:
+    with Sorter(page_load_timeout=config.getint("page_load_timeout"),
+                max_tasks=config.getint("max_tasks"),
+                db_handler=fpdb) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
         sorter.sort_onions(eval("OrderedDict(" + config["class_tests"] + ")"))

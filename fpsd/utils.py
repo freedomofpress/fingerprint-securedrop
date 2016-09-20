@@ -1,12 +1,25 @@
 from datetime import datetime, timedelta
 import logging
 import os
-from sys import exit
+import socket
+import sys
 
-def panic(error_msg):
-    """Helper function prints a message to stdout and then exits 1."""
-    print(error_msg)
-    exit(1)
+def find_free_port(desired_port, *additional_conflicts):
+    """Return a port that is unused and conflict-free.
+    Args:
+        desired_port: int of port to return if unused and conflict-free.
+        additional_conflicts: 0+ ints that should not be returned.
+    Returns:
+        port: int of port determined unused and conflict-free.
+    """
+    sock = socket.socket()
+    port = desired_port
+    while not sock.connect_ex(('127.0.0.1', port)) and \
+          port not in additional_conflicts:
+        # The range 49152–65535 contains dynamic or private ports that
+        # cannot be registered with IANA.
+        port = random.randint(49152, 65536)
+    return port
 
 def get_lookback(lookback_length):
     """Take a string from the user and return a datetime.timedelta object."""
@@ -32,7 +45,6 @@ def get_lookback(lookback_length):
     lookback_timedelta = timedelta(weeks=time_units['weeks'],
                                    days=time_units['days'],
                                    hours=time_units['hours'])
-
     return lookback_timedelta
 
 
@@ -42,14 +54,12 @@ def get_timestamp(format):
     elif format == "db":
         return datetime.now().isoformat()
 
-def timestamp_file(filepath, ts, ext="", is_dir=False):
-    filepath += "_{}".format(ts)
-    if ext:
-        filepath += ".{}".format(ext)
-    if is_dir:
-        os.mkdir(filepath)
-    return filepath
-    
+
+def panic(error_msg):
+    """Helper function prints a message to stdout and then exits 1."""
+    print(error_msg)
+    sys.exit(1)
+
 
 def setup_logging(dir, filename):
     filepath = os.path.join(dir, filename)
@@ -79,3 +89,12 @@ def symlink_cur_to_latest(filepath, ts, ext=""):
         pass
     finally:
         os.symlink(current, latest)
+
+
+def timestamp_file(filepath, ts, ext="", is_dir=False):
+    filepath += "_{}".format(ts)
+    if ext:
+        filepath += ".{}".format(ext)
+    if is_dir:
+        os.mkdir(filepath)
+    return filepath
