@@ -1,16 +1,6 @@
 ---
 ### Used by the database role. ###
 
-# All of these vars except password will be set as environment variables in
-# `/etc/bash.bashrc`. If password is not set, then Ansible will generate one for
-# you at provision-time. The password will not be set as an environment
-# variable, but is instead saved to a PGPASSFILE, `~{{ ssh_username }}/.pgpass`,
-# along with the corresponding information from the other vars according to the
-# PGPASSFILE spec.
-PGHOST: localhost
-PGUSER: fp_user
-PGPORT: "5432"
-PGDATABASE: fpsd
 password: ""
 # Note: the database role will not overwrite an existing PGPASSFILE, so in order
 # to do so, you'll have to first remove it then re-run the role:
