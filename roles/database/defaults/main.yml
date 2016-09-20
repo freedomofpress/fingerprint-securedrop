@@ -21,6 +21,10 @@ fpsd_database_psql_env:
   PGDATABASE: fpsd
   PGPASSFILE: "{{ ansible_env.HOME }}/.pgpass"
 
+# If left undefined, a randomly generated password will be created and written
+# to /tmp on the Ansible controller.
+fpsd_database_password: ''
+
 fpsd_database_raw_schema_tables:
   - create_table_crawls.sql
   - create_table_hs_history.sql
