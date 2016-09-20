@@ -137,9 +137,20 @@ class Crawler:
             panic("Unable to authenticate to tor controlport. Please add "
                   "`CookieAuth 1` to your tor configuration file.")
 
-    def get_control_data(self):
+
+    def get_control_data(self, page_load_timeout, wait_on_page,
+                         wait_after_closing_circuits,
+                         additional_control_fields):
         """Gather metadata about the crawler instance."""
         control_data = {}
+        # Configuration settings
+        control_data["page_load_timeout"] = page_load_timeout
+        control_data["wait_on_page"] = wait_on_page
+        control_data["wait_after_closing_circuits"] = \
+                wait_after_closing_circuits
+        if additional_control_fields:
+            control_data.update(additional_control_fields)
+        # System facts
         control_data["kernel"] = platform.system()
         control_data["kernel_version"] = platform.release()
         control_data["os"] = platform.version()
