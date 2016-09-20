@@ -1,14 +1,6 @@
 ---
 ### Used by the database role. ###
 
-# Defaults to true. Set to false if you want to use a remote database. If you
-# wish not to use the database at all, set the environment variable
-# `ANSIBLE_ARGS="--skip-tags=database"`. If set to false you must fill out all
-# vars in the field below so Ansible can still set the appropriate environment
-# variables and create the PGPASSFILE for it just works™ access to your remote
-# database.
-initialize_local_db: true
-
 # All of these vars except password will be set as environment variables in
 # `/etc/bash.bashrc`. If password is not set, then Ansible will generate one for
 # you at provision-time. The password will not be set as an environment
