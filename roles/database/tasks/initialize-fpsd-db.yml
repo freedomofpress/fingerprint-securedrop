@@ -3,6 +3,7 @@
   - name: Record present roles.
     command: psql -c "SELECT rolname FROM pg_roles;"
     register: postgres_roles
+    always_run: true
     changed_when: false
 
   - name: Create PostgreSQL user with user-defined password.

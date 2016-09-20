@@ -3,6 +3,7 @@
   - name: List all schemas in the fpsd database.
     command: psql -c '\dn' fpsd
     register: schemas
+    always_run: true
     changed_when: false
 
   - name: Create the raw schema.
@@ -12,6 +13,7 @@
   - name: List all tables in the raw schema.
     command: psql -c '\dt raw.*'
     register: tables
+    always_run: true
     changed_when: false
 
   - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
