@@ -1,0 +1,8 @@
+---
+# Specify TBB version to download and install
+tbb_release: 6.0.4
+tbb_locale: en-US
+tbb_arch: 64
+
+# Specify Tor version to download, patch, build, and install
+tor_release: 0.2.8.7

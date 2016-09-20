@@ -63,7 +63,7 @@ class Crawler:
     information from your Tor cell log and stem to collect cell sequences."""
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
-                 torrc_config={"EntryNodes": 
+                 torrc_config={"EntryNodes":
                                "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
                                "CookieAuth": "1"},
                  # torrc_config={"CookieAuth": "1"},
@@ -174,7 +174,7 @@ class Crawler:
         yml = parse_yaml(yml_str)
         control_data["tor_version"] = yml.get("tor_release")
         control_data["tb_version"] = yml.get("tbb_release")
-        control_data["entry_node"] = yml.get("entry_node")
+        control_data["entry_node"] = self.torrc_config["EntryNodes"]
         control_data["crawler_version"] = _version
         return control_data
 

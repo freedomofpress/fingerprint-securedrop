@@ -20,7 +20,6 @@ PGUSER: fp_user
 PGPORT: "5432"
 PGDATABASE: fpsd
 password: ""
-#
 # Note: the database role will not overwrite an existing PGPASSFILE, so in order
 # to do so, you'll have to first remove it then re-run the role:
 # `ANSIBLE_ARGS="--tags=database vagrant provision"`.
