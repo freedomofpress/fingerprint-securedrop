@@ -1,0 +1,18 @@
+---
+postgresql_apt_packages:
+  - postgresql
+  - libpq-dev
+  - python-psycopg2
+
+psql_env:
+  PGHOST: "{{ PGHOST }}"
+  PGPORT: "{{ PGPORT }}"
+  PGDATABASE: "{{ PGDATABASE }}"
+  PGUSER: "{{ PGUSER }}"
+  PGPASSFILE: "{{ ansible_env.HOME }}/.pgpass"
+
+raw_schema_tables:
+  - create_table_crawls.sql
+  - create_table_hs_history.sql
+  - create_table_frontpage_examples.sql
+  - create_table_frontpage_traces.sql

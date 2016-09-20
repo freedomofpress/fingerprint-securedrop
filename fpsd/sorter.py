@@ -1,11 +1,14 @@
 #!/usr/bin/env python3.5
-
-# Pass any number of hidden service directories to a Sorter instance and watch
-# sort() scrape all the .onions the page, then scrape those .onions in turn,
-# searching for SDs and sites that mention SD, sorting them accordingly. Be
-# sure to read the note at the bottom regarding the ProxyConnector and how
-# you'll need to setup Privoxy. Data is dumped into a pickle file.
-# ./logging/class-data-latest.pickle will point you to the most recent results.
+#
+# Call scrape_directories() on any number of hidden service directories and
+# then call sort_onions() on a dict, the keys of which are class names and the
+# values boolean lambda expressions that operate on the object reference "text"
+# (the HTML text of a web page), returning True when the page belongs to the
+# class named by the corresponding key.
+#
+# Data may either be written to a PostgreSQL database or to a pickle file,
+# `fpsd/logging/class-data_<timestamp>.pickle`. Either way, `fpsd/crawler.py`
+# has the utilities to fetch and operate on the data.
 
 import asyncio
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
@@ -15,10 +18,15 @@ from aiosocks.connector import SocksConnector
 from collections import OrderedDict
 from os.path import abspath, dirname, join
 import pickle
-from utils import setup_logging, symlink_cur_to_latest, timestamp
+import random
 import re
 from stem.process import launch_tor_with_config
+import socket
 import ssl
+
+import database
+from utils import (find_free_port, get_timestamp, setup_logging,
+                   symlink_cur_to_latest)
 
 _repo_root = dirname(abspath(__file__))
 _log_dir = join(_repo_root, "logging")
@@ -56,9 +64,11 @@ class Sorter:
                                "CookieAuth": "1"},
                  socks_port=9050,
                  page_load_timeout=20,
-                 max_tasks=10):
+                 max_tasks=10,
+                 db_handler=None):
 
         self.logger = setup_logging(_log_dir, "sorter")
+        self.db_handler = db_handler
 
         self.logger.info("Opening event loop for Sorter...")
         self.loop = asyncio.get_event_loop()
@@ -67,10 +77,13 @@ class Sorter:
         self.q = asyncio.Queue()
 
         # Start tor and create an aiohttp tor connector
+        self.torrc_config = torrc_config
+        self.socks_port = str(find_free_port(socks_port))
+        self.torrc_config.update({"SocksPort": self.socks_port})
         self.logger.info("Starting tor process with config "
-                         "{torrc_config}.".format(**locals()))
-        self.tor_process = launch_tor_with_config(config=torrc_config,
-                                                       take_ownership=take_ownership)
+                         "{self.torrc_config}.".format(**locals()))
+        self.tor_process = launch_tor_with_config(config=self.torrc_config,
+                                                  take_ownership=take_ownership)
         onion_proxy = aiosocks.Socks5Addr('127.0.0.1', socks_port)
         conn = SocksConnector(proxy=onion_proxy, remote_resolve=True)
 
@@ -92,11 +105,17 @@ class Sorter:
 
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return self
+
+
+    def close(self):
         self.logger.info("Closing out any lingering HTTP connections...")
         self.session.close()
         self.logger.info("Closing event loop...")
         self.loop.close()
-        return self
+        self.logger.info("Killing the Tor process...")
+        self.tor_process.kill()
 
 
     def scrape_directories(self, onion_dirs):
@@ -238,7 +257,7 @@ class Sorter:
             self.q.put_nowait(onion_service)
 
         self.logger.info("Starting {self.max_tasks} workers sorting .onion "
-                         "URLs into the sets {}...".format(class_tests.keys(),
+                         "URLs into the sets {}...".format(list(class_tests),
                                                           **locals()))
         workers = [asyncio.Task(self.sort_onion(class_tests)) for _ in range(self.max_tasks)]
 
@@ -257,7 +276,10 @@ class Sorter:
         for w in workers:
             w.cancel()
 
-        self.pickle_onions()
+        if self.db_handler:
+            self.upload_onions()
+        else:
+            self.pickle_onions()
 
 
     async def sort_onion(self, class_tests):
@@ -265,12 +287,12 @@ class Sorter:
             onion_service = await self.q.get()
             try:
                 response = await self.fetch(onion_service)
-                for class_key in class_tests:
-                    lambda_fn = eval("lambda text: " + class_tests[class_key])
+                for class_name, class_test in class_tests.items():
+                    lambda_fn = eval("lambda text: " + class_test)
                     if lambda_fn(response):
                         self.logger.info("{onion_service}: sorted into "
-                                         "{class_key}.".format(**locals()))
-                        self.class_data[class_key].add(onion_service)
+                                         "{class_name}.".format(**locals()))
+                        self.class_data[class_name].add(onion_service)
                         break
             except SorterLoggedError:
                 self.failed_onions.add(onion_service)
@@ -283,21 +305,32 @@ class Sorter:
 
 
     def pickle_onions(self):
-        ts = timestamp()
+        ts = get_timestamp("log")
         pickle_jar = join(_log_dir, "class-data_{}.pickle".format(ts))
         self.logger.info("Pickling class data to "
-                         "{pickle_jar}".format(**locals()))
+                         "{pickle_jar}...".format(**locals()))
         with open(pickle_jar, "wb") as pj:
                 pickle.dump(self.class_data, pj)
         symlink_cur_to_latest(join(_log_dir, "class-data"), ts, "pickle")
+
+
+    def upload_onions(self):
+        self.logger.info("Saving class data to database...")
+        self.db_handler.add_onions(self.class_data)
+
 
 if __name__ == "__main__":
     import configparser
     config = configparser.ConfigParser()
     config.read("config.ini")
     config = config["sorter"]
+    if config.getboolean("use_database"):
+        fpdb = database.RawStorage()
+    else:
+        fpdb = None
     
-    with Sorter(page_load_timeout = int(config["page_load_timeout"]),
-                max_tasks = int(config["max_tasks"])) as sorter:
+    with Sorter(page_load_timeout=config.getint("page_load_timeout"),
+                max_tasks=config.getint("max_tasks"),
+                db_handler=fpdb) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
         sorter.sort_onions(eval("OrderedDict(" + config["class_tests"] + ")"))

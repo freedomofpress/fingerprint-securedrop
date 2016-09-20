@@ -1,2 +1,4 @@
 aiohttp
 aiosocks
+psycopg2
+SQLAlchemy

@@ -3,7 +3,7 @@
   become: yes
   apt:
     name: "{{ item }}"
-    state: present
+    state: latest
     update_cache: yes
     # Only update if it's been 24 hours since last time
     cache_valid_time: 86400

@@ -71,12 +71,19 @@ service.
 
 ## Getting Started
 
-This repo uses submodules, so use `git clone --recursive`. You will also need to
-install the following:
+This repo uses submodules, so use `git clone --recursive`. You'll also need:
 
-* Ansible 1.9.6
-* Vagrant 1.8.5
-* VirtualBox 5.1.4
+* Ansible >=2
+* Vagrant
+* VirtualBox
+
+We recommend installing Ansible to a dedicated virtual environment for
+provisioning the VM:
+
+```
+$ mkvirtualenv -p python2 fpsd
+(fpsd)$ pip install -U ansible
+```
 
 To get a properly configured VM bootstrapped for crawling, run:
 
@@ -122,6 +129,46 @@ it runs: `cd logging/batch-latest`.
 A systemd unit is also provided to run the crawler on repeat. Simply run
 `systemctl start crawler@<your username>.service` to start the crawler running
 on repeat.
+
+### Using PostgreSQL for data storage and queries
+
+The data collection programs—the sorter and crawler—are integrated with a
+PostgreSQL database. When the `use_database` option is set to `True` in the
+`[sorter]` section of `fpsd/config.ini`, the sorter will save its sorted onion
+addresses in the database. When the `use_database` option is set to `True` in
+the `[crawler]` section of `fpsd/config.ini`, the crawler will grab onions from
+the database, connect to them, record traces, and store them back in the
+database.
+
+By default, during provisioning of the VM, a PostgreSQL database is setup.
+Currently, our own schemas are used to set up the database, and we have not yet
+generalized the code that would allow you to create and interact with your own
+schemas. If you wish to use a remote database, you are encouraged to set
+`initialize_local_db` to `false` in `database-vars.yml`, and to fill out the
+next block of vars with the necessary information to connect to this remote
+database (again, for now this remote database must be set up with our schemas).
+If you wish not to use any database at all set the environment variable
+`ANSIBLE_ARGS="--skip-tags=database"` when provisioning.
+
+By default, when provisioning a database password will be generated for you
+automatically and will be saved to `/tmp/passwordfile` on the Ansible
+controller, and saved to a `PGPASSFILE`, `~{{ ansible_user }}/.pgpass`, on the
+remote host. Environment variables are also be set such that you should be able
+to simply issue the command `psql` with no arguments to connect and authenticate
+to your database, and enter its interactive terminal.
+
+#### Database Design
+
+We store the raw data in the `raw` schema and the derived features in the
+`features` schema. The sorter writes to `raw.hs_history`, inserting one row per
+sorted onion address. The crawler reads from `raw.hs_history` and writes one row
+per crawl session to `raw.crawls`, one row per trace to
+`raw.frontpage_examples`, and one row per cell in the trace to
+`raw.frontpage_traces`. 
+
+The current design of the database is shown in the following figure:
+
+![](doc/images/dbdesign.png)
 
 ### Deploying to remote servers
 

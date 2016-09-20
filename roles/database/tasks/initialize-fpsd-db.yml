@@ -1,0 +1,32 @@
+---
+- block:
+  - name: Record present roles.
+    command: psql -c "SELECT rolname FROM pg_roles;"
+    register: postgres_roles
+    changed_when: false
+
+  - name: Create PostgreSQL user with user-defined password.
+    postgresql_user:
+      name: fp_user
+      password: "{{ password }}"
+    when: "'{{ psql_env.PGHOST }}' not in postgres_roles.stdout and password"
+
+  - name: Create PostgreSQL user with a randomnly-generated password.
+    postgresql_user:
+      name: fp_user
+      # We don't include punctuation to avoid needing to escape ':' and '\' in the
+      # PGPASSFILE
+      password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters,digits') }}"
+    when: "'{{ psql_env.PGHOST }}' not in postgres_roles.stdout and not password"
+
+  - name: Create the database.
+    postgresql_db:
+      name: "{{ psql_env.PGDATABASE }}"
+      owner: "{{ psql_env.PGUSER }}"
+      encoding: UTF-8 
+      lc_collate: en_US.UTF-8
+      lc_ctype: en_US.UTF-8
+      template: template0
+
+  become: true
+  become_user: postgres

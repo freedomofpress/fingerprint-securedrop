@@ -1,10 +1,12 @@
 #!/usr/bin/env python3.5
-
+#
 # Automates visiting onion services using Tor Browser in a virtual framebuffer
-# and logs Tor cell traces from them
+# and logs Tor cell traces from them to either a PostgreSQL database or
+# plaintext files.
 
 from ast import literal_eval
 import codecs
+import http.client
 from io import SEEK_END, SEEK_SET
 from os import mkdir
 from os.path import abspath, dirname, expanduser, join
@@ -12,15 +14,17 @@ import pickle
 import platform
 from poyo import parse_string as parse_yaml
 import random
+from selenium.common.exceptions import WebDriverException, TimeoutException
+from site import addsitedir
 import stem
 from stem.process import launch_tor_with_config
 from stem.control import Controller
-from sys import exit, exc_info
+from sys import exc_info
 from time import sleep
+from traceback import format_exception
 import urllib.parse
 from urllib.request import urlopen
 
-from site import addsitedir
 _repo_root = dirname(abspath(__file__))
 _log_dir = join(_repo_root, "logging")
 _tbselenium_path = join(_repo_root, "tor-browser-selenium")
@@ -28,13 +32,11 @@ addsitedir(_tbselenium_path)
 from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
 from tbselenium.utils import start_xvfb, stop_xvfb
-
-from utils import setup_logging, timestamp, timestamp_file, symlink_cur_to_latest
+from utils import (find_free_port, get_timestamp, panic, setup_logging,
+                   symlink_cur_to_latest, timestamp_file)
 from version import __version__ as _version
 
-from selenium.common.exceptions import WebDriverException, TimeoutException
-import http.client
-from traceback import format_exception
+
 
 # The Crawler handles most errors internally so the user does not have to worry
 # about exception handling
@@ -59,45 +61,38 @@ _sketchy_exceptions = [http.client.RemoteDisconnected]
 class Crawler:
     """Crawls your onions, but also manages Tor, drives Tor Browser, and uses
     information from your Tor cell log and stem to collect cell sequences."""
-
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
-                 torrc_config={"EntryNodes": "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
-                               "ControlPort": "9051",
+                 torrc_config={"EntryNodes": 
+                               "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
                                "CookieAuth": "1"},
+                 # torrc_config={"CookieAuth": "1"},
                  tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
                  control_port=9051,
                  socks_port=9050, 
-                 tor_cfg=USE_RUNNING_TOR,
                  run_in_xvfb=True,
                  tbb_path=join(expanduser("~"),"tbb","tor-browser_en-US"),
                  tb_log_path=join(_log_dir,"firefox.log"),
+                 tb_tor_cfg=USE_RUNNING_TOR,
                  page_load_timeout=20,
                  wait_on_page=5,
                  wait_after_closing_circuits=0,
-                 restart_on_sketchy_exception=False,
-                 additional_control_fields={}):
+                 restart_on_sketchy_exception=True,
+                 additional_control_fields={},
+                 db_handler=None):
 
         self.logger = setup_logging(_log_dir, "crawler")
 
-        self.control_data = self.get_control_data()
-        self.control_data["page_load_timeout"] = page_load_timeout
-        self.control_data["wait_on_page"] = wait_on_page
-        self.control_data["wait_after_closing_circuits"] = \
-                wait_after_closing_circuits
-        if additional_control_fields:
-            self.control_data = {**self.control_data,
-                                 **additional_control_fields}
-
+        self.torrc_config = torrc_config
+        self.socks_port = find_free_port(socks_port, control_port)
+        self.torrc_config.update({"SocksPort": str(self.socks_port)})
+        self.control_port = find_free_port(control_port, self.socks_port)
+        self.torrc_config.update({"ControlPort": str(self.control_port)})
         self.logger.info("Starting tor process with config "
                          "{torrc_config}.".format(**locals()))
-        self.tor_process = launch_tor_with_config(config=torrc_config,
+        self.tor_process = launch_tor_with_config(config=self.torrc_config,
                                                   take_ownership=take_ownership)
-        self.torrc_config = torrc_config
-        self.take_ownership = take_ownership
-        self.logger.info("Authenticating to the tor controlport...")
-        self.authenticate_to_tor_controlport(control_port)
-        self.control_port = control_port
+        self.authenticate_to_tor_controlport()
 
         self.logger.info("Opening cell log stream...")
         self.cell_log = open(tor_cell_log, "rb")
@@ -109,10 +104,10 @@ class Crawler:
 
         self.logger.info("Starting Tor Browser...")
         self.tb_driver = TorBrowserDriver(tbb_path=tbb_path,
-                                          tor_cfg=tor_cfg,
+                                          tor_cfg=tb_tor_cfg,
                                           tbb_logfile_path=tb_log_path,
-                                          socks_port=socks_port,
-                                          control_port=control_port)
+                                          socks_port=self.socks_port,
+                                          control_port=self.control_port)
 
         self.wait_after_closing_circuits = wait_after_closing_circuits
         self.page_load_timeout = page_load_timeout
@@ -120,32 +115,50 @@ class Crawler:
         self.wait_on_page = wait_on_page
         self.restart_on_sketchy_exception = restart_on_sketchy_exception
 
+        self.control_data = self.get_control_data(page_load_timeout,
+                                                  wait_on_page,
+                                                  wait_after_closing_circuits,
+                                                  additional_control_fields)
+        self.db_handler = db_handler
+        if db_handler:
+            self.crawlid = self.db_handler.add_crawl(self.control_data)
 
 
-    def authenticate_to_tor_controlport(self, control_port):
+    def authenticate_to_tor_controlport(self):
+        self.logger.info("Authenticating to the tor controlport...")
         try:
-            self.controller = Controller.from_port(port=control_port)
+            self.controller = Controller.from_port(port=self.control_port)
         except stem.SocketError as exc:
-            print("Unable to connect to tor on port {self.control_port}: "
+            panic("Unable to connect to tor on port {self.control_port}: "
                   "{exc}".format(**locals()))
-            exit(1)
         try:
             self.controller.authenticate()
         except stem.connection.MissingPassword:
-            print("Unable to authenticate to tor controlport. Please add "
+            panic("Unable to authenticate to tor controlport. Please add "
                   "`CookieAuth 1` to your tor configuration file.")
-            exit(1)
 
 
-    def get_control_data(self):
+    def get_control_data(self, page_load_timeout, wait_on_page,
+                         wait_after_closing_circuits,
+                         additional_control_fields):
         """Gather metadata about the crawler instance."""
         control_data = {}
+        # Configuration settings
+        control_data["page_load_timeout"] = page_load_timeout
+        control_data["wait_on_page"] = wait_on_page
+        control_data["wait_after_closing_circuits"] = \
+                wait_after_closing_circuits
+        if additional_control_fields:
+            control_data.update(additional_control_fields)
+        # System facts
         control_data["kernel"] = platform.system()
         control_data["kernel_version"] = platform.release()
-        control_data["os_distribution"] = platform.version()
+        control_data["os"] = platform.version()
         control_data["python_version"] = platform.python_version()
         ip = urlopen("https://api.ipify.org").read().decode()
         control_data["ip"] = ip
+        # This API seems to be unstable and we haven't found a suitable
+        # alternative :(
         try:
             asn_geoip = urlopen("http://api.moocher.io/ip/{}".format(ip))
             asn_geoip = literal_eval(asn_geoip.read().decode())
@@ -171,20 +184,24 @@ class Crawler:
 
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return self
+
+
+    def close(self):
         self.logger.info("Exiting the Crawler...")
         self.logger.info("Closing Tor Browser...")
         self.tb_driver.quit()
-        self.logger.info("Closing the virtual framebuffer...")
         if self.run_in_xvfb:
+            self.logger.info("Closing the virtual framebuffer...")
             stop_xvfb(self.virtual_framebuffer)
         self.logger.info("Closing the Tor cell stream...")
         self.cell_log.close()
-        self.logger.info("Quitting the Tor process...")
-        self.controller.close()
-        self.logger.info("Crawler exit complete.")
+        self.logger.info("Killing the tor process...")
+        self.tor_process.kill()
 
 
-    def collect_onion_trace(self, url, extra_fn=None, trace_dir=None,
+    def collect_onion_trace(self, url, hsid=None, extra_fn=None, trace_dir=None,
                             iteration=0):
         """Crawl an onion service and collect a complete cell sequence for the
         activity at the time. Also, record additional information about the
@@ -236,8 +253,21 @@ class Crawler:
         self.logger.info("{url}: saving full trace...".format(**locals()))
         end_idx = self.get_cell_log_pos()
         full_trace = self.get_full_trace(start_idx, end_idx)
-        with open(trace_path+"-full", "wb") as fh:
-            fh.write(full_trace)
+
+        # Save the trace to the database or write to file
+        if self.db_handler:
+            try:
+                new_example = {'hsid': hsid,
+                               'crawlid': self.crawlid,
+                               't_scrape': get_timestamp("db")}
+            except NameError:
+                panic("If using the database, and calling collect_onion_trace "
+                      "directly, you must specify the hsid of the site.")
+            exampleid = self.db_handler.add_example(new_example)
+            self.db_handler.add_trace(str(full_trace), exampleid)
+        else:
+            with open(trace_path+"-full", "wb") as fh:
+                fh.write(full_trace)
 
         return "succeeded"
 
@@ -245,7 +275,7 @@ class Crawler:
     def make_ts_dir(self, parent_dir=_log_dir, raw_dir_name="batch"):
         """Creates a timestamped folder to hold a group of traces."""
         raw_dirpath = join(parent_dir, raw_dir_name)
-        ts = timestamp()
+        ts = get_timestamp("log")
         ts_dir = timestamp_file(raw_dirpath, ts, is_dir=True)
         symlink_cur_to_latest(raw_dirpath, ts)
 
@@ -345,30 +375,41 @@ class Crawler:
         return self.cell_log.read(end_idx - start_idx)
 
 
-    # The take_ownership directive in the stem docs claims that if we delete
-    # all references to the Popen subprocess returned by starting tor or closed
-    # the connection of a Controller that the tor process will exit. In
-    # practice, this doesn't happen. OTOH, calling stem.process.launch_tor will
-    # restart the tor process. Todo: figure out why.
     def restart_tor(self):
-        """Restart tor."""
+        """Restarts tor and the Tor Browser."""
+        self.logger.info("Quitting the Tor Browser...")
+        self.tb_driver.quit()
         self.logger.info("Restarting the tor process...")
+        self.tor_process.kill()
         self.tor_process = launch_tor_with_config(config=self.torrc_config,
-                                                  take_ownership=self.take_ownership)
+                                                  take_ownership=take_ownership)
         self.controller = Controller.from_port(port=self.control_port)
-        self.authenticate_to_tor_controlport(self.control_port)
-        self.logger.info("Tor successfully restarted.")
+        self.authenticate_to_tor_controlport()
+        self.logger.info("Starting Tor Browser...")
+        self.tb_driver = TorBrowserDriver(tbb_path=tbb_path,
+                                          tor_cfg=USE_RUNNING_TOR,
+                                          tbb_logfile_path=tb_log_path,
+                                          socks_port=self.socks_port,
+                                          control_port=self.control_port)
 
 
     def collect_set_of_traces(self, url_set, extra_fn=None, trace_dir=None,
-                              iteration=0, shuffle=True, retry=True):
+                              iteration=0, shuffle=True, retry=True,
+                              url_to_id_mapping=None):
         """Collect a set of traces."""
-        if not trace_dir:
-            trace_dir = self.make_ts_dir()
+        if self.db_handler:
+            if not url_to_id_mapping:
+                url_to_id_mapping = url_set
+            trace_dir = None
+        elif not trace_dir:
+                trace_dir = self.make_ts_dir()
+
         set_size = len(url_set)
         self.logger.info("Saving set of {set_size} traces to "
                          "{trace_dir}.".format(**locals()))
 
+        # Converts both sets (from pickle files) and dicts (whose keys are
+        # URLs--from database) to URL lists
         url_set = list(url_set)
         if shuffle:
             random.shuffle(url_set)
@@ -379,8 +420,12 @@ class Crawler:
             self.logger.info("Collecting trace {} of "
                              "{set_size}...".format(url_idx+1, **locals()))
             url = url_set[url_idx]
+            if self.db_handler:
+                hsid = url_to_id_mapping[url]
+            else:
+                hsid = None
 
-            if (self.collect_onion_trace(url, extra_fn=extra_fn,
+            if (self.collect_onion_trace(url, hsid=hsid, extra_fn=extra_fn,
                                          trace_dir=trace_dir,
                                          iteration=iteration) == "failed"
                 and retry):
@@ -396,43 +441,50 @@ class Crawler:
                                        retry=False)
 
 
-    def crawl_monitored_nonmonitored_classes(self,
-                                             monitored_class,
-                                             nonmonitored_class,
-                                             extra_fn=None,
-                                             shuffle=True,
-                                             retry=True,
-                                             monitored_class_name="monitored",
-                                             nonmonitored_class_name="nonmonitored",
-                                             ratio=40):
+    def crawl_monitored_nonmonitored(self, monitored_class, nonmonitored_class,
+                                     extra_fn=None, shuffle=True, retry=True,
+                                     monitored_name="monitored",
+                                     nonmonitored_name="nonmonitored",
+                                     url_to_id_mapping=None, ratio=40):
         """Crawl a monitored class ratio times interspersed between the
         crawling of a(n ostensibly larger) non-monitored class."""
-        trace_dir = self.make_ts_dir()
-        mon_trace_dir = join(trace_dir, monitored_class_name)
-        mkdir(mon_trace_dir)
-        nonmon_trace_dir = join(trace_dir, nonmonitored_class_name)
-        mkdir(nonmon_trace_dir)
+        if self.db_handler:
+            if not url_to_id_mapping:
+                url_to_id_mapping = nonmonitored_class
+                url_to_id_mapping.update(monitored_class)
+            trace_dir, mon_trace_dir, non_mon_trace_dir = (None,) * 3
+            # Calling list on a dict returns a list of its keys (URLs)
+            nonmonitored_class = list(nonmonitored_class)
+            monitored_class = list(monitored_class)
+        else:
+            trace_dir = self.make_ts_dir()
+            mon_trace_dir = join(trace_dir, monitored_name)
+            mkdir(mon_trace_dir)
+            nonmon_trace_dir = join(trace_dir, nonmonitored_name)
+            mkdir(nonmon_trace_dir)
 
         nonmonitored_class_ct = len(nonmonitored_class)
         chunk_size = int(nonmonitored_class_ct / ratio)
-        nonmonitored_class = list(nonmonitored_class)
+
         if shuffle:
             random.shuffle(nonmonitored_class)
+            random.shuffle(monitored_class)
 
         for iteration in range(ratio):
 
-            self.logger.info("Beggining iteration {} of {ratio} in the "
-                             "{monitored_class_name} "
-                             "class".format(iteration + 1, **locals()))
+            self.logger.info("Beginning iteration {i} of {ratio} in the "
+                             "{monitored_name} class".format(i=iteration+1,
+                                                             **locals()))
             self.collect_set_of_traces(monitored_class,
                                        trace_dir=mon_trace_dir,
-                                       iteration=iteration)
+                                       iteration=iteration,
+                                       url_to_id_mapping=url_to_id_mapping)
 
             slice_lb = iteration * chunk_size
             slice_ub = min((iteration + 1) * chunk_size, nonmonitored_class_ct)
             self.logger.info("Crawling services {} through {slice_ub} of "
                              "{nonmonitored_class_ct} in the "
-                             "{nonmonitored_class_name} "
+                             "{nonmonitored_name} "
                              "class".format(slice_lb + 1, **locals()))
             self.collect_set_of_traces(nonmonitored_class[slice_lb:slice_ub],
                                        trace_dir=nonmon_trace_dir)
@@ -440,22 +492,29 @@ class Crawler:
 
 if __name__ == "__main__":
     import configparser
-    import pickle
-
     config = configparser.ConfigParser()
     config.read(join(_repo_root, "config.ini"))
     config = config["crawler"]
 
-    with open(join(_log_dir, config["class_data"]), 'rb') as pj:
-        class_data = pickle.load(pj)
-    monitored_class_name, nonmonitored_class_name = class_data.keys()
+    if config["use_database"]:
+        import database
+        fpdb = database.RawStorage()
+        class_data = fpdb.get_onions(config["hs_history_lookback"])
+    else:
+        fpdb = None 
+        with open(join(_log_dir, config["class_data"]), 'rb') as pj:
+            class_data = pickle.load(pj)
 
-    with Crawler(page_load_timeout=int(config["page_load_timeout"]),
-                 wait_on_page=int(config["wait_on_page"]),
-                 wait_after_closing_circuits=int(config["wait_after_closing_circuits"]),
-                 restart_on_sketchy_exception=bool(config["restart_on_sketchy_exception"])) as crawler:
-        crawler.crawl_monitored_nonmonitored_classes(class_data[monitored_class_name],
-                                                     class_data[nonmonitored_class_name],
-                                                     monitored_class_name=monitored_class_name,
-                                                     nonmonitored_class_name=nonmonitored_class_name,
-                                                     ratio=int(config["monitored_nonmonitored_ratio"]))
+    nonmonitored_name, monitored_name = class_data.keys()
+    nonmonitored_class, monitored_class = class_data.values()
+
+    with Crawler(page_load_timeout=config.getint("page_load_timeout"),
+                 wait_on_page=config.getint("wait_on_page"),
+                 wait_after_closing_circuits=config.getint("wait_after_closing_circuits"),
+                 restart_on_sketchy_exception=config.getboolean("restart_on_sketchy_exception"),
+                 db_handler=fpdb) as crawler:
+        crawler.crawl_monitored_nonmonitored(monitored_class,
+                                             nonmonitored_class,
+                                             monitored_name=monitored_name,
+                                             nonmonitored_name=nonmonitored_name,
+                                             ratio=config.getint("monitored_nonmonitored_ratio"))
