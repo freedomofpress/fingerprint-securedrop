@@ -10,6 +10,6 @@
   lineinfile:
     line: 'export {{ item.key }}={{ item.value }}'
     regexp: '^export {{ item.key }}='
-    dest: "~{{ ansible_user }}/.bashrc"
+    dest: "~{{ fpsd_database_username }}/.bashrc"
     mode: "0644"
   with_dict: "{{ fpsd_database_psql_env }}"

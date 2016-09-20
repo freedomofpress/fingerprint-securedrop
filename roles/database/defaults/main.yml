@@ -1,4 +1,7 @@
 ---
+# Username to configure postgres access for.
+fpsd_database_username: "{{ ansible_user|default(lookup('env', 'USER')) }}"
+
 fpsd_database_apt_packages:
   - postgresql
   - libpq-dev
