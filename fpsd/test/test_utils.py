@@ -11,9 +11,9 @@ class LookbackTimeTest(unittest.TestCase):
         self.assertEqual(get_lookback('4w'), datetime.timedelta(28))
 
     def test_one_month(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(SystemExit):
             lookback_time = get_lookback('1m')
 
     def test_no_units(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(SystemExit):
             lookback_time = get_lookback('666')
