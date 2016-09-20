@@ -8,13 +8,13 @@
 
   - name: Create PostgreSQL user with user-defined password.
     postgresql_user:
-      name: fp_user
+      name: "{{ fpsd_database_psql_env.PGUSER }}"
       password: "{{ fpsd_database_password }}"
     when: "'{{ fpsd_database_psql_env.PGHOST }}' not in postgres_roles.stdout and fpsd_database_password"
 
   - name: Create PostgreSQL user with a randomnly-generated password.
     postgresql_user:
-      name: fp_user
+      name: "{{ fpsd_database_psql_env.PGUSER }}"
       # We don't include punctuation to avoid needing to escape ':' and '\' in the
       # PGPASSFILE
       password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters,digits') }}"
