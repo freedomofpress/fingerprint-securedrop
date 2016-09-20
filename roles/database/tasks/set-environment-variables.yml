@@ -1,16 +1,10 @@
 ---
-- name: Test if a PostgreSQL password file is present.
-  stat:
-    path: "{{ fpsd_database_psql_env.PGPASSFILE }}"
-  register: password_file
-  changed_when: false
-  
-- name: Create the PostgreSQL password file for a local database.
+- name: Create the PostgreSQL password file for database connection.
   template:
     src: pgpass_conf.j2
     dest: "{{ fpsd_database_psql_env.PGPASSFILE }}"
     mode: "0600"
-  when: not password_file.stat.exists
+    force: no # Don't clobber preexisting file, since it may contain auth secrets
 
 - name: Set the database environment variables in ~/.bashrc.
   lineinfile:
