@@ -11,6 +11,7 @@
 # has the utilities to fetch and operate on the data.
 
 import asyncio
+from ast import literal_eval
 PYTHONASYNCIODEBUG = 1 # Enable asyncio debug mode
 import aiohttp
 import aiosocks
@@ -288,7 +289,7 @@ class Sorter:
             try:
                 response = await self.fetch(onion_service)
                 for class_name, class_test in class_tests.items():
-                    lambda_fn = eval("lambda text: " + class_test)
+                    lambda_fn = lambda text: eval(class_test)
                     if lambda_fn(response):
                         self.logger.info("{onion_service}: sorted into "
                                          "{class_name}.".format(**locals()))
@@ -328,9 +329,12 @@ if __name__ == "__main__":
         fpdb = database.RawStorage()
     else:
         fpdb = None
+    class_tests = OrderedDict()
+    [class_tests.update(literal_eval(i))
+     for i in config["class_tests"].split("%%")]
     
     with Sorter(page_load_timeout=config.getint("page_load_timeout"),
                 max_tasks=config.getint("max_tasks"),
                 db_handler=fpdb) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
-        sorter.sort_onions(eval("OrderedDict(" + config["class_tests"] + ")"))
+        sorter.sort_onions(class_tests)
