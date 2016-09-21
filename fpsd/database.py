@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from utils import get_config, get_lookback, get_timestamp, panic
 
+
 class Database:
     """A base class for database objects providing an engine and context
     management for safe transactions.
@@ -178,3 +179,9 @@ class RawStorage(Database):
         with self.safe_session() as session:
             session.bulk_save_objects(cells)
         return None
+
+
+class DatasetLoader(Database):
+    """Load train/test sets"""
+    def __init__(self):
+        super().__init__(**kwargs)
