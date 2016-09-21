@@ -38,3 +38,21 @@ def plot_feature_importances(feature_names, feature_importances, N=30):
     plt.tight_layout()
     plt.title("Most important features for attack", fontsize=20).set_position([.5, 0.99])
     return fig
+
+
+def plot_ROC(test_labels, test_predictions):
+    fpr, tpr, thresholds = metrics.roc_curve(
+        test_labels, test_predictions, pos_label=1)
+    auc = "%.2f" % metrics.auc(fpr, tpr)
+    title = 'ROC Curve, AUC = '+str(auc)
+    with plt.style.context(('ggplot')):
+        fig, ax = plt.subplots()
+        ax.plot(fpr, tpr, "#000099", label='ROC curve')
+        ax.plot([0, 1], [0, 1], 'k--', label='Baseline')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.legend(loc='lower right')
+        plt.title(title)
+    return fig
