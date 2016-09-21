@@ -1,0 +1,6 @@
+#################
+# Train/Test    #
+#################
+
+evaluation: 'closed'  # or 'open'
+
