@@ -3,6 +3,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime as dt
 import os
+import pandas as pd
 import re
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.url import URL as SQL_connect_URL
@@ -185,3 +186,20 @@ class DatasetLoader(Database):
     """Load train/test sets"""
     def __init__(self):
         super().__init__(**kwargs)
+
+    def load_closed_world(self):
+        """For closed world validation, we can select traces
+        without consideration of which site they belong to and instead 
+
+        Returns:
+           df [pandas DataFrame]: dataset
+        """
+
+        labelled_query = ('select t1.*, t3.is_sd from features.frontpage_features t1 '
+                           'inner join raw.frontpage_examples t2 '
+                           'on t1.exampleid = t2.exampleid '
+                           'inner join raw.hs_history t3 '
+                           'on t3.hsid = t2.hsid')
+
+        df = pd.read_sql(labelled_query, self.engine)
+        return df
