@@ -1,4 +1,0 @@
-[submodule "fpsd/tor-browser-selenium"]
-  path = fpsd/tor-browser-selenium
-  url = https://github.com/webfp/tor-browser-selenium
-  ignore = dirty

@@ -4,9 +4,10 @@
 #
 #    pip-compile --output-file sorter-requirements.txt sorter-requirements.in
 #
-aiohttp==0.22.5
+aiohttp==1.0.1
 aiosocks==0.1.7
+async-timeout==1.0.0      # via aiohttp
 chardet==2.3.0            # via aiohttp
-multidict==1.2.2          # via aiohttp
+multidict==2.1.0          # via aiohttp
 psycopg2==2.6.2
 SQLAlchemy==1.0.15

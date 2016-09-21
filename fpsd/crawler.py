@@ -15,7 +15,6 @@ import platform
 from poyo import parse_string as parse_yaml
 import random
 from selenium.common.exceptions import WebDriverException, TimeoutException
-from site import addsitedir
 import stem
 from stem.process import launch_tor_with_config
 from stem.control import Controller
@@ -24,19 +23,16 @@ from time import sleep
 from traceback import format_exception
 import urllib.parse
 from urllib.request import urlopen
-
-_repo_root = dirname(abspath(__file__))
-_log_dir = join(_repo_root, "logging")
-_tbselenium_path = join(_repo_root, "tor-browser-selenium")
-addsitedir(_tbselenium_path)
 from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
 from tbselenium.utils import start_xvfb, stop_xvfb
+
 from utils import (find_free_port, get_timestamp, panic, setup_logging,
                    symlink_cur_to_latest, timestamp_file)
 from version import __version__ as _version
 
-
+_repo_root = dirname(abspath(__file__))
+_log_dir = join(_repo_root, "logging")
 
 # The Crawler handles most errors internally so the user does not have to worry
 # about exception handling
