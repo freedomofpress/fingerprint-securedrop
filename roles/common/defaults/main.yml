@@ -7,6 +7,12 @@ common_apt_packages:
   - vim
   - libpq-dev # needed to install psycopg2 
 
+common_pypi_packages:
+  - pip
+  - pytest
+  - ipython
+  - ipdb
+
 ssh_username: "{{ ansible_ssh_user }}"
 
 crawler_project_directory: "~{{ ssh_username }}/FingerprintSecureDrop"
