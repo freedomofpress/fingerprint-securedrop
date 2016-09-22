@@ -1,0 +1,8 @@
+---
+- name: Install and upgrade Python packaging and debugging tools.
+  become: true
+  pip:
+    executable: pip3
+    name: "{{ item }}"
+    state: latest
+  with_items: "{{ common_pypi_packages }}"
