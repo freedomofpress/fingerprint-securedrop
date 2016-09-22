@@ -12,13 +12,16 @@ def find_free_port(desired_port, *additional_conflicts):
     Returns:
         port: int of port determined unused and conflict-free.
     """
-    sock = socket.socket()
-    port = desired_port
-    while not sock.connect_ex(('127.0.0.1', port)) and \
-          port not in additional_conflicts:
-        # The range 49152–65535 contains dynamic or private ports that
-        # cannot be registered with IANA.
-        port = random.randint(49152, 65536)
+    try:
+        sock = socket.socket()
+        port = desired_port
+        while not sock.connect_ex(('127.0.0.1', port)) and \
+              port not in additional_conflicts:
+            # The range 49152–65535 contains dynamic or private ports that
+            # cannot be registered with IANA.
+            port = random.randint(49152, 65536)
+    finally:
+        sock.close()
     return port
 
 def get_lookback(lookback_length):
