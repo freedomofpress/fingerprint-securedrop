@@ -144,11 +144,12 @@ By default, during provisioning of the VM, a PostgreSQL database is setup.
 Currently, our own schemas are used to set up the database, and we have not yet
 generalized the code that would allow you to create and interact with your own
 schemas. If you wish to use a remote database, you are encouraged to set
-`initialize_local_db` to `false` in `database-vars.yml`, and to fill out the
-next block of vars with the necessary information to connect to this remote
-database (again, for now this remote database must be set up with our schemas).
-If you wish not to use any database at all set the environment variable
-`ANSIBLE_ARGS="--skip-tags=database"` when provisioning.
+`fpsd_initialize_local_db` to `false` in `roles/database/defaults/main.yml`, and
+to fill out `fpsd_database_psql_env` (in that same file) with the necessary
+information to connect to this remote database (again, for now this remote
+database must be set up with our schemas).  If you wish not to use any database
+at all set the environment variable `ANSIBLE_ARGS="--skip-tags=database"` when
+provisioning.
 
 By default, when provisioning a database password will be generated for you
 automatically and will be saved to `/tmp/passwordfile` on the Ansible
