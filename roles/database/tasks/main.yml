@@ -10,3 +10,9 @@
 - include: initialize-raw-schema.yml
 
 - include: initialize-test-db.yml
+  # The test database is only used for running tests, which for simplicity we
+  # won't support remote databases for. Since the test database should contain
+  # no important data, we keep recreate it based on the "prod" database whenever
+  # changes are made to the "prod" database's schemas or tables.
+  when: fpsd_database_initialize_local_db and (raw_schema_result|changed or
+    raw_schema_tables_result|changed)

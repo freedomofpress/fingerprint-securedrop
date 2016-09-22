@@ -9,6 +9,7 @@
   - name: Create the raw schema.
     command: psql -c 'CREATE SCHEMA raw;'
     when: "'raw' not in schemas.stdout"
+    register: raw_schema_result
 
   - name: List all tables in the raw schema.
     command: psql -c '\dt raw.*'
@@ -22,5 +23,6 @@
     # Each file is of the form create_table_<table name>.sql, so let's extract the
     # expected table name and inspect the table list to check if it already exists.
     when: item|regex_replace('^create_table_(.*)\\.sql$', '\\1') not in tables.stdout
+    register: raw_schema_tables_result
 
   environment: "{{ fpsd_database_psql_env }}"

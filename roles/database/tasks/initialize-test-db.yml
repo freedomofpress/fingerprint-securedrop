@@ -1,11 +1,22 @@
 ---
-- name: Create the test database based on fpsd.
+- block:
+  - name: Delete the test database based on outdated version of fpsd.
+    postgresql_db:
+      name: "test{{ fpsd_database_psql_env.PGDATABASE }}"
+      state: absent
+    # If the fpsd database was just created, the test database should
+    # not exist, so there will be nothing to delete.
+    when: fpsd_database_result|skipped
+
+  - name: Create the test database based on fpsd.
+    postgresql_db:
+      name: "test{{ fpsd_database_psql_env.PGDATABASE }}"
+      owner: "{{ fpsd_database_psql_env.PGUSER }}"
+      encoding: UTF-8
+      lc_collate: en_US.UTF-8
+      lc_ctype: en_US.UTF-8
+      template: "{{ fpsd_database_psql_env.PGDATABASE }}"
+
+  when: raw_schema_result|changed or raw_schema_tables_result|changed
   become: true
   become_user: postgres
-  postgresql_db:
-    name: "test{{ fpsd_database_psql_env.PGDATABASE }}"
-    owner: "{{ fpsd_database_psql_env.PGUSER }}"
-    encoding: UTF-8
-    lc_collate: en_US.UTF-8
-    lc_ctype: en_US.UTF-8
-    template: "{{ fpsd_database_psql_env.PGDATABASE }}"
