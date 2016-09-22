@@ -2,6 +2,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime as dt
+import json
 import os
 import pandas as pd
 import re
@@ -203,3 +204,34 @@ class DatasetLoader(Database):
 
         df = pd.read_sql(labelled_query, self.engine)
         return df
+
+    def load_open_world(self):
+        """For open world validation, we must keep track of which onion service
+        a trace came from
+
+        Returns:
+           df [pandas DataFrame]: dataset with hs_url
+        """
+
+        labelled_query = ('select t1.*, t3.is_sd, t3.hs_url '
+                          'from features.frontpage_features t1 '
+                          'inner join raw.frontpage_examples t2 '
+                          'on t1.exampleid = t2.exampleid '
+                          'inner join raw.hs_history t3 '
+                          'on t3.hsid = t2.hsid')
+
+        df = pd.read_sql(labelled_query, self.engine)
+        return df
+
+
+class ModelStorage(Database):
+    """Store trained models in the database"""
+    def __init__(self):
+        super().__init__(**kwargs)
+
+    def save_model(self, auc, config, timestamp):
+        query = ("INSERT INTO models.undefended_frontpage_models (auc, config, t_generation) "
+                 "VALUES ({}, '{}', '{}') ".format(auc, json.dumps(config), timestamp))
+        with safe_session(self.engine) as session:
+            session.execute(query)
+        return None
