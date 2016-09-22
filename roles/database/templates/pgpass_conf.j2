@@ -1,9 +1,9 @@
 # This file was auto-generated during provisioning of this machine by Ansible
 # using a Jinja2 template
-{% if password %}
-{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ password }}
-{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:test{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ password }}
+{% if fpsd_database_password %}
+{% set _postgres_password=fpsd_database_password %}
 {% else %}
-{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ lookup('file', '/tmp/passwordfile') }}
-{{ psql_env.PGHOST }}:{{ psql_env.PGPORT }}:test{{ psql_env.PGDATABASE }}:{{ psql_env.PGUSER }}:{{ lookup('file', '/tmp/passwordfile') }}
+{% set _postgres_password=lookup('file', '/tmp/passwordfile') %}
 {% endif %}
+{{ fpsd_database_psql_env.PGHOST }}:{{ fpsd_database_psql_env.PGPORT }}:{{ fpsd_database_psql_env.PGDATABASE }}:{{ fpsd_database_psql_env.PGUSER }}:{{ _postgres_password }}
+{{ fpsd_database_psql_env.PGHOST }}:{{ fpsd_database_psql_env.PGPORT }}:test{{ fpsd_database_psql_env.PGDATABASE }}:{{ fpsd_database_psql_env.PGUSER }}:{{ _postgres_password }}
