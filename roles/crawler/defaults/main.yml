@@ -1,5 +1,5 @@
 ---
-crawler_apt_packages:
+fpsd_crawler_apt_packages:
   - xvfb # tbs
   - git #tbs
   - gnupg-curl # needed for https keyservers
@@ -10,11 +10,11 @@ crawler_apt_packages:
   - libgtk2.0-0 # tbb (firefox)
 
 # Specify TBB version to download and install
-tbb_release: 6.0.5
-tbb_locale: en-US
-tbb_arch: 64
+fpsd_crawler_tbb_release: 6.0.5
+fpsd_crawler_tbb_locale: en-US
+fpsd_crawler_tbb_arch: 64
 
 # Specify Tor version to download, patch, build, and install
-tor_release: 0.2.8.7
+fpsd_crawler_tor_release: 0.2.8.7
 
 ssh_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"

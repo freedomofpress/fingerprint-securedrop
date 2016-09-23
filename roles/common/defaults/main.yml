@@ -1,5 +1,5 @@
 ---
-common_apt_packages:
+fpsd_common_apt_packages:
   - aptitude # needed by Ansible for apt 'upgrade'
   - python3-pip
   - python3.5
@@ -7,7 +7,7 @@ common_apt_packages:
   - vim
   - libpq-dev # needed to install psycopg2 
 
-common_pypi_packages:
+fpsd_common_pypi_packages:
   - pip
   - pytest
   - ipython
@@ -15,5 +15,5 @@ common_pypi_packages:
 
 ssh_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"
 
-crawler_project_directory: "~{{ ssh_username }}/FingerprintSecureDrop"
-crawler_git_repo: "https://github.com/freedomofpress/FingerprintSecureDrop"
+fpsd_common_project_directory: "/usr/local/src/FingerprintSecureDrop"
+fpsd_common_git_repo_url: "https://github.com/freedomofpress/FingerprintSecureDrop"

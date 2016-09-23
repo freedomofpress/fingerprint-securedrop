@@ -1,5 +1,5 @@
 ---
-- name: Clobber relay.c in Tor {{ tor_release }} with custom relay.c from repo
+- name: Clobber relay.c in Tor {{ fpsd_crawler_tor_release }} with custom relay.c from repo
   become: yes
   become_user: "{{ ssh_username }}"
   patch:
@@ -7,28 +7,28 @@
     # Not using the ~username prefix to the fullpath because the patch module
     # doesn't expand the path correctly. Technically it's an assumption that
     # the user's home directory resides in /home/<username>, but a reasonable one.
-    basedir: /home/{{ ssh_username }}/tbb/tor-{{ tor_release }}/src/or
+    basedir: /home/{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}/src/or
   register: tor_relay_patch_result
 
-- name: Configure Tor {{ tor_release }}
+- name: Configure Tor {{ fpsd_crawler_tor_release }}
   become: yes
   become_user: "{{ ssh_username }}"
   command: ./configure
   args:
-    chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+    chdir: "~{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}"
   when: tor_relay_patch_result|changed
 
-- name: Make Tor {{ tor_release }}
+- name: Make Tor {{ fpsd_crawler_tor_release }}
   become: yes
   become_user: "{{ ssh_username }}"
   command: make
   args:
-    chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+    chdir: "~{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}"
   when: tor_relay_patch_result|changed
 
-- name: Install Tor {{ tor_release }}
+- name: Install Tor {{ fpsd_crawler_tor_release }}
   become: yes
   command: make install
   args:
-    chdir: "~{{ ssh_username }}/tbb/tor-{{ tor_release }}"
+    chdir: "~{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}"
   when: tor_relay_patch_result|changed

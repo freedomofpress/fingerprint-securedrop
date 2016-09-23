@@ -7,36 +7,36 @@
     state: directory
     mode: 0755
 
-- name: Download TBB {{ tbb_release }} tarball and signature.
+- name: Download TBB {{ fpsd_crawler_tbb_release }} tarball and signature.
   become: yes
   become_user: "{{ ssh_username }}"
   get_url:
     url: "{{ item }}"
     dest: "~{{ ssh_username }}/tbb/{{ item|basename }}"
   with_items:
-    - https://dist.torproject.org/torbrowser/{{ tbb_release }}/tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz
-    - https://dist.torproject.org/torbrowser/{{ tbb_release }}/tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz.asc
+    - https://dist.torproject.org/torbrowser/{{ fpsd_crawler_tbb_release }}/tor-browser-linux{{ fpsd_crawler_tbb_arch }}-{{ fpsd_crawler_tbb_release }}_{{ fpsd_crawler_tbb_locale }}.tar.xz
+    - https://dist.torproject.org/torbrowser/{{ fpsd_crawler_tbb_release }}/tor-browser-linux{{ fpsd_crawler_tbb_arch }}-{{ fpsd_crawler_tbb_release }}_{{ fpsd_crawler_tbb_locale }}.tar.xz.asc
 
-- name: Download TBB {{ tbb_release }} signing key.
+- name: Download TBB {{ fpsd_crawler_tbb_release }} signing key.
   become: yes
   become_user: "{{ ssh_username }}"
   command: gpg --keyserver hkps://keyserver.cns.vt.edu --recv-key EF6E286DDA85EA2A4BA7DE684E2C6E8793298290
   register: gpg_import_tor_browser_devs_key_result
   changed_when: "'imported: 1' in gpg_import_tor_browser_devs_key_result.stderr"
 
-- name: Verify TBB {{ tbb_release }} signature.
+- name: Verify TBB {{ fpsd_crawler_tbb_release }} signature.
   become: yes
   become_user: "{{ ssh_username }}"
-  command: gpg --verify tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz.asc tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz
+  command: gpg --verify tor-browser-linux{{ fpsd_crawler_tbb_arch }}-{{ fpsd_crawler_tbb_release }}_{{ fpsd_crawler_tbb_locale }}.tar.xz.asc tor-browser-linux{{ fpsd_crawler_tbb_arch }}-{{ fpsd_crawler_tbb_release }}_{{ fpsd_crawler_tbb_locale }}.tar.xz
   register: gpg_verify_result
   changed_when: false
   args:
     chdir: "~{{ ssh_username }}/tbb/"
 
-- name: Extract TBB {{ tbb_release }} archive.
+- name: Extract TBB {{ fpsd_crawler_tbb_release }} archive.
   become: yes
   become_user: "{{ ssh_username }}"
   unarchive:
     copy: no
-    src: "~{{ ssh_username }}/tbb/tor-browser-linux{{ tbb_arch }}-{{ tbb_release }}_{{ tbb_locale }}.tar.xz"
+    src: "~{{ ssh_username }}/tbb/tor-browser-linux{{ fpsd_crawler_tbb_arch }}-{{ fpsd_crawler_tbb_release }}_{{ fpsd_crawler_tbb_locale }}.tar.xz"
     dest: "~{{ ssh_username }}/tbb/"
