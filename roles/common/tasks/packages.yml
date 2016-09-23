@@ -9,9 +9,10 @@
     cache_valid_time: 86400
   with_items: "{{ fpsd_common_apt_packages }}"
 
-- name: Upgrade all packages.
-  become: yes
-  apt:
-    upgrade: safe
-    update_cache: yes
-    cache_valid_time: 86400
+- name: Install and upgrade Python packaging and debugging tools.
+  become: true
+  pip:
+    executable: pip3
+    name: "{{ item }}"
+    state: latest
+  with_items: "{{ fpsd_common_pypi_packages }}"
