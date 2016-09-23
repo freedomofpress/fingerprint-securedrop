@@ -1,7 +1,4 @@
 ---
-# Username to configure postgres access for.
-fpsd_database_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"
-
 fpsd_database_apt_packages:
   - postgresql
   - libpq-dev
@@ -41,3 +38,8 @@ fpsd_database_raw_schema_tables:
 # variables and create the PGPASSFILE for it just works™ access to your remote
 # database.
 fpsd_database_initialize_local_db: true
+
+# Whether to configure credentials for user accounts.
+fpsd_database_configure_credentials: true
+fpsd_database_usernames:
+  - "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"
