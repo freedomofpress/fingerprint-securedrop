@@ -97,7 +97,7 @@ running can be figured out by reading through the Ansible playbook.
 
 ```
 vagrant ssh
-cd ~/FingerprintSecureDrop/fpsd
+cd /opt/FingerprintSecureDrop/fpsd
 ./sorter.py
 ```
 
@@ -111,7 +111,7 @@ are created by the Python processes in this repo).
 
 ```
 vagrant ssh
-cd ~/FingerprintSecureDrop/fpsd
+cd /opt/FingerprintSecureDrop/fpsd
 ./crawler.py
 ```
 

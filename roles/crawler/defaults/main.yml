@@ -1,29 +1,29 @@
 ---
-fpsd_common_apt_packages:
+# General system dependencies requiring for running
+# Tor Browser Bundle (tbb).
+fpsd_crawler_apt_packages:
   - aptitude # needed by Ansible for apt 'upgrade'
+  - git #tbs
+  - gnupg-curl # needed for https keyservers
+  - libasound2 # tbb (firefox)
+  - libdbus-glib-1-2 # tbb (firefox)
+  - libfontconfig1 # tbb (firefox)
+  - libgtk2.0-0 # tbb (firefox)
+  - libpq-dev # needed to install psycopg2
+  - libxrender1 # tbb (firefox)
   - python3-pip
   - python3.5
   - tmux
   - vim
-  - libpq-dev # needed to install psycopg2
+  - xvfb # tbs
 
-fpsd_common_pypi_packages:
+# General Python tooling for development. Specific Python dependencies
+# for the crawler code are installed from `requirements.txt` files.
+fpsd_crawler_pypi_packages:
   - pip
   - pytest
   - ipython
   - ipdb
-
-fpsd_common_project_directory: "/usr/local/src/FingerprintSecureDrop"
-fpsd_common_git_repo_url: "https://github.com/freedomofpress/FingerprintSecureDrop"
-fpsd_crawler_apt_packages:
-  - xvfb # tbs
-  - git #tbs
-  - gnupg-curl # needed for https keyservers
-  - libfontconfig1 # tbb (firefox)
-  - libxrender1 # tbb (firefox)
-  - libasound2 # tbb (firefox)
-  - libdbus-glib-1-2 # tbb (firefox)
-  - libgtk2.0-0 # tbb (firefox)
 
 # Specify TBB version to download and install
 fpsd_crawler_tbb_release: 6.0.5
@@ -33,7 +33,8 @@ fpsd_crawler_tbb_arch: 64
 # Specify Tor version to download, patch, build, and install
 fpsd_crawler_tor_release: 0.2.8.7
 
-ssh_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"
-
-fpsd_common_project_directory: "/usr/local/src/FingerprintSecureDrop"
-fpsd_common_git_repo_url: "https://github.com/freedomofpress/FingerprintSecureDrop"
+# Clone the git repo by default, but allow disabling, e.g. in vagrant,
+# where it can be mounted in.
+fpsd_crawler_clone_git_repo: true
+fpsd_crawler_project_directory: "/opt/FingerprintSecureDrop"
+fpsd_crawler_git_repo_url: "https://github.com/freedomofpress/FingerprintSecureDrop"

@@ -3,6 +3,7 @@
   hosts: all
   roles:
     - role: crawler
+      fpsd_crawler_clone_git_repo: false # don't clone, use mounted local directory
       tags: crawler
   tasks:
     - name: Set tmux mode to vim, avoid that rsi.

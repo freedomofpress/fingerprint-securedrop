@@ -7,7 +7,7 @@
     update_cache: yes
     # Only update if it's been 24 hours since last time
     cache_valid_time: 86400
-  with_items: "{{ fpsd_common_apt_packages }}"
+  with_items: "{{ fpsd_crawler_apt_packages }}"
 
 # Upgrading after previous installation to ensure we have python-apt installed,
 # which is necessary for using the `upgrade` parameter for the apt module.
@@ -24,14 +24,7 @@
     executable: pip3
     name: "{{ item }}"
     state: latest
-  with_items: "{{ fpsd_common_pypi_packages }}"
-
-- name: Install crawler apt package dependencies.
-  become: yes
-  apt:
-    name: "{{ item }}"
-    state: latest
-  with_items: "{{ fpsd_crawler_apt_packages }}"
+  with_items: "{{ fpsd_crawler_pypi_packages }}"
 
 - name: Download universe sources for tor.
   become: yes
@@ -54,26 +47,20 @@
 - name: Clone git repository.
   become: yes
   git:
-    repo: "{{ fpsd_common_git_repo_url }}"
-    dest: "{{ fpsd_common_project_directory }}"
+    repo: "{{ fpsd_crawler_git_repo_url }}"
+    dest: "{{ fpsd_crawler_project_directory }}"
     force: yes
   # Under vagrant the project will be mounted as a shared directory,
   # so no need to clone it. Deploying to prod, however, means we'll need
-  # to pull, so check the SSH username as a proxy for vagrant environment.
-  # The Xenial image uses "ubuntu" as default SSH user, so check that as
-  # well as the more common "vagrant" username.
-  when: ssh_username not in ['vagrant', 'ubuntu']
+  # to pull, so check the boolean var for toggling cloning functionality.
+  when: fpsd_crawler_clone_git_repo == true
 
-- name: Install crawler.py pip dependencies.
+- name: Install crawler pip dependencies.
   become: yes
   pip:
     executable: pip3
     state: latest
-    requirements: "{{ fpsd_crawler_download_directory }}/FingerprintSecureDrop/fpsd/requirements/crawler-requirements.txt"
-
-- name: Install sorter.py pip dependencies.
-  become: yes
-  pip:
-    executable: pip3
-    state: latest
-    requirements: "/usr/local/src/FingerprintSecureDrop/fpsd/requirements/sorter-requirements.txt"
+    requirements: "{{ fpsd_crawler_project_directory }}/fpsd/requirements/{{ item }}-requirements.txt"
+  with_items:
+    - crawler
+    - sorter
