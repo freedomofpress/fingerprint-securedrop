@@ -1,34 +1,28 @@
 ---
-- name: Clobber relay.c in Tor {{ fpsd_crawler_tor_release }} with custom relay.c from repo
-  become: yes
-  become_user: "{{ ssh_username }}"
-  patch:
-    src: relay.c.patch
-    # Not using the ~username prefix to the fullpath because the patch module
-    # doesn't expand the path correctly. Technically it's an assumption that
-    # the user's home directory resides in /home/<username>, but a reasonable one.
-    basedir: /home/{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}/src/or
-  register: tor_relay_patch_result
+- block:
+  - name: Clobber relay.c in Tor {{ fpsd_crawler_tor_release }} with custom relay.c from repo
+    patch:
+      src: relay.c.patch
+      # Not using the ~username prefix to the fullpath because the patch module
+      # doesn't expand the path correctly. Technically it's an assumption that
+      # the user's home directory resides in /home/<username>, but a reasonable one.
+      basedir: "/home/{{ fpsd_crawler_system_account }}/tor-{{ fpsd_crawler_tor_release }}/src/or"
+    register: tor_relay_patch_result
 
-- name: Configure Tor {{ fpsd_crawler_tor_release }}
-  become: yes
-  become_user: "{{ ssh_username }}"
-  command: ./configure
-  args:
-    chdir: "~{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}"
-  when: tor_relay_patch_result|changed
+  - name: Configure Tor {{ fpsd_crawler_tor_release }}
+    command: ./configure
+    args:
+      chdir: "{{ fpsd_crawler_tor_directory }}/tor-{{ fpsd_crawler_tor_release }}"
+    when: tor_relay_patch_result|changed
 
-- name: Make Tor {{ fpsd_crawler_tor_release }}
+  - name: Make Tor {{ fpsd_crawler_tor_release }}
+    command: make -C {{ fpsd_crawler_tor_directory }}/tor-{{ fpsd_crawler_tor_release }}
+    when: tor_relay_patch_result|changed
+
   become: yes
-  become_user: "{{ ssh_username }}"
-  command: make
-  args:
-    chdir: "~{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}"
-  when: tor_relay_patch_result|changed
+  become_user: "{{ fpsd_crawler_system_account }}"
 
 - name: Install Tor {{ fpsd_crawler_tor_release }}
   become: yes
-  command: make install
-  args:
-    chdir: "~{{ ssh_username }}/tbb/tor-{{ fpsd_crawler_tor_release }}"
+  command: make install -C "{{ fpsd_crawler_tor_directory }}/tor-{{ fpsd_crawler_tor_release }}"
   when: tor_relay_patch_result|changed
