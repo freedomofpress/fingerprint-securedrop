@@ -1,5 +1,6 @@
 ---
 - include: packages.yml
+- include: configure.yml
 - include: download-verify-tbb.yml
 - include: download-verify-tor.yml
 - include: build-install-tor.yml

@@ -43,24 +43,3 @@
   # inspect the output to determine changed status.
   register: tor_build_dep_result
   changed_when: "'0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.' not in tor_build_dep_result.stdout_lines"
-
-- name: Clone git repository.
-  become: yes
-  git:
-    repo: "{{ fpsd_crawler_git_repo_url }}"
-    dest: "{{ fpsd_crawler_project_directory }}"
-    force: yes
-  # Under vagrant the project will be mounted as a shared directory,
-  # so no need to clone it. Deploying to prod, however, means we'll need
-  # to pull, so check the boolean var for toggling cloning functionality.
-  when: fpsd_crawler_clone_git_repo == true
-
-- name: Install crawler pip dependencies.
-  become: yes
-  pip:
-    executable: pip3
-    state: latest
-    requirements: "{{ fpsd_crawler_project_directory }}/fpsd/requirements/{{ item }}-requirements.txt"
-  with_items:
-    - crawler
-    - sorter

@@ -4,8 +4,8 @@ Requires=network-online.target
 After=network.target
 
 [Service]
-User=%i
-ExecStart=/usr/bin/python3.5 /home/%i/FingerprintSecureDrop/fpsd/crawler.py
+User={{ fpsd_crawler_system_account }}
+ExecStart=/usr/bin/python3.5 {{ fpsd_crawler_project_directory }}/fpsd/crawler.py
 Restart=always
 
 [Install]
