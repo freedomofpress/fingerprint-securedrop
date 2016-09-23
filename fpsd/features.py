@@ -68,6 +68,21 @@ class FeatureStorage():
         self.execute_query_from_string(query)
         return None
 
+    def generate_table_undefended_frontpage_links(self):
+        """This method creates a table of exampleids that were
+        present at the time of feature generation that the unified
+        view can join on. The table contains one integer column, exampleid.
+        """
+
+        self.drop_stale_feature_table("undefended_frontpage_examples")
+
+        query = ("CREATE TABLE features.undefended_frontpage_examples AS ( "
+                 "SELECT foo.exampleid FROM ( SELECT exampleid, "
+                 "count(*) FROM raw.frontpage_traces GROUP BY exampleid) foo);")
+
+        self.execute_query_from_string(query)
+        return None
+
     def _create_temp_packet_positions(self, outgoing_only=True):
         """This method takes all rows in raw.frontpage_traces
         and creates a temporary table packet_positions
@@ -702,8 +717,8 @@ class FeatureStorage():
             master_features.update({schema_and_table: table_columns})
 
         columns_to_select = "foo.exampleid"
-        full_join_query = ("FROM ( (SELECT exampleid, count(*) FROM      " 
-                           "raw.frontpage_traces GROUP BY exampleid) foo ")
+        full_join_query = ("FROM ( (SELECT exampleid FROM      " 
+                           "features.undefended_frontpage_examples) foo ")
 
         for table_num, table_name in enumerate(list(master_features.keys())):
             prefix = 't{}.'.format(table_num)
@@ -726,6 +741,9 @@ class FeatureStorage():
 
 def main():
     db = FeatureStorage()
+
+    # Create master table to store list of examples that we have generated features for
+    db.generate_table_undefended_frontpage_links()
 
     # Create individual feature tables and save the names of the tables
     feature_tables = []
