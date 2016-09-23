@@ -1,21 +1,19 @@
 ---
-- name: Update the Ubuntu image and install the packages both scripts need.
-  hosts: all
-  pre_tasks:
-    - name: Upgrade all packages.
-      apt:
-        upgrade: safe
-        update_cache: yes
-        cache_valid_time: 86400
-  roles:
-    - role: common
-      tags: common
-
-- name: Install and configure dependencies for Tor.
+- name: Configure FingerprintSecureDrop Tor Hidden Service crawler.
   hosts: all
   roles:
     - role: crawler
       tags: crawler
+  tasks:
+    - name: Set tmux mode to vim, avoid that rsi.
+      become: yes
+      lineinfile:
+        dest: "/etc/tmux.conf"
+        line: "setw -g mode-keys vi"
+        create: yes
+        owner: root
+        group: root
+        mode: "0644"
 
 - name: Install PostgreSQL and configure the fpsd database.
   hosts: all

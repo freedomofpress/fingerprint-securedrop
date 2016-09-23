@@ -1,4 +1,0 @@
----
-- include: packages.yml
-- include: clone-git-repo.yml
-- include: extra-config.yml
