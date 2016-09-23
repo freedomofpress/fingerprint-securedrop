@@ -1,0 +1,100 @@
+---
+# Only install postgres server packages if the database is local.
+# In the case of a remote database, no postgres packages are required.
+- name: Install PostgreSQL.
+  become: true
+  apt:
+    name: "{{ fpsd_database_apt_packages }}"
+    state: latest
+    update_cache: yes
+    cache_valid_time: 86400
+
+- block:
+  - name: Record present roles.
+    command: psql -c "SELECT rolname FROM pg_roles;"
+    register: postgres_roles
+    always_run: true
+    changed_when: false
+
+  - name: Create PostgreSQL user with user-defined password.
+    postgresql_user:
+      name: "{{ fpsd_database_psql_env.PGUSER }}"
+      password: "{{ fpsd_database_password }}"
+    when: "'{{ fpsd_database_psql_env.PGHOST }}' not in postgres_roles.stdout and fpsd_database_password"
+
+  - name: Create PostgreSQL user with a randomnly-generated password.
+    postgresql_user:
+      name: "{{ fpsd_database_psql_env.PGUSER }}"
+      # We don't include punctuation to avoid needing to escape ':' and '\' in the
+      # PGPASSFILE
+      password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters,digits') }}"
+    when: "'{{ fpsd_database_psql_env.PGHOST }}' not in postgres_roles.stdout and not fpsd_database_password"
+
+  - name: Create the database.
+    postgresql_db:
+      name: "{{ fpsd_database_psql_env.PGDATABASE }}"
+      owner: "{{ fpsd_database_psql_env.PGUSER }}"
+      encoding: UTF-8
+      lc_collate: en_US.UTF-8
+      lc_ctype: en_US.UTF-8
+      template: template0
+    register: fpsd_database_result
+
+  become: true
+  become_user: postgres
+
+# Configure raw schemas
+- block:
+  - name: List all schemas in the fpsd database.
+    command: psql -c '\dn' fpsd
+    register: schemas
+    always_run: true
+    changed_when: false
+
+  - name: Create the raw schema.
+    command: psql -c 'CREATE SCHEMA raw;'
+    when: "'raw' not in schemas.stdout"
+    register: raw_schema_result
+
+  - name: List all tables in the raw schema.
+    command: psql -c '\dt raw.*'
+    register: tables
+    always_run: true
+    changed_when: false
+
+  - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
+    command: psql -c '{{ lookup("file", item) }}'
+    with_items: "{{ fpsd_database_raw_schema_tables }}"
+    # Each file is of the form create_table_<table name>.sql, so let's extract the
+    # expected table name and inspect the table list to check if it already exists.
+    when: item|regex_replace('^create_table_(.*)\\.sql$', '\\1') not in tables.stdout
+    register: raw_schema_tables_result
+
+  environment: "{{ fpsd_database_psql_env }}"
+
+# Configure test database
+# The test database is only used for running tests, which for simplicity we
+# won't support remote databases for. Since the test database should contain
+# no important data, we keep recreate it based on the "prod" database whenever
+# changes are made to the "prod" database's schemas or tables.
+- block:
+  - name: Delete the test database based on outdated version of fpsd.
+    postgresql_db:
+      name: "test{{ fpsd_database_psql_env.PGDATABASE }}"
+      state: absent
+    # If the fpsd database was just created, the test database should
+    # not exist, so there will be nothing to delete.
+    when: fpsd_database_result|skipped
+
+  - name: Create the test database based on fpsd.
+    postgresql_db:
+      name: "test{{ fpsd_database_psql_env.PGDATABASE }}"
+      owner: "{{ fpsd_database_psql_env.PGUSER }}"
+      encoding: UTF-8
+      lc_collate: en_US.UTF-8
+      lc_ctype: en_US.UTF-8
+      template: "{{ fpsd_database_psql_env.PGDATABASE }}"
+
+  when: raw_schema_result|changed or raw_schema_tables_result|changed
+  become: true
+  become_user: postgres
