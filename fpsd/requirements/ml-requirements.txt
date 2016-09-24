@@ -1,0 +1,14 @@
+ipython==5.1.0
+jupyter==1.0.0
+luigi==2.3.1
+matplotlib==1.5.2
+numpy==1.11.1
+pandas==0.18.1
+psycopg2==2.6.2
+PyYAML==3.12
+scikit-learn==0.17.1
+scipy==0.18.1
+seaborn==0.7.1
+SQLAlchemy==1.0.14
+tqdm==4.8.4
+
