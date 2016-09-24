@@ -4,4 +4,13 @@
 - include: download-verify-tbb.yml
 - include: download-verify-tor.yml
 - include: build-install-tor.yml
+
+- include: set-environment-variables.yml
+  when: fpsd_database_configure_credentials == true
+  tags: database
+
+- include: configure-databases.yml
+  when: fpsd_database_initialize_local_db == true
+  tags: database
+
 - include: install-systemd-unit.yml

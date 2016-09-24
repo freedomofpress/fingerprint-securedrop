@@ -1,6 +1,0 @@
----
-- include: set-environment-variables.yml
-  when: fpsd_database_configure_credentials == true
-
-- include: configure-databases.yml
-  when: fpsd_database_initialize_local_db == true

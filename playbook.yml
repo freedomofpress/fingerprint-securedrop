@@ -16,9 +16,3 @@
         owner: root
         group: root
         mode: "0644"
-
-- name: Install PostgreSQL and configure the fpsd database.
-  hosts: all
-  roles:
-    - role: database
-      tags: database

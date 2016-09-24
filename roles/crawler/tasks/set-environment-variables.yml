@@ -10,7 +10,7 @@
     force: no # Don't clobber preexisting file, since it may contain auth secrets
   with_items: "{{ fpsd_database_usernames }}"
 
-- name: Set the database environment variables in ~/.bashrc.
+- name: Set the database environment variables in global bashrc.
   become: yes
   lineinfile:
     # Overriding the value for PGPASS to use `$HOME` so it's generalized for all users.
