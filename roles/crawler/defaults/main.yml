@@ -50,6 +50,10 @@ fpsd_database_apt_packages:
   - libpq-dev
   - python-psycopg2
 
+# If left undefined, a randomly generated password will be created and written
+# to /tmp on the Ansible controller.
+fpsd_database_password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters,digits') }}"
+
 # All of these vars except password will be set as environment variables in
 # `/etc/bash.bashrc`. If password is not set, then Ansible will generate one for
 # you at provision-time. The password will not be set as an environment
@@ -65,11 +69,8 @@ fpsd_database_psql_env:
   PGUSER: fp_user
   PGPORT: "5432"
   PGDATABASE: fpsd
+  PGPASSWORD: "{{ fpsd_database_password }}"
   PGPASSFILE: "{{ ansible_env.HOME }}/.pgpass"
-
-# If left undefined, a randomly generated password will be created and written
-# to /tmp on the Ansible controller.
-fpsd_database_password: ''
 
 # Defaults to true. Set to false if you want to use a remote database. If you
 # wish not to use the database at all, set the environment variable

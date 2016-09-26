@@ -7,7 +7,6 @@
     mode: "0600"
     owner: "{{ item }}"
     group: "{{ item }}"
-    force: no # Don't clobber preexisting file, since it may contain auth secrets
   with_items: "{{ fpsd_database_usernames }}"
 
 - name: Set the database environment variables in global bashrc.
@@ -20,4 +19,5 @@
     regexp: '^export {{ item.key }}='
     dest: "/etc/bash.bashrc"
     mode: "0644"
+  when: item.key != 'PGPASSWORD' # Don't write password to world-readable file.
   with_dict: "{{ fpsd_database_psql_env }}"
