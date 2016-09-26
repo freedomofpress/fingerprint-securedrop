@@ -1,4 +1,9 @@
 ---
+# Whether to configure the project application code.
+# Allows skipping the code tasks if only the database
+# tasks should be run, which is useful in a multi-host setup.
+fpsd_crawler_configure_service: true
+
 # General system dependencies requiring for running
 # Tor Browser Bundle (tbb).
 fpsd_crawler_apt_packages:

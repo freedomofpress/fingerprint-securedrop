@@ -1,9 +1,8 @@
 ---
-- include: packages.yml
-- include: configure.yml
-- include: download-verify-tbb.yml
-- include: download-verify-tor.yml
-- include: build-install-tor.yml
+# Isolates the config tasks into logical groups, in case the
+# config should be broken out across multiple hosts. Vars are shared
+# across all of these tasks (e.g. the crawler service needs database
+# credentials), so bundling them all within the same role.
 
 - include: set-environment-variables.yml
   when: fpsd_database_configure_credentials == true
@@ -13,4 +12,11 @@
   when: fpsd_database_initialize_local_db == true
   tags: database
 
-- include: install-systemd-unit.yml
+- block:
+  - include: packages.yml
+  - include: configure.yml
+  - include: download-verify-tbb.yml
+  - include: download-verify-tor.yml
+  - include: build-install-tor.yml
+  - include: install-systemd-unit.yml
+  when: fpsd_crawler_configure_service == true
