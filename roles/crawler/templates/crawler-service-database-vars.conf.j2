@@ -1,0 +1,4 @@
+[Service]
+{% for k,v in fpsd_database_psql_env.iteritems() %}
+Environment="{{ k }}={{ v }}"
+{% endfor %}

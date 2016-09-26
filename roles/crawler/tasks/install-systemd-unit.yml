@@ -5,3 +5,21 @@
     src: crawler.service.j2
     dest: /etc/systemd/system/crawler.service
     mode: "0644"
+
+- name: Create crawler systemd config directory.
+  become: yes
+  file:
+    dest: /etc/systemd/system/crawler.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create systemd service environment file with database credentials.
+  become: yes
+  template:
+    dest: /etc/systemd/system/crawler.service.d/database.conf
+    src: crawler-service-database-vars.conf.j2
+    owner: root
+    group: "{{ fpsd_crawler_system_account }}"
+    mode: "0640"
