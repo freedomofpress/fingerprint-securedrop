@@ -754,7 +754,7 @@ def main():
     feature_tables.append(db.generate_table_outgoing_cell_ordering())
     feature_tables.append(db.generate_table_outgoing_cell_ordering_differences())
     feature_tables.append(db.generate_table_binned_counts())
-    feature_tables = feature_tables + db.generate_burst_tables()
+    feature_tables += db.generate_burst_tables()
 
     # Create master feature view from the created tables
     db.create_master_feature_view(feature_tables)
