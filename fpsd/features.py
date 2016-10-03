@@ -592,8 +592,8 @@ class FeatureStorage():
         of bursts with length greater than x
 
         Args:
-            lengths [list of int]: number of lengths to create bins
-            between [0, length]
+            lengths [list of int]: number of lengths to create bins.
+            Bin limits are from the given length to the end of the trace
 
         Returns:
             [string] name of newly created table
