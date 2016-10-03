@@ -74,7 +74,7 @@ class FeatureStorage():
         view can join on. The table contains one integer column, exampleid.
         """
 
-        self.drop_stale_feature_table("undefended_frontpage_examples")
+        self.drop_stale_feature_table("features.undefended_frontpage_examples")
 
         query = ("CREATE TABLE features.undefended_frontpage_examples AS ( "
                  "SELECT foo.exampleid FROM ( SELECT exampleid, "
