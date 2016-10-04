@@ -25,7 +25,7 @@ def db_helper(db, table_name, feature_names):
     """
 
     select_query = "SELECT * FROM {} ORDER BY exampleid; ".format(table_name)
-    result = db.execute_query_from_string(select_query)
+    result = db.engine.execute(select_query)
 
     # Ensure we preserve the order of the columns with an OrderedDict
     actual_output = OrderedDict({'exampleid': []})
@@ -70,10 +70,10 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.db = FeatureStorage(test_db=True)
 
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
-        self.db.execute_query_from_string(clean_up_features_schema)
+        self.db.engine.execute(clean_up_features_schema)
 
         instantiate_features_schema = ("CREATE SCHEMA features; ")
-        self.db.execute_query_from_string(instantiate_features_schema)
+        self.db.engine.execute(instantiate_features_schema)
 
         insert_test_data_traces = ("INSERT INTO raw.frontpage_traces "
         "(cellid, exampleid, ingoing, circuit, stream, command, "
@@ -84,13 +84,13 @@ class RawFeatureGenerationTest(unittest.TestCase):
         "(922, 10, 'f', 3418218064, 59159, 'DATA(2)', 498, 1472598739.562103),"
         "(923, 10, 'f', 3418218064, 59159, 'DATA(2)', 424, 1472598739.562176),"
         "(924, 10, 'f', 3418218064, 59159, 'DATA(2)', 289, 1472598739.571273);")
-        self.db.execute_query_from_string(insert_test_data_traces)
+        self.db.engine.execute(insert_test_data_traces)
 
         insert_test_data_examples = ("INSERT INTO raw.frontpage_examples "
         "(exampleid, hsid, crawlid, t_scrape) VALUES "
         "(9, 1, 1, '2016-08-30 19:11:38.869066'), "
         "(10, 2, 1, '2016-08-30 19:11:39.879066');")
-        self.db.execute_query_from_string(insert_test_data_examples)
+        self.db.engine.execute(insert_test_data_examples)
         return None
 
     def test_aggregate_cell_numbers(self):
@@ -179,7 +179,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
     def test_burst_table_creation(self):
         self.db.create_bursts()
         query = "SELECT * FROM public.current_bursts ORDER BY exampleid; "
-        result = self.db.execute_query_from_string(query)
+        result = self.db.engine.execute(query)
         expected_output = {'exampleid': [9, 10],
                            'burst_length': [1, 3],
                            'burst_rank': [1, 1]}
@@ -194,11 +194,11 @@ class RawFeatureGenerationTest(unittest.TestCase):
 
     def tearDown(self):
         clean_up_test_data_traces = ("DELETE FROM raw.frontpage_traces;")
-        self.db.execute_query_from_string(clean_up_test_data_traces)
+        self.db.engine.execute(clean_up_test_data_traces)
         clean_up_test_data_examples = ("DELETE FROM raw.frontpage_examples;")
-        self.db.execute_query_from_string(clean_up_test_data_examples)
+        self.db.engine.execute(clean_up_test_data_examples)
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
-        self.db.execute_query_from_string(clean_up_features_schema)
+        self.db.engine.execute(clean_up_features_schema)
         self.db.drop_stale_feature_table("public.current_bursts")
         return None
 
@@ -210,17 +210,17 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.db = FeatureStorage(test_db=True)
 
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
-        self.db.execute_query_from_string(clean_up_features_schema)
+        self.db.engine.execute(clean_up_features_schema)
 
         instantiate_features_schema = ("CREATE SCHEMA features; ")
-        self.db.execute_query_from_string(instantiate_features_schema)
+        self.db.engine.execute(instantiate_features_schema)
 
         create_bursts_table = ("CREATE TABLE public.current_bursts ("
                                "burstid SERIAL PRIMARY KEY, "
                                "burst BIGINT, "
                                "exampleid BIGINT, "
                                "rank BIGINT);")
-        self.db.execute_query_from_string(create_bursts_table)
+        self.db.engine.execute(create_bursts_table)
 
         insert_test_bursts = ("INSERT INTO public.current_bursts "
                               "(burstid, burst, exampleid, rank) VALUES "
@@ -231,7 +231,7 @@ class BurstFeatureGeneration(unittest.TestCase):
                               "(2961, 2, 10, 11), "
                               "(2954, 8, 10, 4), "
                               "(2953, 1, 10, 3);")
-        self.db.execute_query_from_string(insert_test_bursts)
+        self.db.engine.execute(insert_test_bursts)
         return None
 
     def test_burst_length_aggregates(self):
@@ -270,5 +270,5 @@ class BurstFeatureGeneration(unittest.TestCase):
     def tearDown(self):
         self.db.drop_stale_feature_table("public.current_bursts")
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
-        self.db.execute_query_from_string(clean_up_features_schema)
+        self.db.engine.execute(clean_up_features_schema)
         return None
