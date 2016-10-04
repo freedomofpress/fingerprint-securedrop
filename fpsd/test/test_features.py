@@ -216,6 +216,13 @@ class BurstFeatureGeneration(unittest.TestCase):
         instantiate_features_schema = ("CREATE SCHEMA features; ")
         self.db.engine.execute(instantiate_features_schema)
 
+        insert_test_data_traces = ("INSERT INTO raw.frontpage_traces "
+        "(cellid, exampleid, ingoing, circuit, stream, command, "
+        "length, t_trace) VALUES "
+        "(508, 9, 't', 3725647749, 0, 'EXTENDED2(15)', 66, 1472598678.735375),"
+        "(922, 10, 'f', 3418218064, 59159, 'DATA(2)', 498, 1472598739.562103)")
+        self.db.engine.execute(insert_test_data_traces)
+
         create_bursts_table = ("CREATE TABLE public.current_bursts ("
                                "burstid SERIAL PRIMARY KEY, "
                                "burst BIGINT, "
@@ -272,4 +279,6 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.db.drop_table("public.current_bursts")
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
         self.db.engine.execute(clean_up_features_schema)
+        clean_up_test_data_traces = ("DELETE FROM raw.frontpage_traces;")
+        self.db.engine.execute(clean_up_test_data_traces)
         return None
