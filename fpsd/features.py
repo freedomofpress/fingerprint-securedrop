@@ -43,19 +43,6 @@ class FeatureStorage():
                 os.environ['PGUSER'], os.environ['PGPASSWORD'],
                 os.environ['PGHOST'], os.environ['PGDATABASE']))
 
-    def execute_query_from_string(self, query):
-        """Method to run a query using self.engine
-
-        Args:
-            query [string]: SQL query
-
-        Returns:
-            result [SQLAlchemy ResultProxy object]: result of query
-        """
-
-        result = self.engine.execute(query)
-        return result
-
     def drop_stale_feature_table(self, table_name):
         """Try to remove a table even if views depend on it
 
@@ -64,7 +51,7 @@ class FeatureStorage():
         """
 
         query = "DROP TABLE IF EXISTS {} CASCADE;".format(table_name)
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
     def generate_table_undefended_frontpage_links(self):
         """This method creates a table of exampleids that were
@@ -77,8 +64,7 @@ class FeatureStorage():
         query = ("CREATE TABLE features.undefended_frontpage_examples AS ( "
                  "SELECT foo.exampleid FROM ( SELECT exampleid, "
                  "count(*) FROM raw.frontpage_traces GROUP BY exampleid) foo);")
-
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
     def _create_temp_packet_positions(self, outgoing_only=True):
         """This method takes all rows in raw.frontpage_traces
@@ -121,7 +107,7 @@ class FeatureStorage():
                  "    FROM raw.frontpage_traces t)                  "
                  "x {} );").format(where_only_outgoing)
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
     def _create_table_outgoing_cell_positions(self, num_cells=500):
         """This method takes the first num_cells rows in
@@ -155,7 +141,7 @@ class FeatureStorage():
                  "  WHERE x.outgoing_cell_position <= {n}                "
                  ");").format(n=num_cells)
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
     def get_exampleids(self):
         """Get list of exampleids"""
@@ -216,7 +202,7 @@ class FeatureStorage():
                  "    WHERE raw.frontpage_traces.ingoing = 'f'     "
                  "    GROUP BY exampleid) t3                       "
                  " ON t1.exampleid = t3.exampleid);                ")
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
         return "features.cell_numbers"
 
@@ -241,7 +227,7 @@ class FeatureStorage():
                  "  (SELECT exampleid, MAX(t_trace) -             "
                  "  MIN(t_trace) as total_elapsed_time            "
                  "  FROM raw.frontpage_traces GROUP BY exampleid);")
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
         return "features.cell_timings"
 
@@ -278,7 +264,7 @@ class FeatureStorage():
                  "  stddev( difference )                            "
                  "  as standard_deviation_intercell_time            "
                  "FROM interpacket_times GROUP BY exampleid);       ")
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
         return "features.interpacket_timings"
 
@@ -326,7 +312,7 @@ class FeatureStorage():
                  "  AS  ct(exampleid integer, {})                   "
                  ");").format(', '.join(crosstab_columns))
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
         return "features.initial_cell_directions"
 
     def generate_table_outgoing_cell_ordering(self, num_features=500):
@@ -367,7 +353,7 @@ class FeatureStorage():
                  "{}));").format(num_features,
                                  ', '.join(crosstab_columns))
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
         return "features.cell_ordering"
 
     def generate_table_outgoing_cell_ordering_differences(self,
@@ -413,7 +399,7 @@ class FeatureStorage():
                  "AS ct(exampleid integer,                           "
                  "{cols})); ").format(n=num_ranks,
                                       cols=', '.join(crosstab_columns))
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
 
         diff_columns = [("({prefix}_{n2} - {prefix}_{n1}) "
                          "AS {prefix}_difference_{n1}").format(
@@ -426,7 +412,7 @@ class FeatureStorage():
                  "FROM top_{n}_cell_ordering); ".format(cols=feat_columns,
                                                         n=num_ranks))
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
         return "features.cell_ordering_differences"
 
     def generate_table_binned_counts(self, num_features=100, size_window=30):
@@ -490,7 +476,7 @@ class FeatureStorage():
                                ', '.join(feature_columns),
                                subqueries)
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
         return feature_table_name
 
     def create_bursts(self):
@@ -526,7 +512,7 @@ class FeatureStorage():
         table_creation = ("CREATE TABLE public.current_bursts             "
                           "(burstid SERIAL PRIMARY KEY, exampleid BIGINT, "
                           "burst BIGINT, rank BIGINT)                     ")
-        self.execute_query_from_string(table_creation)
+        self.engine.execute(table_creation)
 
         burst_rows = ['({}, {}, {})'.format(row[0], row[1], row[2])
                       for row in final_df.values]
@@ -537,7 +523,7 @@ class FeatureStorage():
                                                          cols[1],
                                                          cols[2],
                                                          ', '.join(burst_rows)))
-        self.execute_query_from_string(insert_query)
+        self.engine.execute(insert_query)
         return "public.current_bursts"
 
     def generate_table_burst_length_aggregates(self):
@@ -567,7 +553,7 @@ class FeatureStorage():
                  "FROM public.current_bursts                          "
                  "GROUP BY exampleid);                                ")
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
         return "features.burst_length_aggregates"
 
     def generate_table_binned_bursts(self, lengths=[2, 5, 10, 15, 20, 50]):
@@ -619,7 +605,7 @@ class FeatureStorage():
                  "{} ));").format(", ".join(feature_columns),
                                   " ".join(subqueries))
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
         return "features.burst_binned_lengths"
 
     def generate_table_burst_lengths(self, num_bursts=100):
@@ -656,7 +642,7 @@ class FeatureStorage():
                  "AS ct(exampleid bigint,                        "
                  "{}));").format(', '.join(column_names))
 
-        self.execute_query_from_string(query)
+        self.engine.execute(query)
         return "features.burst_lengths"
 
     def generate_burst_tables(self):
@@ -674,7 +660,7 @@ class FeatureStorage():
                  "WHERE table_schema='{}' "
                  "AND table_name='{}'").format(schema_name,
                                                table_name)
-        result = self.execute_query_from_string(query)
+        result = self.engine.execute(query)
         colnames = []
         for row in result:
             colnames.append(row[0])
@@ -725,12 +711,12 @@ class FeatureStorage():
             full_join_query = full_join_query + join_query
 
         drop_view = "DROP VIEW IF EXISTS features.frontpage_features; "
-        self.execute_query_from_string(drop_view)
+        self.engine.execute(drop_view)
 
         create_new_view = ("CREATE VIEW features.frontpage_features "
                            "AS ( SELECT {} {} ));").format(columns_to_select,
                                                           full_join_query)
-        self.execute_query_from_string(create_new_view)
+        self.engine.execute(create_new_view)
 
 
 def main():
