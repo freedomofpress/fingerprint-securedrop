@@ -71,14 +71,14 @@ class FeatureStorage():
         creates a temporary table packet_positions with the following
         format:
 
-        exampleid  | rank     |  ingoing
+        exampleid  | position |  ingoing
         (integer)  | (bigint) |  (boolean)
         ------------------------------------
         9          | 4        | f
         9          | 5        | f
         9          | 15       | f
 
-        where rank is the "position" in the trace for all cells. For
+        where position describes where the cell is in the trace. For
         example, for the first outgoing cell in the trace with
         exampleid=9 was the 4th packet in the trace. This table is used
         by the position-based feature generation functions.
@@ -95,13 +95,13 @@ class FeatureStorage():
         else:
             where_only_outgoing = ""
 
-        query = ("CREATE TEMP TABLE packet_positions AS    "
-                 "(SELECT exampleid, rank, ingoing                  "
+        query = ("CREATE TEMP TABLE packet_positions AS             "
+                 "(SELECT exampleid, position, ingoing              "
                  "  FROM (                                          "
                  "    SELECT                                        "
                  "      ROW_NUMBER() OVER                           "
                  "      (PARTITION BY exampleid ORDER BY t_trace)   "
-                 "      AS rank,                                    "
+                 "      AS position,                                "
                  "      t.*                                         "
                  "    FROM raw.frontpage_traces t)                  "
                  "x {} );").format(where_only_outgoing)
@@ -114,30 +114,30 @@ class FeatureStorage():
         first_(num_cells)_outgoing_packet_positions with the following
         format:
 
-        exampleid  | rank     |  outgoing_cell_position
+        exampleid  | position |  outgoing_cell_order
         (integer)  | (bigint) |  (bigint)
         -----------------------------------------------
         9          | 4        | 1
         9          | 5        | 2
         9          | 15       | 3
 
-        For example, the third outgoing cell was the 15th in the trace.
-        This table is used by the position-based feature
+        For example, the third outgoing cell was at position 15 in the
+        trace. This table is used by the position-based feature
         generation functions.
         """
         table_name = "first_{}_outgoing_packet_positions".format(num_cells)
         self.drop_table(table_name)
 
         query = ("CREATE TEMP TABLE first_{n}_outgoing_packet_positions AS "
-                 "(SELECT exampleid, outgoing_cell_position, rank        "
-                 "  FROM (                                               "
-                 "    SELECT                                             "
-                 "      ROW_NUMBER() OVER                                "
-                 "      (PARTITION BY exampleid ORDER BY rank)           "
-                 "      AS outgoing_cell_position,                       "
-                 "      t.*                                              "
-                 "    FROM packet_positions t) x                         "
-                 "  WHERE x.outgoing_cell_position <= {n}                "
+                 "(SELECT exampleid, outgoing_cell_order, position      "
+                 "  FROM (                                                 "
+                 "    SELECT                                               "
+                 "      ROW_NUMBER() OVER                                  "
+                 "      (PARTITION BY exampleid ORDER BY position)         "
+                 "      AS outgoing_cell_order,                         "
+                 "      t.*                                                "
+                 "    FROM packet_positions t) x                           "
+                 "  WHERE x.outgoing_cell_order <= {n}                  "
                  ");").format(n=num_cells)
 
         self.engine.execute(query)
@@ -298,16 +298,16 @@ class FeatureStorage():
                  "  (SELECT *                                       "
                  "  FROM crosstab(                                  "
                  "    'SELECT                                       "
-                 "    exampleid, rank,                              "
+                 "    exampleid, position,                          "
                  "     case when ingoing = true then 0 else 1 end   "
                  "  FROM (                                          "
                  "    SELECT                                        "
                  "      ROW_NUMBER() OVER                           "
                  "      (PARTITION BY exampleid ORDER BY t_trace)   "
-                 "      AS rank,                                    "
+                 "      AS position,                                "
                  "      t.*                                         "
                  "    FROM raw.frontpage_traces t) x                "
-                 "  WHERE x.rank <= 10')                            "
+                 "  WHERE x.position <= 10')                        "
                  "  AS  ct(exampleid integer, {})                   "
                  ");").format(', '.join(crosstab_columns))
 
@@ -344,11 +344,11 @@ class FeatureStorage():
         crosstab_columns = ['outgoing_cell_position_{} bigint'.format(x+1)
                             for x in range(num_cells)]
 
-        query = ("CREATE TABLE features.cell_positions AS          "
-                 "(SELECT * FROM crosstab(                        "
-                 "'SELECT exampleid, outgoing_cell_position, rank "
-                 "FROM first_{}_outgoing_packet_positions')         "
-                 "AS ct(exampleid integer,                        "
+        query = ("CREATE TABLE features.cell_positions AS             "
+                 "(SELECT * FROM crosstab(                            "
+                 "'SELECT exampleid, outgoing_cell_order, position "
+                 "FROM first_{}_outgoing_packet_positions')           "
+                 "AS ct(exampleid integer,                            "
                  "{}));").format(num_cells,
                                  ', '.join(crosstab_columns))
 
@@ -451,15 +451,15 @@ class FeatureStorage():
             # Use LEFT OUTER JOIN because many of the later windows
             # will be Null.
             # Note: count(*) will return Null if count(*) = 0
-            arr_subqueries = [("LEFT OUTER JOIN (SELECT exampleid,          "
-                               "COALESCE(count(*), 0)                       "
-                               "AS {colname} FROM packet_positions WHERE    "
-                               "ingoing = false AND rank > {rank_start} AND "
-                               "rank <= {rank_stop} GROUP BY exampleid)     "
-                               "t{feat_ind} ON foo.exampleid =               "
+            arr_subqueries = [("LEFT OUTER JOIN (SELECT exampleid,             "
+                               "COALESCE(count(*), 0)                          "
+                               "AS {colname} FROM packet_positions WHERE       "
+                               "ingoing = false AND position > {pos_start} AND "
+                               "position <= {pos_stop} GROUP BY exampleid)     "
+                               "t{feat_ind} ON foo.exampleid =                 "
                                "t{feat_ind}.exampleid").format(colname=feature_columns[x-1],
-                                                               rank_start=(x-1)*size_window,
-                                                               rank_stop=x*size_window,
+                                                               pos_start=(x-1)*size_window,
+                                                               pos_stop=x*size_window,
                                                                feat_ind=x)
                               for x in range(1, num_features + 1)]
 
