@@ -42,7 +42,6 @@ class FeatureStorage():
             self.engine = create_engine('postgresql://{}:{}@{}/{}'.format(
                 os.environ['PGUSER'], os.environ['PGPASSWORD'],
                 os.environ['PGHOST'], os.environ['PGDATABASE']))
-        return None
 
     def execute_query_from_string(self, query):
         """Method to run a query using self.engine
@@ -66,7 +65,6 @@ class FeatureStorage():
 
         query = "DROP TABLE IF EXISTS {} CASCADE;".format(table_name)
         self.execute_query_from_string(query)
-        return None
 
     def generate_table_undefended_frontpage_links(self):
         """This method creates a table of exampleids that were
@@ -81,7 +79,6 @@ class FeatureStorage():
                  "count(*) FROM raw.frontpage_traces GROUP BY exampleid) foo);")
 
         self.execute_query_from_string(query)
-        return None
 
     def _create_temp_packet_positions(self, outgoing_only=True):
         """This method takes all rows in raw.frontpage_traces
@@ -125,7 +122,6 @@ class FeatureStorage():
                  "x {} );").format(where_only_outgoing)
 
         self.execute_query_from_string(query)
-        return None
 
     def _create_table_outgoing_cell_positions(self, num_cells=500):
         """This method takes the first num_cells rows in
@@ -160,7 +156,6 @@ class FeatureStorage():
                  ");").format(n=num_cells)
 
         self.execute_query_from_string(query)
-        return None
 
     def get_exampleids(self):
         """Get list of exampleids"""
@@ -736,7 +731,6 @@ class FeatureStorage():
                            "AS ( SELECT {} {} ));").format(columns_to_select,
                                                           full_join_query)
         self.execute_query_from_string(create_new_view)
-        return None
 
 
 def main():
@@ -758,7 +752,6 @@ def main():
 
     # Create master feature view from the created tables
     db.create_master_feature_view(feature_tables)
-    return None
 
 
 if __name__ == '__main__':
