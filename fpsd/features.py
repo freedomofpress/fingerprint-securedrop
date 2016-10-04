@@ -54,9 +54,9 @@ class FeatureStorage():
         self.engine.execute(query)
 
     def generate_table_undefended_frontpage_links(self):
-        """This method creates a table of exampleids that were
-        present at the time of feature generation that the unified
-        view can join on. The table contains one integer column, exampleid.
+        """This method creates a table of exampleids that were present 
+        at the time of feature generation that the unified view can join
+        on. The table contains one integer column, exampleid.
         """
 
         self.drop_stale_feature_table("features.undefended_frontpage_examples")
@@ -67,9 +67,9 @@ class FeatureStorage():
         self.engine.execute(query)
 
     def _create_temp_packet_positions(self, outgoing_only=True):
-        """This method takes all rows in raw.frontpage_traces
-        and creates a temporary table packet_positions
-        with the following format:
+        """This method takes all rows in raw.frontpage_traces and
+        creates a temporary table packet_positions with the following
+        format:
 
         exampleid  | rank     |  ingoing
         (integer)  | (bigint) |  (boolean)
@@ -78,11 +78,10 @@ class FeatureStorage():
         9          | 5        | f
         9          | 15       | f
 
-        where rank is the "position" in the trace for all
-        cells. For example, for the first outgoing cell in the
-        trace with exampleid=9 was the 4th packet in the trace.
-        This table is used by the position-based feature
-        generation functions.
+        where rank is the "position" in the trace for all cells. For
+        example, for the first outgoing cell in the trace with
+        exampleid=9 was the 4th packet in the trace. This table is used
+        by the position-based feature generation functions.
 
         Args:
             outgoing_only [boolean]: describes whether or not we should
@@ -111,9 +110,9 @@ class FeatureStorage():
 
     def _create_table_outgoing_cell_positions(self, num_cells=500):
         """This method takes the first num_cells rows in
-        packet_positions and creates a temporary
-        table top_(num_cells)_outgoing_packet_positions
-        with the following format:
+        packet_positions and creates a temporary table
+        top_(num_cells)_outgoing_packet_positions with the following
+        format:
 
         exampleid  | rank     |  outgoing_cell_position
         (integer)  | (bigint) |  (bigint)
@@ -158,8 +157,8 @@ class FeatureStorage():
         return df
 
     def generate_table_cell_numbers(self):
-        """This method takes all examples and produces a
-        table features.cell_numbers with the following format:
+        """This method takes all examples and produces a table
+        features.cell_numbers with the following format:
 
         exampleid  | a        | b        | c
         (integer)  | (bigint) | (bigint) | (bigint)
@@ -207,8 +206,8 @@ class FeatureStorage():
         return "features.cell_numbers"
 
     def generate_table_cell_timings(self):
-        """This method takes all examples and produces a
-        table features.cell_timings with the following format:
+        """This method takes all examples and produces a table
+        features.cell_timings with the following format:
 
         exampleid  | total_elapsed_time
         (integer)  | (numeric)
@@ -232,8 +231,8 @@ class FeatureStorage():
         return "features.cell_timings"
 
     def generate_table_interpacket_timings(self):
-        """This method takes all examples and produces a
-        table features.interpacket_timings with the following format:
+        """This method takes all examples and produces a table
+        features.interpacket_timings with the following format:
 
         exampleid  | a         | b
         (integer)  | (numeric) | (numeric)
@@ -269,8 +268,8 @@ class FeatureStorage():
         return "features.interpacket_timings"
 
     def generate_table_initial_cell_directions(self, num_cells=10):
-        """This method takes all examples and produces a
-        table features.initial_cell_directions with the following format:
+        """This method takes all examples and produces a table
+        features.initial_cell_directions with the following format:
 
         exampleid  | a         | b         ...    | num_cells
         (integer)  | (integer) | (integer) ...    | (integer)
@@ -279,10 +278,10 @@ class FeatureStorage():
         10         | 1         | 1         ...
         11         | 1         | 0         ...
 
-        where there are a variable number (num_cells) of
-        feature columns, each named direction_cell_x where x is the
-        position in the trace, beginning at 1. This feature represents
-        the direction (where outgoing is positive) of the cell.
+        where there are a variable number (num_cells) of feature
+        columns, each named direction_cell_x where x is the position in
+        the trace, beginning at 1. This feature represents the direction
+        (where outgoing is positive) of the cell.
 
         Args:
             num_cells [int]: number of initial cells to use as features
@@ -316,8 +315,8 @@ class FeatureStorage():
         return "features.initial_cell_directions"
 
     def generate_table_outgoing_cell_ordering(self, num_features=500):
-        """This method takes all examples and produces a
-        table with the following format:
+        """This method takes all examples and produces a table with the
+        following format:
 
         exampleid  | a         | b         ...    | num_features
         (integer)  | (bigint)  | (bigint)  ...    | (bigint)
@@ -326,9 +325,9 @@ class FeatureStorage():
         10         | 1         | 2         ...
         11         | 1         | 3         ...
 
-        where there are a variable number (num_features) of
-        feature columns, each named outgoing_cell_position_x
-        where x is the position in the trace, beginning at 1.
+        where there are a variable number (num_features) of feature
+        columns, each named outgoing_cell_position_x where x is the
+        position in the trace, beginning at 1.
 
         Args:
             num_features [int]: number of cells to use as features
@@ -358,8 +357,8 @@ class FeatureStorage():
 
     def generate_table_outgoing_cell_ordering_differences(self,
                                                           num_features=500):
-        """This method takes all examples and produces a
-        table with the following format:
+        """This method takes all examples and produces a table with the
+        following format:
 
         exampleid  | a         | b         ...    | num_features
         (integer)  | (bigint)  | (bigint)  ...    | (bigint)
@@ -368,10 +367,10 @@ class FeatureStorage():
         10         | 1         | 2         ...
         11         | 2         | 1         ...
 
-        where there are a variable number (num_features) of
-        feature columns, each named outgoing_cell_position_difference_x
-        where x is the position in the trace + 1, beginning at 1.
-        For example, outgoing_cell_position_difference_1 is the difference in
+        where there are a variable number (num_features) of feature
+        columns, each named outgoing_cell_position_difference_x where x
+        is the position in the trace + 1, beginning at 1. For example,
+        outgoing_cell_position_difference_1 is the difference in
         position between the 2nd and 1st outgoing cells.
 
         Args:
@@ -416,8 +415,8 @@ class FeatureStorage():
         return "features.cell_ordering_differences"
 
     def generate_table_binned_counts(self, num_features=100, size_window=30):
-        """This method takes all examples and produces a
-        table with the following format:
+        """This method takes all examples and produces a table with the
+        following format:
 
         exampleid  | a         | b         ...    | num_features
         (integer)  | (bigint)  | (bigint)  ...    | (bigint)
@@ -426,10 +425,10 @@ class FeatureStorage():
         10         | 12        | 14        ...
         11         | 13        | 16        ...
 
-        where there are a variable number (num_features) of
-        feature columns, each named num_outgoing_packets_in_window_x_of_size_y.
-        num_outgoing_packets_in_window_x_of_size_y is the number
-        of cells in the xth bin or "window" of size y
+        where there are a variable number (num_features) of feature
+        columns, each named num_outgoing_packets_in_window_x_of_size_y.
+        num_outgoing_packets_in_window_x_of_size_y is the number of
+        cells in the xth bin or "window" of size y
 
         Args:
             num_features [int]: number of features to create
@@ -480,9 +479,8 @@ class FeatureStorage():
         return feature_table_name
 
     def create_bursts(self):
-        """This method takes all examples and produces a
-        table public.current_bursts with all bursts in
-        the following format:
+        """This method takes all examples and produces a table
+        public.current_bursts with all bursts in the following format:
 
         burstid   | burst     | exampleid   | rank
         (integer) | (bigint)  | (bigint)    | (bigint)
@@ -491,8 +489,8 @@ class FeatureStorage():
         2         | 2         | 251         | 2
         3         | 4         | 251         | 3
 
-        This table is then used by the burst table creation
-        methods called by generate_burst_tables().
+        This table is then used by the burst table creation methods
+        called by generate_burst_tables().
 
         Returns:
             [string] name of newly created table
@@ -527,8 +525,8 @@ class FeatureStorage():
         return "public.current_bursts"
 
     def generate_table_burst_length_aggregates(self):
-        """This method takes all bursts and produces a
-        table with the following format:
+        """This method takes all bursts and produces a table with the
+        following format:
 
         exampleid  | a         | b          | c
         (integer)  | (numeric) | (bigint)   | (bigint)
@@ -557,8 +555,8 @@ class FeatureStorage():
         return "features.burst_length_aggregates"
 
     def generate_table_binned_bursts(self, lengths=[2, 5, 10, 15, 20, 50]):
-        """This method takes all bursts and produces a
-        table with the following format:
+        """This method takes all bursts and produces a table with the
+        following format:
 
         exampleid  | a         | b         ...    | n
         (integer)  | (bigint)  | (bigint)  ...    | (bigint)
@@ -567,10 +565,10 @@ class FeatureStorage():
         10         | 2         | 0         ...
         11         | 6         | 1         ...
 
-        where there are a variable number (n=len(lengths)) of
-        feature columns, each named num_bursts_with_length_gt_x.
-        num_bursts_with_length_gt_x is the number
-        of bursts with length greater than x
+        where there are a variable number (n=len(lengths)) of feature
+        columns, each named num_bursts_with_length_gt_x.
+        num_bursts_with_length_gt_x is the number of bursts with length
+        greater than x
 
         Args:
             lengths [list of int]: number of lengths to create bins.
@@ -609,8 +607,8 @@ class FeatureStorage():
         return "features.burst_binned_lengths"
 
     def generate_table_burst_lengths(self, num_bursts=100):
-        """This method takes all bursts and produces a
-        table with the following format:
+        """This method takes all bursts and produces a table with the
+        following format:
 
         exampleid  | a         | b         ...    | num_bursts
         (integer)  | (bigint)  | (bigint)  ...    | (bigint)
@@ -619,9 +617,9 @@ class FeatureStorage():
         10         | 2         | 2         ...
         11         | 1         | 3         ...
 
-        where there are a variable number (num_bursts) of
-        feature columns, each named length_burst_x. For example,
-        length_burst_1 is the length of the first burst.
+        where there are a variable number (num_bursts) of feature
+        columns, each named length_burst_x. For example, length_burst_1
+        is the length of the first burst.
 
         Args:
             num_bursts [int]: number of bursts to make features for
@@ -677,14 +675,13 @@ class FeatureStorage():
         10         | 2         | 2         ...    | 21
         11         | 1         | 3         ...    | 36
 
-        A single row represents a single example along with the
-        features for that example. The purpose of the view is to
-        provide a simple way to select train and test sets.
+        A single row represents a single example along with the features
+        for that example. The purpose of the view is to provide a simple
+        way to select train and test sets.
 
         Args:
-            feature_table_names [list of strings]: list of tables
-            that contain features that we would like to put into
-            the view
+            feature_table_names [list of strings]: list of tables that
+            contain features that we would like to put into the view
         """
 
         master_features = {}
