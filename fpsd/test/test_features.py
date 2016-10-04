@@ -3,6 +3,7 @@ import pandas as pd
 import sqlalchemy
 
 import unittest
+import os
 import pdb
 from collections import OrderedDict
 from decimal import Decimal
@@ -68,7 +69,11 @@ class RawFeatureGenerationTest(unittest.TestCase):
     """Tests for all the feature generation methods that start
     with the raw.frontpage_traces table"""
     def setUp(self):
-        self.db = FeatureStorage(test_db=True)
+        pgdatabase = os.getenv("PGDATABASE")
+        if pgdatabase and not pgdatabase.startswith("test"):
+            pgdatabase = "test" + pgdatabase
+        os.environ["PGDATABASE"] = pgdatabase
+        self.db = FeatureStorage()
 
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
         self.db.engine.execute(clean_up_features_schema)
@@ -208,7 +213,11 @@ class BurstFeatureGeneration(unittest.TestCase):
     """Tests for the feature generation methods
     that begin with the bursts table"""
     def setUp(self):
-        self.db = FeatureStorage(test_db=True)
+        pgdatabase = os.getenv("PGDATABASE")
+        if pgdatabase and not pgdatabase.startswith("test"):
+            pgdatabase = "test" + pgdatabase
+        os.environ["PGDATABASE"] = pgdatabase
+        self.db = FeatureStorage()
 
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
         self.db.engine.execute(clean_up_features_schema)
