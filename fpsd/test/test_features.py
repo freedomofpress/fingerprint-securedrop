@@ -97,13 +97,14 @@ class RawFeatureGenerationTest(unittest.TestCase):
     def test_aggregate_cell_numbers(self):
         table_name = self.db.generate_table_cell_numbers()
         expected_output = {'exampleid': [9, 10],
+                           'total_number_of_cells': [3, 3],
                            'total_number_of_incoming_cells': [2, 0],
-                           'total_number_of_outgoing_cells': [1, 3],
-                           'total_number_of_cells': [3, 3]}
+                           'total_number_of_outgoing_cells': [1, 3]}
 
         actual_output = db_helper(self.db, table_name,
-            ['total_number_of_incoming_cells',
-             'total_number_of_outgoing_cells', 'total_number_of_cells'])
+            ['total_number_of_cells',
+             'total_number_of_incoming_cells',
+             'total_number_of_outgoing_cells'])
 
         self.assertEqual(expected_output, actual_output)
 
@@ -201,7 +202,6 @@ class RawFeatureGenerationTest(unittest.TestCase):
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
         self.db.engine.execute(clean_up_features_schema)
         self.db.drop_table("public.current_bursts")
-        return None
 
 
 class BurstFeatureGeneration(unittest.TestCase):
@@ -240,7 +240,6 @@ class BurstFeatureGeneration(unittest.TestCase):
                               "(2954, 8, 10, 4), "
                               "(2953, 1, 10, 3);")
         self.db.engine.execute(insert_test_bursts)
-        return None
 
     def test_burst_length_aggregates(self):
         table_name = self.db.generate_table_burst_length_aggregates()
@@ -281,4 +280,3 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.db.engine.execute(clean_up_features_schema)
         clean_up_test_data_traces = ("DELETE FROM raw.frontpage_traces;")
         self.db.engine.execute(clean_up_test_data_traces)
-        return None
