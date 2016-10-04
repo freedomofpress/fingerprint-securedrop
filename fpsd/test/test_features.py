@@ -47,21 +47,21 @@ def db_helper(db, table_name, feature_names):
 
 
 class BurstGenerationTest(unittest.TestCase):
-    def test_no_bursts(self):
+    def test_incoming_burst(self):
         df = pd.DataFrame({'ingoing': [True, True, True]})
         bursts, ranks = compute_bursts(df)
-        self.assertEqual(bursts, [])
+        self.assertEqual(bursts, [3])
 
-    def test_all_burst(self):
+    def test_outgoing_burst(self):
         df = pd.DataFrame({'ingoing': [False, False, False]})
         bursts, ranks = compute_bursts(df)
         self.assertEqual(bursts, [3])
 
-    def test_two_bursts(self):
+    def test_multiple_bursts(self):
         df = pd.DataFrame({'ingoing': [True, True, False, False, True,
                                        True, False, False, False]})
         bursts, ranks = compute_bursts(df)
-        self.assertEqual(bursts, [2, 3])
+        self.assertEqual(bursts, [2, 2, 2, 3])
 
 
 class RawFeatureGenerationTest(unittest.TestCase):
@@ -181,9 +181,9 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.db.create_bursts()
         query = "SELECT * FROM public.current_bursts ORDER BY exampleid; "
         result = self.db.engine.execute(query)
-        expected_output = {'exampleid': [9, 10],
-                           'burst_length': [1, 3],
-                           'burst_rank': [1, 1]}
+        expected_output = {'exampleid': [9, 9, 9, 10],
+                           'burst_length': [1, 1, 1, 3],
+                           'burst_rank': [1, 2, 3, 1]}
         actual_output = {'exampleid': [],
                          'burst_length': [],
                          'burst_rank': []}
