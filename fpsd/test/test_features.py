@@ -1,12 +1,11 @@
 #!/usr/bin/env python3.5
-import pandas as pd
-import sqlalchemy
-
-import unittest
-import os
-import pdb
 from collections import OrderedDict
 from decimal import Decimal
+import os
+import pandas as pd
+import pdb
+import sqlalchemy
+import unittest
 
 from features import compute_bursts, FeatureStorage
 
