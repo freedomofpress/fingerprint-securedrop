@@ -1,9 +1,12 @@
 #!/usr/bin/env python3.5
 import os
 import pandas as pd
+import pdb
 from sqlalchemy import create_engine
 import subprocess
 from tqdm import tqdm
+
+from utils import panic
 
 
 def compute_bursts(df):
@@ -45,17 +48,22 @@ def compute_bursts(df):
 
 
 class FeatureStorage():
-    def __init__(self, test_db=False):
+    def __init__(self):
         """Set up database engine"""
-        self.TEST_MODE = test_db
-        if self.TEST_MODE:
-            self.engine = create_engine('postgresql://{}:{}@{}/{}'.format(
-                os.environ['PGUSER'], os.environ['PGPASSWORD'],
-                os.environ['PGHOST'], 'test' + os.environ['PGDATABASE']))
-        else:
-            self.engine = create_engine('postgresql://{}:{}@{}/{}'.format(
-                os.environ['PGUSER'], os.environ['PGPASSWORD'],
-                os.environ['PGHOST'], os.environ['PGDATABASE']))
+        try:
+            self.engine = create_engine(
+                'postgresql://{}:@{}/{}'.format(
+                    *[os.environ[i] for i in
+                      ["PGUSER", "PGHOST", "PGDATABASE"]]))
+        except KeyError as exc:
+            panic("The following env vars must be set in order to know which "
+                  "database to connect to: PGUSER, PGHOST, & PGDATABASE."
+                  "\n{}.".format(exc))
+        except OperationalError as exc:
+            panic("FingerprintSecureDrop Postgres support relies on use of a "
+                  "PGPASSFILE. Make sure this file and the env var pointing "
+                  "to it exist and set 0600 permissions & user ownership."
+                  "\n{}.".format(exc))
 
     def drop_table(self, table_name):
         """Try to remove a table even if views depend on it
