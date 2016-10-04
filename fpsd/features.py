@@ -7,22 +7,36 @@ from tqdm import tqdm
 
 
 def compute_bursts(df):
-    """Compute list of burst lengths for a given trace
+    """Compute list of burst lengths for a given trace for both incoming
+    and outgoing bursts
     """
+
     bursts = []
-    current_burst_length = 0
+    current_incoming_burst_length = 0
+    current_outgoing_burst_length = 0
 
     for row in df.itertuples():
         if row.ingoing == False:
-            current_burst_length += 1
-        elif row.ingoing == True and current_burst_length > 0:
-            bursts.append(current_burst_length)
-            # Reset burst length
-            current_burst_length = 0
+            current_outgoing_burst_length += 1
+        elif row.ingoing == True and current_outgoing_burst_length > 0:
+            # then an outgoing burst just ended!
+            bursts.append(current_outgoing_burst_length)
+            # Reset this burst length
+            current_outgoing_burst_length = 0
+
+        if row.ingoing == True:
+            current_incoming_burst_length += 1
+        elif row.ingoing == False and current_incoming_burst_length > 0:
+            # then an incoming burst just ended!
+            bursts.append(current_incoming_burst_length)
+            # Reset this burst length
+            current_incoming_burst_length = 0
 
     # If we were in a burst at the end of the trace, let's save it
-    if current_burst_length > 0:
-        bursts.append(current_burst_length)
+    if current_incoming_burst_length > 0:
+        bursts.append(current_incoming_burst_length)
+    elif current_outgoing_burst_length > 0:
+        bursts.append(current_outgoing_burst_length)
 
     # For some features we need to know the positions of bursts,
     # so let's save this information as well
