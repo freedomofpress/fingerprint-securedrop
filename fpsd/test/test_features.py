@@ -11,8 +11,8 @@ from features import compute_bursts, FeatureStorage
 
 
 def db_helper(db, table_name, feature_names):
-    """Helper function for testing a table in the database. Takes
-    some column(s) in a table and generates a dict.
+    """Helper function for testing a table in the database. Takes some
+    column(s) in a table and generates a dict.
 
     Args:
         db [FeatureStorage object]: database object
@@ -20,8 +20,9 @@ def db_helper(db, table_name, feature_names):
         feature_names [list of strings]: names of the columns to test
 
     Returns:
-        actual_output [dict]: Contains the actual output in a dict that can be
-            easily compared with the expected output dict defined in the test
+        actual_output [dict]: Contains the actual output in a dict that 
+            can be easily compared with the expected output dict defined
+            in the test
     """
 
     select_query = "SELECT * FROM {} ORDER BY exampleid; ".format(table_name)
