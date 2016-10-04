@@ -1,9 +1,9 @@
 #!/usr/bin/env python3.5
-import pandas as pd
 import os
+import pandas as pd
 from sqlalchemy import create_engine
-from tqdm import tqdm
 import subprocess
+from tqdm import tqdm
 
 
 def compute_bursts(df):
