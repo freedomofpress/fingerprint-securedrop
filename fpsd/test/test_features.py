@@ -140,8 +140,8 @@ class RawFeatureGenerationTest(unittest.TestCase):
 
         self.assertEqual(expected_output, actual_output)
 
-    def test_outgoing_cell_ordering(self):
-        table_name = self.db.generate_table_outgoing_cell_ordering(num_features=2)
+    def test_outgoing_cell_positions(self):
+        table_name = self.db.generate_table_outgoing_cell_positions(num_cells=2)
         expected_output = {'exampleid': [9, 10],
                            'outgoing_cell_position_1': [2, 1],
                            'outgoing_cell_position_2': [None, 2]}
@@ -152,8 +152,8 @@ class RawFeatureGenerationTest(unittest.TestCase):
 
         self.assertEqual(expected_output, actual_output)
 
-    def test_outgoing_cell_ordering_differences(self):
-        table_name = self.db.generate_table_outgoing_cell_ordering_differences(num_features=2)
+    def test_outgoing_cell_positions_differences(self):
+        table_name = self.db.generate_table_outgoing_cell_positions_differences(num_cells=2)
         expected_output = {'exampleid': [9, 10],
                            'outgoing_cell_position_difference_1': [None, 1],
                            'outgoing_cell_position_difference_2': [None, 1]}
@@ -200,7 +200,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.db.engine.execute(clean_up_test_data_examples)
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
         self.db.engine.execute(clean_up_features_schema)
-        self.db.drop_stale_feature_table("public.current_bursts")
+        self.db.drop_table("public.current_bursts")
         return None
 
 
@@ -269,7 +269,7 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def tearDown(self):
-        self.db.drop_stale_feature_table("public.current_bursts")
+        self.db.drop_table("public.current_bursts")
         clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
         self.db.engine.execute(clean_up_features_schema)
         return None
