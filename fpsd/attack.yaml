@@ -8,6 +8,15 @@ world:
 num_kfolds: 10
 
 
+
+######################
+# Preprocessing      #
+######################
+
+feature_scaling: True  # Rescale each feature to mean zero and unit standard deviation
+
+
+
 #################
 # Classifiers   #
 #################
