@@ -13,7 +13,7 @@ common_pypi_packages:
   - ipython
   - ipdb
 
-ssh_username: "{{ ansible_ssh_user }}"
+ssh_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"
 
 crawler_project_directory: "~{{ ssh_username }}/FingerprintSecureDrop"
 crawler_git_repo: "https://github.com/freedomofpress/FingerprintSecureDrop"

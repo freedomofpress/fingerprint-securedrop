@@ -17,4 +17,4 @@ tbb_arch: 64
 # Specify Tor version to download, patch, build, and install
 tor_release: 0.2.8.7
 
-ssh_username: "{{ ansible_ssh_user }}"
+ssh_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"
