@@ -1,4 +1,11 @@
+# Crawler
 poyo
 pyvirtualdisplay # for tbselenium.utils.st{art,op}_xvfb
 stem
 tbselenium
+
+# Sorter
+aiohttp
+aiosocks
+psycopg2
+SQLAlchemy

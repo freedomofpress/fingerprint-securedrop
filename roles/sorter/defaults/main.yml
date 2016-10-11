@@ -1,2 +1,0 @@
----
-ssh_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"

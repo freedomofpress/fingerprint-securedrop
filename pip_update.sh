@@ -37,6 +37,4 @@ pip install -U pip-tools > /dev/null
 
 # Compile new requirements (.txt) files from our top-level dependency (.in)
 # files. See http://nvie.com/posts/better-package-management/
-for r in "crawler" "sorter"; do
-  pip-compile -U -o "${r}-requirements.txt" "${r}-requirements.in" > /dev/null
-done
+pip-compile -U -o 'requirements.txt' 'requirements.in' > /dev/null
