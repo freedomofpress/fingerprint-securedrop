@@ -492,7 +492,7 @@ if __name__ == "__main__":
     config.read(join(_repo_root, "config.ini"))
     config = config["crawler"]
 
-    if config["use_database"]:
+    if config.getbool("use_database"):
         import database
         fpdb = database.RawStorage()
         class_data = fpdb.get_onions(config["hs_history_lookback"])
