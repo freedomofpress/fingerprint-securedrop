@@ -1,0 +1,18 @@
+# There's a bug in building some egg when I tried to re-compile the new
+# requirements.in file, so I just manually merged the separate crawler
+# and sorter requirements.txt files. Todo: resolve this.
+
+EasyProcess==0.2.2        # via pyvirtualdisplay
+poyo==0.4.0
+pyvirtualdisplay==0.2
+selenium==2.53.6          # via tbselenium
+stem==1.4.0
+tbselenium==0.1
+
+aiohttp==1.0.1
+aiosocks==0.1.7
+async-timeout==1.0.0      # via aiohttp
+chardet==2.3.0            # via aiohttp
+multidict==2.1.0          # via aiohttp
+psycopg2==2.6.2
+SQLAlchemy==1.0.15

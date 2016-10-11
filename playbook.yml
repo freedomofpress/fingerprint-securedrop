@@ -11,12 +11,6 @@
     - role: crawler
       tags: crawler
 
-- name: Install the Apt and Python dependencies of the sorter script.
-  hosts: all
-  roles:
-    - role: sorter
-      tags: sorter
-
 - name: Install PostgreSQL and configure the fpsd database.
   hosts: all
   roles:

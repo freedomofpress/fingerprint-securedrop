@@ -1,7 +1,0 @@
----
-- name: Install crawler.py pip dependencies.
-  become: yes
-  pip:
-    executable: pip3
-    state: latest
-    requirements: "~{{ ssh_username }}/FingerprintSecureDrop/fpsd/requirements/crawler-requirements.txt"
