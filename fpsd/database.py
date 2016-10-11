@@ -76,14 +76,12 @@ class RawStorage(Database):
         self.Cell = Base.classes.frontpage_traces
         self.Crawl = Base.classes.crawls
 
-
     def _wipe_raw_schema(self):
         """Like with a cloth. Delete entries while keeping table structure
         intact."""
         with self.safe_session() as session:
             for table in self.Cell, self.Example, self.Onion, self.Crawl:
                 session.query(table).delete()
-
 
     def add_onions(self, class_data):
         """Add sorted onions into the HS history table"""
@@ -228,10 +226,66 @@ class ModelStorage(Database):
     """Store trained models in the database"""
     def __init__(self):
         super().__init__(**kwargs)
+        self.COMMON_METRICS = ("auc, tpr, fpr,                   "
+             "precision_at_0_point_01_percent,                   "
+             "precision_at_0_point_05_percent,                   "
+             "precision_at_0_point_1_percent,                    "
+             "precision_at_0_point_5_percent,                    "
+             "precision_at_1_percent, precision_at_5_percent,    "
+             "precision_at_10_percent,                           "
+             "recall_at_0_point_01_percent,                      "
+             "recall_at_0_point_05_percent,                      "
+             "recall_at_0_point_1_percent,                       "
+             "recall_at_0_point_5_percent,                       "
+             "recall_at_1_percent, recall_at_5_percent,          "
+             "recall_at_10_percent, f1_at_0_point_01_percent,    "
+             "f1_at_0_point_05_percent, f1_at_0_point_1_percent, "
+             "f1_at_0_point_5_percent, f1_at_1_percent,          "
+             "f1_at_5_percent, f1_at_10_percent")
 
-    def save_model(self, auc, config, timestamp):
-        query = ("INSERT INTO models.undefended_frontpage_models (auc, config, t_generation) "
-                 "VALUES ({}, '{}', '{}') ".format(auc, json.dumps(config), timestamp))
+    def metric_formatter(self, metrics):
+        """Format the metrics query"""
+        for metric in ("tpr", "fpr"):
+            metrics[metric] = [str(x) for x in metrics[metric]]
+            #metrics[metric] = ["'{}'".format(x) for x in metrics[metric]]
+            metrics[metric] = "'{{ {} }}'".format(", ".join(metrics[metric]))
+        metrics_list = [metrics["auc"],
+                        metrics["tpr"], metrics["fpr"],
+                        metrics[0.01]["precision"], 
+                        metrics[0.05]["precision"], metrics[0.1]["precision"],
+                        metrics[0.5]["precision"], metrics[1]["precision"],
+                        metrics[5]["precision"], metrics[10]["precision"],
+                        metrics[0.01]["recall"], 
+                        metrics[0.05]["recall"], metrics[0.1]["recall"],
+                        metrics[0.5]["recall"], metrics[1]["recall"],
+                        metrics[5]["recall"], metrics[10]["recall"],
+                        metrics[0.01]["f1"],
+                        metrics[0.05]["f1"], metrics[0.1]["f1"],
+                        metrics[0.5]["f1"], metrics[1]["f1"],
+                        metrics[5]["f1"], metrics[10]["f1"]]
+        metrics_list = [str(x) for x in metrics_list]
+
+        return ', '.join(metrics_list)
+
+    def save_full_model(self, eval_metrics, model_timestamp, options):
+        query = ("INSERT INTO models.undefended_frontpage_attacks  "
+                 "(model_timestamp, numfolds,                      "
+                 "train_class_balance, world_type, model_type,     "
+                 "base_rate, hyperparameters, {})                  "
+                 "VALUES ('{}', {}, {}, '{}', '{}', {}, '{}', {}     "
+                 ") ".format(self.COMMON_METRICS, model_timestamp,
+                    options["numfolds"], options["train_class_balance"],
+                    options["world_type"], options["model_type"],
+                    options["base_rate"], json.dumps(options["hyperparameters"]),
+                    self.metric_formatter(eval_metrics)))
         with safe_session(self.engine) as session:
             session.execute(query)
-        return None
+
+    def save_fold_of_model(self, eval_metrics, model_timestamp, fold_timestamp):
+        query = ("INSERT INTO models.undefended_frontpage_folds    "
+                 "(model_timestamp, fold_timestamp, {}) VALUES     "
+                 "('{}', '{}', {}) ".format(self.COMMON_METRICS, 
+                    model_timestamp, fold_timestamp,
+                    self.metric_formatter(eval_metrics)))
+        with safe_session(self.engine) as session:
+            session.execute(query)
