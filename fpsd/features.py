@@ -531,7 +531,7 @@ class FeatureStorage():
             final_df = final_df.append(pd.DataFrame({'exampleid': example,
                                                      'burst': bursts,
                                                      'rank': burst_positions}))
-        final_df = final_df.reset_index().drop('index', axis=1)
+        final_df = final_df.reset_index(drop=True)
         self.drop_table("public.current_bursts")
 
         table_creation = ("CREATE TABLE public.current_bursts             "
