@@ -509,12 +509,12 @@ class FeatureStorage():
         """This method takes all examples and produces a table
         public.current_bursts with all bursts in the following format:
 
-        burstid   | burst     | exampleid   | rank
-        (integer) | (bigint)  | (bigint)    | (bigint)
+        burstid   | exampleid | burst     | rank
+        (integer) | (bigint)  | (bigint)  | (bigint)
         --------------------------------------------------
-        1         | 1         | 251         | 1
-        2         | 2         | 251         | 2
-        3         | 4         | 251         | 3
+        1         | 251       | 1         | 1
+        2         | 251       | 2         | 2
+        3         | 251       | 4         | 3
 
         This table is then used by the burst table creation methods
         called by generate_burst_tables().
