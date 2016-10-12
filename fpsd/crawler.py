@@ -12,7 +12,6 @@ from os import mkdir
 from os.path import abspath, dirname, expanduser, join
 import pickle
 import platform
-from poyo import parse_string as parse_yaml
 import random
 from selenium.common.exceptions import WebDriverException, TimeoutException
 import stem
@@ -164,13 +163,9 @@ class Crawler:
         except urllib.error.HTTPError:
             self.logger.warning("Unable to query ASN API and thus some "
                                 "control data may be missing from this run.")
-        with codecs.open(join(_repo_root,
-                              "../roles/crawler/defaults/main.yml")) as y_fh:
-            yml_str = y_fh.read()
-        yml = parse_yaml(yml_str)
-        control_data["tor_version"] = yml.get("tor_release")
-        control_data["tb_version"] = yml.get("tbb_release")
         control_data["entry_node"] = self.torrc_config["EntryNodes"]
+        control_data["tor_version"] = self.controller.get_version()
+        control_data["tb_version"] = self.tb_driver.tb_version
         control_data["crawler_version"] = _version
         return control_data
 
