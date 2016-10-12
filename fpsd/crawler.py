@@ -179,6 +179,11 @@ class Crawler:
         return self
 
 
+    def __del__(self):
+        self.close()
+        return self
+
+
     def close(self):
         self.logger.info("Exiting the Crawler...")
         self.logger.info("Closing Tor Browser...")

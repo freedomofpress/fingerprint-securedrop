@@ -110,6 +110,11 @@ class Sorter:
         return self
 
 
+    def __del__(self):
+        self.close()
+        return self
+
+
     def close(self):
         self.logger.info("Closing out any lingering HTTP connections...")
         self.session.close()
