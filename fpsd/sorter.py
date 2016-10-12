@@ -336,7 +336,7 @@ def _securedrop_sort():
         fpdb = None
     class_tests = OrderedDict()
     [class_tests.update(literal_eval(i))
-     for i in config["class_tests"].split("%%")]
+     for i in config["class_tests"].split("zzz")]
     
     with Sorter(page_load_timeout=config.getint("page_load_timeout"),
                 max_tasks=config.getint("max_tasks"),
