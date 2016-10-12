@@ -186,7 +186,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_burst_table_creation(self):
-        self.db.create_bursts()
+        self.db._create_temp_current_bursts()
         query = "SELECT * FROM public.current_bursts ORDER BY exampleid; "
         result = self.db.engine.execute(query)
         expected_output = {'exampleid': [9, 9, 9, 10],
