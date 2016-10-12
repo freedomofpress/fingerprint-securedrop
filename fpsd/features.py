@@ -322,24 +322,19 @@ class FeatureStorage():
 
         self.drop_table("features.initial_cell_directions")
 
-        crosstab_columns = ['direction_cell_{} integer'.format(x+1)
-                            for x in range(num_cells)]
-        query = ("CREATE TABLE features.initial_cell_directions AS  "
-                 "  (SELECT *                                       "
-                 "  FROM crosstab(                                  "
-                 "    'SELECT                                       "
-                 "    exampleid, position,                          "
-                 "     case when ingoing = true then 0 else 1 end   "
-                 "  FROM (                                          "
-                 "    SELECT                                        "
-                 "      ROW_NUMBER() OVER                           "
-                 "      (PARTITION BY exampleid ORDER BY t_trace)   "
-                 "      AS position,                                "
-                 "      t.*                                         "
-                 "    FROM raw.frontpage_traces t) x                "
-                 "  WHERE x.position <= 10')                        "
-                 "  AS  ct(exampleid integer, {})                   "
-                 ");").format(', '.join(crosstab_columns))
+        crosstab_columns = ['direction_cell_{} integer'.format(x) for x in range(1, num_cells + 1)]
+        query = """CREATE TABLE features.initial_cell_directions AS
+                     (SELECT * FROM crosstab(
+                       'SELECT exampleid, position,
+                          case when ingoing = true then 0 else 1 end
+                        FROM (
+                           SELECT ROW_NUMBER() OVER
+                             (PARTITION BY exampleid ORDER BY t_trace)
+                             AS position, t.exampleid, t.ingoing
+                     FROM raw.frontpage_traces t) x
+                   WHERE x.position <= {}')
+                   AS  ct(exampleid integer, {})
+                 );""".format(num_cells, ', '.join(crosstab_columns))
 
         self.engine.execute(query)
         return "features.initial_cell_directions"
