@@ -711,10 +711,8 @@ class FeatureStorage():
         master_features = {}
 
         for schema_and_table in feature_table_names:
-            schema_name = schema_and_table.split('.')[0]
-            table_name = schema_and_table.split('.')[1]
-            table_columns = self._get_column_tables_of_table(schema_name,
-                                                             table_name)
+            table_columns = self._list_columns(schema_name,
+                                schema_and_table.split('.'))
             table_columns.remove("exampleid")
             master_features.update({schema_and_table: table_columns})
 
@@ -722,14 +720,13 @@ class FeatureStorage():
         full_join_query = ("FROM ( (SELECT exampleid FROM      " 
                            "features.undefended_frontpage_examples) foo ")
 
-        for table_num, table_name in enumerate(list(master_features.keys())):
+        for table_num, table_name in enumerate(list(master_features)):
             prefix = 't{}.'.format(table_num)
             prefixed_columns = [prefix + s for s in master_features[table_name]]
             columns_to_select = columns_to_select + ', ' + ', '.join(prefixed_columns)
-            join_query = ("LEFT OUTER JOIN {name} t{num} "
-                          "ON foo.exampleid = t{num}.exampleid ").format(name=table_name,
-                                                                         num=table_num)
-            full_join_query = full_join_query + join_query
+            join_query = ("LEFT OUTER JOIN {name} t{name} "
+                          "ON foo.exampleid = t{name}.exampleid ").format(name=table_name)
+            full_join_query += join_query
 
         drop_view = "DROP VIEW IF EXISTS features.frontpage_features; "
         self.engine.execute(drop_view)
