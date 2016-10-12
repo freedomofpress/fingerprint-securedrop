@@ -502,7 +502,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return feature_table_name
 
-    def create_bursts(self):
+    def _create_temp_current_bursts(self):
         """This method takes all examples and produces a table
         public.current_bursts with all bursts in the following format:
 
@@ -671,7 +671,7 @@ class FeatureStorage():
         return "features.burst_lengths"
 
     def generate_burst_tables(self):
-        self.create_bursts()
+        self._create_temp_current_bursts()
         self.generate_table_burst_length_aggregates()
         self.generate_table_windowed_bursts()
         self.generate_table_burst_lengths()
