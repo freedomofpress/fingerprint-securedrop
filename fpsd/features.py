@@ -115,7 +115,7 @@ class FeatureStorage():
         self.drop_table("packet_positions")
 
         if outgoing_only:
-            where_only_outgoing = "WHERE ingoing <= false"
+            where_only_outgoing = "WHERE ingoing = false"
         else:
             where_only_outgoing = ""
 
