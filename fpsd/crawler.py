@@ -12,8 +12,8 @@ from os import mkdir
 from os.path import abspath, dirname, expanduser, join
 import pickle
 import platform
-from poyo import parse_string as parse_yaml
 import random
+import re
 from selenium.common.exceptions import WebDriverException, TimeoutException
 import stem
 from stem.process import launch_tor_with_config
@@ -59,10 +59,7 @@ class Crawler:
     information from your Tor cell log and stem to collect cell sequences."""
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
-                 torrc_config={"EntryNodes":
-                               "1B60184DB9B96EA500A19C52D88F145BA5EC93CD",
-                               "CookieAuth": "1"},
-                 # torrc_config={"CookieAuth": "1"},
+                 torrc_config={"CookieAuth": "1"},
                  tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
                  control_port=9051,
                  socks_port=9050, 
@@ -164,13 +161,14 @@ class Crawler:
         except urllib.error.HTTPError:
             self.logger.warning("Unable to query ASN API and thus some "
                                 "control data may be missing from this run.")
-        with codecs.open(join(_repo_root,
-                              "../roles/crawler/defaults/main.yml")) as y_fh:
-            yml_str = y_fh.read()
-        yml = parse_yaml(yml_str)
-        control_data["tor_version"] = yml.get("tor_release")
-        control_data["tb_version"] = yml.get("tbb_release")
-        control_data["entry_node"] = self.torrc_config["EntryNodes"]
+        control_data["tor_version"] = self.controller.get_version().version_str
+        control_data["tb_version"] = self.tb_driver.tb_version
+        # Tor will have multiple entry nodes in its state file, but will
+        # choose the first sequential one that is up as its entry guard.
+        entry_nodes = self.controller.get_info("entry-guards").split('\n')
+        control_data["entry_node"] = next(re.search("[0-9A-F]{40}", g).group(0)
+                                          for g in entry_nodes
+                                          if re.search("up", g))
         control_data["crawler_version"] = _version
         return control_data
 
@@ -180,6 +178,11 @@ class Crawler:
 
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return self
+
+
+    def __del__(self):
         self.close()
         return self
 
@@ -358,6 +361,7 @@ class Crawler:
             fh.write(trace)
 
 
+
     def get_full_trace(self, start_idx, end_idx):
         """Returns the Tor DATA cells transmitted over a circuit during a
         specified time period."""
@@ -449,15 +453,17 @@ class Crawler:
                 url_to_id_mapping = nonmonitored_class
                 url_to_id_mapping.update(monitored_class)
             trace_dir, mon_trace_dir, non_mon_trace_dir = (None,) * 3
-            # Calling list on a dict returns a list of its keys (URLs)
-            nonmonitored_class = list(nonmonitored_class)
-            monitored_class = list(monitored_class)
         else:
             trace_dir = self.make_ts_dir()
             mon_trace_dir = join(trace_dir, monitored_name)
             mkdir(mon_trace_dir)
             nonmon_trace_dir = join(trace_dir, nonmonitored_name)
             mkdir(nonmon_trace_dir)
+
+        # db: calling list on a dict returns a list of its keys (URLs)
+        # pickle: calling list on set is necessary to make it shuffleable
+        nonmonitored_class = list(nonmonitored_class)
+        monitored_class = list(monitored_class)
 
         nonmonitored_class_ct = len(nonmonitored_class)
         chunk_size = int(nonmonitored_class_ct / ratio)
@@ -485,14 +491,12 @@ class Crawler:
             self.collect_set_of_traces(nonmonitored_class[slice_lb:slice_ub],
                                        trace_dir=nonmon_trace_dir)
 
-
-if __name__ == "__main__":
+def _securedrop_crawl():
     import configparser
     config = configparser.ConfigParser()
     config.read(join(_repo_root, "config.ini"))
     config = config["crawler"]
-
-    if config.getbool("use_database"):
+    if config.getboolean("use_database"):
         import database
         fpdb = database.RawStorage()
         class_data = fpdb.get_onions(config["hs_history_lookback"])
@@ -508,9 +512,14 @@ if __name__ == "__main__":
                  wait_on_page=config.getint("wait_on_page"),
                  wait_after_closing_circuits=config.getint("wait_after_closing_circuits"),
                  restart_on_sketchy_exception=config.getboolean("restart_on_sketchy_exception"),
-                 db_handler=fpdb) as crawler:
+                 db_handler=fpdb,
+                 torrc_config={"CookieAuth": "1",
+                               "EntryNodes": config["entry_nodes"].split()}) as crawler:
         crawler.crawl_monitored_nonmonitored(monitored_class,
                                              nonmonitored_class,
                                              monitored_name=monitored_name,
                                              nonmonitored_name=nonmonitored_name,
                                              ratio=config.getint("monitored_nonmonitored_ratio"))
+
+if __name__ == "__main__":
+    _securedrop_crawl()

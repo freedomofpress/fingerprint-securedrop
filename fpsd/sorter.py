@@ -110,6 +110,11 @@ class Sorter:
         return self
 
 
+    def __del__(self):
+        self.close()
+        return self
+
+
     def close(self):
         self.logger.info("Closing out any lingering HTTP connections...")
         self.session.close()
@@ -320,7 +325,7 @@ class Sorter:
         self.db_handler.add_onions(self.class_data)
 
 
-if __name__ == "__main__":
+def _securedrop_sort():
     import configparser
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -331,10 +336,14 @@ if __name__ == "__main__":
         fpdb = None
     class_tests = OrderedDict()
     [class_tests.update(literal_eval(i))
-     for i in config["class_tests"].split("%%")]
+     for i in config["class_tests"].split("zzz")]
     
     with Sorter(page_load_timeout=config.getint("page_load_timeout"),
                 max_tasks=config.getint("max_tasks"),
                 db_handler=fpdb) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
         sorter.sort_onions(class_tests)
+
+
+if __name__ == "__main__":
+    _securedrop_sort()
