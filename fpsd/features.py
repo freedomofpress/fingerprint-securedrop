@@ -440,7 +440,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return "features.cell_positions_differences"
 
-    def generate_table_binned_counts(self, num_features=100, size_window=30):
+    def generate_table_windowed_counts(self, num_features=100, size_window=30):
         """This method takes all examples and produces a table with the
         following format:
 
@@ -580,7 +580,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return "features.burst_length_aggregates"
 
-    def generate_table_binned_bursts(self, lengths=[2, 5, 10, 15, 20, 50]):
+    def generate_table_windowed_bursts(self, lengths=[2, 5, 10, 15, 20, 50]):
         """This method takes all bursts and produces a table with the
         following format:
 
@@ -604,7 +604,7 @@ class FeatureStorage():
             [string] name of newly created table
         """
 
-        self.drop_table("features.burst_binned_lengths")
+        self.drop_table("features.burst_windowed_lengths")
 
         feature_columns = ["num_bursts_with_length_gt_{}".format(length)
                            for length in lengths]
@@ -622,7 +622,7 @@ class FeatureStorage():
                                                         table_ref=feat_ind)
                       for feat_ind, length in enumerate(lengths)]
 
-        query = ("CREATE TABLE features.burst_binned_lengths AS ( "
+        query = ("CREATE TABLE features.burst_windowed_lengths AS ( "
                  "SELECT foo.exampleid, {} FROM ( "
                  "(SELECT exampleid, count(*) FROM " 
                  "raw.frontpage_traces GROUP BY exampleid) foo "
@@ -630,7 +630,7 @@ class FeatureStorage():
                                   " ".join(subqueries))
 
         self.engine.execute(query)
-        return "features.burst_binned_lengths"
+        return "features.burst_windowed_lengths"
 
     def generate_table_burst_lengths(self, num_bursts=100):
         """This method takes all bursts and produces a table with the
@@ -672,11 +672,11 @@ class FeatureStorage():
     def generate_burst_tables(self):
         self.create_bursts()
         self.generate_table_burst_length_aggregates()
-        self.generate_table_binned_bursts()
+        self.generate_table_windowed_bursts()
         self.generate_table_burst_lengths()
 
         return ["features.burst_length_aggregates",
-                "features.burst_binned_lengths",
+                "features.burst_windowed_lengths",
                 "features.burst_lengths"]
 
     def _get_column_tables_of_table(self, schema_name, table_name):
@@ -756,7 +756,7 @@ def main():
     feature_tables.append(db.generate_table_initial_cell_directions())
     feature_tables.append(db.generate_table_outgoing_cell_positions())
     feature_tables.append(db.generate_table_outgoing_cell_positions_differences())
-    feature_tables.append(db.generate_table_binned_counts())
+    feature_tables.append(db.generate_table_windowed_counts())
     feature_tables += db.generate_burst_tables()
 
     # Create master feature view from the created tables

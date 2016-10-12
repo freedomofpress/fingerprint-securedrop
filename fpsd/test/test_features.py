@@ -169,8 +169,8 @@ class RawFeatureGenerationTest(unittest.TestCase):
 
         self.assertEqual(expected_output, actual_output)
 
-    def test_binned_counts(self):
-        table_name = self.db.generate_table_binned_counts(num_features=2,
+    def test_windowed_counts(self):
+        table_name = self.db.generate_table_windowed_counts(num_features=2,
                                                           size_window=2)
         expected_output = {'exampleid': [9, 10],
                            'num_outgoing_packet_in_window_1_of_size_2': [1, 2],
@@ -261,8 +261,8 @@ class BurstFeatureGeneration(unittest.TestCase):
                                    'max_burst_length'])
         self.assertEqual(expected_output, actual_output)
 
-    def test_burst_length_binned_bursts(self):
-        table_name = self.db.generate_table_binned_bursts(lengths=[2, 5])
+    def test_burst_length_windowed_bursts(self):
+        table_name = self.db.generate_table_windowed_bursts(lengths=[2, 5])
         expected_output = {'exampleid': [9, 10],
                            'num_bursts_with_length_gt_2': [2, 1],
                            'num_bursts_with_length_gt_5': [1, 1]}
