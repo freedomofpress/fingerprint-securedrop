@@ -49,18 +49,21 @@ def db_helper(db, table_name, feature_names):
 class BurstGenerationTest(unittest.TestCase):
     def test_incoming_burst(self):
         df = pd.DataFrame({'ingoing': [True, True, True]})
-        bursts, ranks = compute_bursts(df)
+        bursts = compute_bursts(df)
+        burst_positions = range(1, len(bursts) + 1)
         self.assertEqual(bursts, [3])
 
     def test_outgoing_burst(self):
         df = pd.DataFrame({'ingoing': [False, False, False]})
-        bursts, ranks = compute_bursts(df)
+        bursts = compute_bursts(df)
+        burst_positions = range(1, len(bursts) + 1)
         self.assertEqual(bursts, [3])
 
     def test_multiple_bursts(self):
         df = pd.DataFrame({'ingoing': [True, True, False, False, True,
                                        True, False, False, False]})
-        bursts, ranks = compute_bursts(df)
+        bursts = compute_bursts(df)
+        burst_positions = range(1, len(bursts) + 1)
         self.assertEqual(bursts, [2, 2, 2, 3])
 
 
