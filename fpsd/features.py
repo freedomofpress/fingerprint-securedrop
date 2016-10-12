@@ -85,9 +85,9 @@ class FeatureStorage():
 
         self.drop_table("features.undefended_frontpage_examples")
 
-        query = ("CREATE TABLE features.undefended_frontpage_examples AS ( "
-                 "SELECT foo.exampleid FROM ( SELECT exampleid, "
-                 "count(*) FROM raw.frontpage_traces GROUP BY exampleid) foo);")
+        query = """CREATE TABLE features.undefended_frontpage_examples AS (
+                   SELECT foo.exampleid FROM ( SELECT exampleid,
+                   count(*) FROM raw.frontpage_traces GROUP BY exampleid) foo);"""
         self.engine.execute(query)
 
     def _create_temp_packet_positions(self, outgoing_only=True):
@@ -119,16 +119,17 @@ class FeatureStorage():
         else:
             where_only_outgoing = ""
 
-        query = ("CREATE TEMP TABLE packet_positions AS             "
-                 "(SELECT exampleid, position, ingoing              "
-                 "  FROM (                                          "
-                 "    SELECT                                        "
-                 "      ROW_NUMBER() OVER                           "
-                 "      (PARTITION BY exampleid ORDER BY t_trace)   "
-                 "      AS position,                                "
-                 "      t.*                                         "
-                 "    FROM raw.frontpage_traces t)                  "
-                 "x {} );").format(where_only_outgoing)
+        query = """CREATE TEMP TABLE packet_positions AS
+                     (SELECT x.exampleid, x.position, x.ingoing
+                      FROM (
+                        SELECT
+                            ROW_NUMBER() OVER
+                            (PARTITION BY exampleid ORDER BY t_trace)
+                            AS position,
+                            t.*
+                      FROM raw.frontpage_traces t)
+                      x {});
+                """.format(where_only_outgoing)
 
         self.engine.execute(query)
 
