@@ -102,7 +102,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         return None
 
     def test_aggregate_cell_numbers(self):
-        table_name = self.db.generate_table_cell_numbers()
+        table_name = self.db.create_table_cell_numbers()
         expected_output = {'exampleid': [9, 10],
                            'total_number_of_cells': [3, 3],
                            'total_number_of_incoming_cells': [2, 0],
@@ -116,7 +116,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_aggregate_cell_timings(self):
-        table_name = self.db.generate_table_cell_timings()
+        table_name = self.db.create_table_cell_timings()
         expected_output = {'exampleid': [9, 10],
                            'total_elapsed_time': [0.526851, 0.00917]}
 
@@ -124,8 +124,8 @@ class RawFeatureGenerationTest(unittest.TestCase):
 
         self.assertEqual(expected_output, actual_output)
 
-    def test_interpacket_timings(self):
-        table_name = self.db.generate_table_interpacket_timings()
+    def test_intercell_timings(self):
+        table_name = self.db.create_table_intercell_timings()
         expected_output = {'exampleid': [9, 10],
                            'mean_intercell_time': [0.2634255, 0.004585],
                            'standard_deviation_intercell_time': [0.1263423041285064,
@@ -137,7 +137,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_initial_cell_directions(self):
-        table = self.db.generate_table_initial_cell_directions(num_cells=2)
+        table = self.db.create_table_initial_cell_directions(num_cells=2)
         expected_output = {'exampleid': [9, 10],
                            'direction_cell_1': [0, 1],
                            'direction_cell_2': [1, 1]}
@@ -149,7 +149,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_outgoing_cell_positions(self):
-        table_name = self.db.generate_table_outgoing_cell_positions(num_cells=2)
+        table_name = self.db.create_table_outgoing_cell_positions(num_cells=2)
         expected_output = {'exampleid': [9, 10],
                            'outgoing_cell_position_1': [2, 1],
                            'outgoing_cell_position_2': [None, 2]}
@@ -161,7 +161,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_outgoing_cell_positions_differences(self):
-        table_name = self.db.generate_table_outgoing_cell_positions_differences(num_cells=2)
+        table_name = self.db.create_table_outgoing_cell_positions_differences(num_cells=2)
         expected_output = {'exampleid': [9, 10],
                            'outgoing_cell_position_difference_1': [None, 1],
                            'outgoing_cell_position_difference_2': [None, 1]}
@@ -173,15 +173,15 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_windowed_counts(self):
-        table_name = self.db.generate_table_windowed_counts(num_features=2,
+        table_name = self.db.create_table_windowed_counts(num_features=2,
                                                           size_window=2)
         expected_output = {'exampleid': [9, 10],
-                           'num_outgoing_packet_in_window_1_of_size_2': [1, 2],
-                           'num_outgoing_packet_in_window_2_of_size_2': [None, 1]}
+                           'num_outgoing_cell_in_window_1_of_size_2': [1, 2],
+                           'num_outgoing_cell_in_window_2_of_size_2': [None, 1]}
 
         actual_output = db_helper(self.db, table_name,
-                                  ['num_outgoing_packet_in_window_1_of_size_2',
-                                   'num_outgoing_packet_in_window_2_of_size_2'])
+                                  ['num_outgoing_cell_in_window_1_of_size_2',
+                                   'num_outgoing_cell_in_window_2_of_size_2'])
 
         self.assertEqual(expected_output, actual_output)
 
@@ -253,7 +253,7 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.db.engine.execute(insert_test_bursts)
 
     def test_burst_length_aggregates(self):
-        table_name = self.db.generate_table_burst_length_aggregates()
+        table_name = self.db.create_table_burst_length_aggregates()
         expected_output = {'exampleid': [9.0, 10.0],
                            'mean_burst_length': [3.5, 3.6666666666666665],
                            'num_bursts': [4.0, 3.0],
@@ -265,7 +265,7 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_burst_length_windowed_bursts(self):
-        table_name = self.db.generate_table_windowed_bursts(lengths=[2, 5])
+        table_name = self.db.create_table_windowed_bursts(lengths=[2, 5])
         expected_output = {'exampleid': [9, 10],
                            'num_bursts_with_length_gt_2': [2, 1],
                            'num_bursts_with_length_gt_5': [1, 1]}
@@ -276,7 +276,7 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_burst_lengths(self):
-        table_name = self.db.generate_table_burst_lengths(num_bursts=2)
+        table_name = self.db.create_table_burst_lengths(num_bursts=2)
         expected_output = {'exampleid': [9, 10],
                            'length_burst_1': [1, 2],
                            'length_burst_2': [9, 8]}

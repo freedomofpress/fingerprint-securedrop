@@ -74,7 +74,7 @@ class FeatureStorage():
         query = "DROP TABLE IF EXISTS {} CASCADE;".format(table_name)
         self.engine.execute(query)
 
-    def generate_table_undefended_frontpage_links(self):
+    def create_table_undefended_frontpage_links(self):
         """This method creates a table of exampleids that were present 
         at the time of feature generation that the unified view can join
         on. The table contains one integer column, exampleid.
@@ -87,9 +87,9 @@ class FeatureStorage():
                    count(*) FROM raw.frontpage_traces GROUP BY exampleid) foo);"""
         self.engine.execute(query)
 
-    def _create_temp_packet_positions(self, outgoing_only=True):
+    def _create_temp_cell_positions(self, outgoing_only=True):
         """This method takes all rows in raw.frontpage_traces and
-        creates a temporary table packet_positions with the following
+        creates a temporary table cell_positions with the following
         format:
 
         exampleid  | position |  ingoing
@@ -101,7 +101,7 @@ class FeatureStorage():
 
         where position describes where the cell is in the trace. For
         example, for the first outgoing cell in the trace with
-        exampleid=9 was the 4th packet in the trace. This table is used
+        exampleid=9 was the 4th cell in the trace. This table is used
         by the position-based feature generation functions.
 
         Args:
@@ -109,14 +109,14 @@ class FeatureStorage():
                 only use outgoing cells to create this table
         """
 
-        self.drop_table("packet_positions")
+        self.drop_table("cell_positions")
 
         if outgoing_only:
             where_only_outgoing = "WHERE ingoing = false"
         else:
             where_only_outgoing = ""
 
-        query = """CREATE TEMP TABLE packet_positions AS
+        query = """CREATE TEMP TABLE cell_positions AS
                      (SELECT x.exampleid, x.position, x.ingoing
                       FROM (
                         SELECT
@@ -132,8 +132,8 @@ class FeatureStorage():
 
     def _create_table_outgoing_cell_positions(self, num_cells=500):
         """This method takes the first num_cells rows for each exampleid
-        in packet_positions and creates a temporary table
-        first_(num_cells)_outgoing_packet_positions with the following
+        in cell_positions and creates a temporary table
+        first_(num_cells)_outgoing_cell_positions with the following
         format:
 
         exampleid  | position |  outgoing_cell_order
@@ -147,10 +147,10 @@ class FeatureStorage():
         trace. This table is used by the position-based feature
         generation functions.
         """
-        table_name = "first_{}_outgoing_packet_positions".format(num_cells)
+        table_name = "first_{}_outgoing_cell_positions".format(num_cells)
         self.drop_table(table_name)
 
-        query = ("CREATE TEMP TABLE first_{n}_outgoing_packet_positions AS "
+        query = ("CREATE TEMP TABLE first_{n}_outgoing_cell_positions AS "
                  "(SELECT exampleid, outgoing_cell_order, position      "
                  "  FROM (                                                 "
                  "    SELECT                                               "
@@ -158,7 +158,7 @@ class FeatureStorage():
                  "      (PARTITION BY exampleid ORDER BY position)         "
                  "      AS outgoing_cell_order,                         "
                  "      t.*                                                "
-                 "    FROM packet_positions t) x                           "
+                 "    FROM cell_positions t) x                           "
                  "  WHERE x.outgoing_cell_order <= {n}                  "
                  ");").format(n=num_cells)
 
@@ -178,7 +178,7 @@ class FeatureStorage():
                          self.engine)
         return df
 
-    def generate_table_cell_numbers(self):
+    def create_table_cell_numbers(self):
         """This method takes all examples and produces a table
         features.cell_numbers with the following format:
 
@@ -232,7 +232,7 @@ class FeatureStorage():
 
         return "features.cell_numbers"
 
-    def generate_table_cell_timings(self):
+    def create_table_cell_timings(self):
         """This method takes all examples and produces a table
         features.cell_timings with the following format:
 
@@ -257,9 +257,9 @@ class FeatureStorage():
 
         return "features.cell_timings"
 
-    def generate_table_interpacket_timings(self):
+    def create_table_intercell_timings(self):
         """This method takes all examples and produces a table
-        features.interpacket_timings with the following format:
+        features.intercell_timings with the following format:
 
         exampleid  | a         | b
         (integer)  | (numeric) | (numeric)
@@ -275,10 +275,10 @@ class FeatureStorage():
             [string] name of newly created table
         """
 
-        self.drop_table("features.interpacket_timings")
+        self.drop_table("features.intercell_timings")
 
-        query = ("CREATE TABLE features.interpacket_timings AS ( "
-                 "WITH interpacket_times as (                       "
+        query = ("CREATE TABLE features.intercell_timings AS ( "
+                 "WITH intercell_times as (                       "
                  "  SELECT                                          "
                  "    exampleid,                                    "
                  "    t_trace - lag(t_trace) over                   "
@@ -289,12 +289,12 @@ class FeatureStorage():
                  "  avg( difference ) as mean_intercell_time,       "
                  "  stddev( difference )                            "
                  "  as standard_deviation_intercell_time            "
-                 "FROM interpacket_times GROUP BY exampleid);       ")
+                 "FROM intercell_times GROUP BY exampleid);       ")
         self.engine.execute(query)
 
-        return "features.interpacket_timings"
+        return "features.intercell_timings"
 
-    def generate_table_initial_cell_directions(self, num_cells=10):
+    def create_table_initial_cell_directions(self, num_cells=10):
         """This method takes all examples and produces a table
         features.initial_cell_directions with the following format:
 
@@ -336,7 +336,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return "features.initial_cell_directions"
 
-    def generate_table_outgoing_cell_positions(self, num_cells=500):
+    def create_table_outgoing_cell_positions(self, num_cells=500):
         """This method takes all examples and produces a table with the
         following format:
 
@@ -360,7 +360,7 @@ class FeatureStorage():
 
         self.drop_table("features.cell_positions")
 
-        self._create_temp_packet_positions(outgoing_only=True)
+        self._create_temp_cell_positions(outgoing_only=True)
         self._create_table_outgoing_cell_positions(num_cells=num_cells)
 
         crosstab_columns = ['outgoing_cell_position_{} bigint'.format(x+1)
@@ -369,7 +369,7 @@ class FeatureStorage():
         query = ("CREATE TABLE features.cell_positions AS             "
                  "(SELECT * FROM crosstab(                            "
                  "'SELECT exampleid, outgoing_cell_order, position "
-                 "FROM first_{}_outgoing_packet_positions')           "
+                 "FROM first_{}_outgoing_cell_positions')           "
                  "AS ct(exampleid integer,                            "
                  "{}));").format(num_cells,
                                  ', '.join(crosstab_columns))
@@ -377,7 +377,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return "features.cell_positions"
 
-    def generate_table_outgoing_cell_positions_differences(self,
+    def create_table_outgoing_cell_positions_differences(self,
                                                            num_cells=500):
         """This method takes all examples and produces a table with the
         following format:
@@ -407,7 +407,7 @@ class FeatureStorage():
 
         self.drop_table("features.cell_positions_differences")
 
-        self._create_temp_packet_positions(outgoing_only=True)
+        self._create_temp_cell_positions(outgoing_only=True)
         self._create_table_outgoing_cell_positions(num_cells=num_ranks)
 
         self.drop_table("first_{}_cell_positions".format(num_ranks))
@@ -417,7 +417,7 @@ class FeatureStorage():
 
         query = ("CREATE TEMP TABLE first_{n}_cell_positions AS         "
                  "(SELECT * FROM crosstab(                           "
-                 "'SELECT * FROM first_{n}_outgoing_packet_positions') "
+                 "'SELECT * FROM first_{n}_outgoing_cell_positions') "
                  "AS ct(exampleid integer,                           "
                  "{cols})); ").format(n=num_ranks,
                                       cols=', '.join(crosstab_columns))
@@ -437,7 +437,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return "features.cell_positions_differences"
 
-    def generate_table_windowed_counts(self, num_features=100, size_window=30):
+    def create_table_windowed_counts(self, num_features=100, size_window=30):
         """This method takes all examples and produces a table with the
         following format:
 
@@ -449,8 +449,8 @@ class FeatureStorage():
         11         | 13        | 16        ...
 
         where there are a variable number (num_features) of feature
-        columns, each named num_outgoing_packets_in_window_x_of_size_y.
-        num_outgoing_packets_in_window_x_of_size_y is the number of
+        columns, each named num_outgoing_cells_in_window_x_of_size_y.
+        num_outgoing_cells_in_window_x_of_size_y is the number of
         cells in the xth bin or "window" of size y
 
         Args:
@@ -461,7 +461,7 @@ class FeatureStorage():
             [string] name of newly created table
         """
 
-        self._create_temp_packet_positions(outgoing_only=False)
+        self._create_temp_cell_positions(outgoing_only=False)
         feature_table_name = "features.size_{}_windows".format(size_window)
 
         self.drop_table(feature_table_name)
@@ -470,7 +470,7 @@ class FeatureStorage():
             raise ValueError('num_features must be greater than 1')
 
 
-        feature_columns = ["num_outgoing_packets_in_window_{}_of_size_{}".format(x,
+        feature_columns = ["num_outgoing_cells_in_window_{}_of_size_{}".format(x,
                                                                                  size_window)
                            for x in range(1, num_features + 1)]
 
@@ -479,7 +479,7 @@ class FeatureStorage():
         # Note: count(*) will return Null if count(*) = 0
         arr_subqueries = [("LEFT OUTER JOIN (SELECT exampleid,             "
                            "COALESCE(count(*), 0)                          "
-                           "AS {colname} FROM packet_positions WHERE       "
+                           "AS {colname} FROM cell_positions WHERE       "
                            "ingoing = false AND position > {pos_start} AND "
                            "position <= {pos_stop} GROUP BY exampleid)     "
                            "t{feat_ind} ON foo.exampleid =                 "
@@ -549,7 +549,7 @@ class FeatureStorage():
         self.engine.execute(insert_query)
         return "public.current_bursts"
 
-    def generate_table_burst_length_aggregates(self):
+    def create_table_burst_length_aggregates(self):
         """This method takes all bursts and produces a table with the
         following format:
 
@@ -579,7 +579,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return "features.burst_length_aggregates"
 
-    def generate_table_windowed_bursts(self, lengths=[2, 5, 10, 15, 20, 50]):
+    def create_table_windowed_bursts(self, lengths=[2, 5, 10, 15, 20, 50]):
         """This method takes all bursts and produces a table with the
         following format:
 
@@ -631,7 +631,7 @@ class FeatureStorage():
         self.engine.execute(query)
         return "features.burst_windowed_lengths"
 
-    def generate_table_burst_lengths(self, num_bursts=100):
+    def create_table_burst_lengths(self, num_bursts=100):
         """This method takes all bursts and produces a table with the
         following format:
 
@@ -670,9 +670,9 @@ class FeatureStorage():
 
     def generate_burst_tables(self):
         self._create_temp_current_bursts()
-        self.generate_table_burst_length_aggregates()
-        self.generate_table_windowed_bursts()
-        self.generate_table_burst_lengths()
+        self.create_table_burst_length_aggregates()
+        self.create_table_windowed_bursts()
+        self.create_table_burst_lengths()
 
         return ["features.burst_length_aggregates",
                 "features.burst_windowed_lengths",
@@ -737,21 +737,21 @@ class FeatureStorage():
         self.engine.execute(create_new_view)
 
 
-def main():
+def compute_wang_feature_set():
     db = FeatureStorage()
 
     # Create master table to store list of examples that we have generated features for
-    db.generate_table_undefended_frontpage_links()
+    db.create_table_undefended_frontpage_links()
 
     # Create individual feature tables and save the names of the tables
     feature_tables = []
-    feature_tables.append(db.generate_table_cell_numbers())
-    feature_tables.append(db.generate_table_cell_timings())
-    feature_tables.append(db.generate_table_interpacket_timings())
-    feature_tables.append(db.generate_table_initial_cell_directions())
-    feature_tables.append(db.generate_table_outgoing_cell_positions())
-    feature_tables.append(db.generate_table_outgoing_cell_positions_differences())
-    feature_tables.append(db.generate_table_windowed_counts())
+    feature_tables.append(db.create_table_cell_numbers())
+    feature_tables.append(db.create_table_cell_timings())
+    feature_tables.append(db.create_table_intercell_timings())
+    feature_tables.append(db.create_table_initial_cell_directions())
+    feature_tables.append(db.create_table_outgoing_cell_positions())
+    feature_tables.append(db.create_table_outgoing_cell_positions_differences())
+    feature_tables.append(db.create_table_windowed_counts())
     feature_tables += db.generate_burst_tables()
 
     # Create master feature view from the created tables
@@ -759,4 +759,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    compute_wang_feature_set()
