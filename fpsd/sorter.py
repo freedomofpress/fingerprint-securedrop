@@ -325,7 +325,7 @@ class Sorter:
         self.db_handler.add_onions(self.class_data)
 
 
-if __name__ == "__main__":
+def _securedrop_sort():
     import configparser
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -343,3 +343,7 @@ if __name__ == "__main__":
                 db_handler=fpdb) as sorter:
         sorter.scrape_directories(config["onion_dirs"].split())
         sorter.sort_onions(class_tests)
+
+
+if __name__ == "__main__":
+    _securedrop_sort()
