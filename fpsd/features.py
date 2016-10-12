@@ -20,20 +20,22 @@ def compute_bursts(df):
 
     for row in df.itertuples():
         if row.ingoing == False:
+            if current_incoming_burst_length > 0:
+                # then an incoming burst just ended!
+                bursts.append(current_incoming_burst_length)
+                # reset burst lengths
+                current_incoming_burst_length = 0
+                current_outgoing_burst_length = 0
             current_outgoing_burst_length += 1
-        elif row.ingoing == True and current_outgoing_burst_length > 0:
-            # then an outgoing burst just ended!
-            bursts.append(current_outgoing_burst_length)
-            # Reset this burst length
-            current_outgoing_burst_length = 0
 
-        if row.ingoing == True:
+        else:  # row.ingoing == True
+            if current_outgoing_burst_length > 0:
+                # then an outgoing burst just ended!
+                bursts.append(current_outgoing_burst_length)
+                # reset burst lengths
+                current_outgoing_burst_length = 0
+                current_incoming_burst_length = 0
             current_incoming_burst_length += 1
-        elif row.ingoing == False and current_incoming_burst_length > 0:
-            # then an incoming burst just ended!
-            bursts.append(current_incoming_burst_length)
-            # Reset this burst length
-            current_incoming_burst_length = 0
 
     # If we were in a burst at the end of the trace, let's save it
     if current_incoming_burst_length > 0:
