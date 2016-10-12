@@ -711,8 +711,7 @@ class FeatureStorage():
         master_features = {}
 
         for schema_and_table in feature_table_names:
-            table_columns = self._list_columns(schema_name,
-                                schema_and_table.split('.'))
+            table_columns = self._list_columns(*schema_and_table.split('.'))
             table_columns.remove("exampleid")
             master_features.update({schema_and_table: table_columns})
 
