@@ -678,16 +678,15 @@ class FeatureStorage():
                 "features.burst_windowed_lengths",
                 "features.burst_lengths"]
 
-    def _get_column_tables_of_table(self, schema_name, table_name):
+    def _list_columns(self, schema_name, table_name):
+        """List the columns in a given table"""
+
         query = ("SELECT column_name FROM information_schema.columns "
                  "WHERE table_schema='{}' "
                  "AND table_name='{}'").format(schema_name,
                                                table_name)
         result = self.engine.execute(query)
-        colnames = []
-        for row in result:
-            colnames.append(row[0])
-        return colnames
+        return [row[0] for row in result]
 
     def create_master_feature_view(self, feature_table_names):
         """This generates a view of all the feature tables at
