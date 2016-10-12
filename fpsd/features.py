@@ -469,29 +469,30 @@ class FeatureStorage():
 
         self.drop_table(feature_table_name)
 
-        if num_features > 1:
-            feature_columns = ["num_outgoing_packets_in_window_{}_of_size_{}".format(x,
-                                                                                     size_window)
-                               for x in range(1, num_features + 1)]
+        if num_features < 1:
+            raise ValueError('num_features must be greater than 1')
 
-            # Use LEFT OUTER JOIN because many of the later windows
-            # will be Null.
-            # Note: count(*) will return Null if count(*) = 0
-            arr_subqueries = [("LEFT OUTER JOIN (SELECT exampleid,             "
-                               "COALESCE(count(*), 0)                          "
-                               "AS {colname} FROM packet_positions WHERE       "
-                               "ingoing = false AND position > {pos_start} AND "
-                               "position <= {pos_stop} GROUP BY exampleid)     "
-                               "t{feat_ind} ON foo.exampleid =                 "
-                               "t{feat_ind}.exampleid").format(colname=feature_columns[x-1],
-                                                               pos_start=(x-1)*size_window,
-                                                               pos_stop=x*size_window,
-                                                               feat_ind=x)
-                              for x in range(1, num_features + 1)]
 
-            subqueries = " ".join(arr_subqueries)
-        else:
-            subqueries = ""
+        feature_columns = ["num_outgoing_packets_in_window_{}_of_size_{}".format(x,
+                                                                                 size_window)
+                           for x in range(1, num_features + 1)]
+
+        # Use LEFT OUTER JOIN because many of the later windows
+        # will be Null.
+        # Note: count(*) will return Null if count(*) = 0
+        arr_subqueries = [("LEFT OUTER JOIN (SELECT exampleid,             "
+                           "COALESCE(count(*), 0)                          "
+                           "AS {colname} FROM packet_positions WHERE       "
+                           "ingoing = false AND position > {pos_start} AND "
+                           "position <= {pos_stop} GROUP BY exampleid)     "
+                           "t{feat_ind} ON foo.exampleid =                 "
+                           "t{feat_ind}.exampleid").format(colname=feature_columns[x-1],
+                                                           pos_start=(x-1)*size_window,
+                                                           pos_stop=x*size_window,
+                                                           feat_ind=x)
+                          for x in range(1, num_features + 1)]
+
+        subqueries = " ".join(arr_subqueries)
 
         query = ("CREATE TABLE features.size_{}_windows AS ( "
                  "SELECT foo.exampleid, {} FROM ( "
