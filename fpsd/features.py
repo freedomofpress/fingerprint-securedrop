@@ -173,7 +173,7 @@ class FeatureStorage():
         df = pd.read_sql(query, self.engine)
         return df.exampleid.values
 
-    def get_trace_cells(self, exampleid):
+    def get_ordered_trace_cells(self, exampleid):
         """Get trace for a given exampleid"""
         df = pd.read_sql(("SELECT ingoing, t_trace FROM raw.frontpage_traces "
                           "WHERE exampleid={} "
@@ -529,7 +529,7 @@ class FeatureStorage():
         # Preprocessing that would ideally be done in SQL (for speed)
         final_df = pd.DataFrame()
         for example in tqdm(self.get_exampleids()):
-            trace_df = self.get_trace_cells(example)
+            trace_df = self.get_ordered_trace_cells(example)
             bursts, ranks = compute_bursts(trace_df)
             final_df = final_df.append(pd.DataFrame({'exampleid': example,
                                                      'burst': bursts,
