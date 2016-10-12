@@ -43,10 +43,7 @@ def compute_bursts(df):
     elif current_outgoing_burst_length > 0:
         bursts.append(current_outgoing_burst_length)
 
-    # For some features we need to know the positions of bursts,
-    # so let's save this information as well
-    ranks = list(range(1, len(bursts) + 1))
-    return bursts, ranks
+    return bursts
 
 
 class FeatureStorage():
@@ -527,10 +524,13 @@ class FeatureStorage():
         final_df = pd.DataFrame()
         for example in tqdm(self.get_exampleids()):
             trace_df = self.get_ordered_trace_cells(example)
-            bursts, ranks = compute_bursts(trace_df)
+
+            bursts = compute_bursts(trace_df)
+            burst_positions = range(1, len(bursts) + 1)
+
             final_df = final_df.append(pd.DataFrame({'exampleid': example,
                                                      'burst': bursts,
-                                                     'rank': ranks}))
+                                                     'rank': burst_positions}))
         final_df = final_df.reset_index().drop('index', axis=1)
         self.drop_table("public.current_bursts")
 
