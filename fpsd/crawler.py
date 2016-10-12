@@ -161,7 +161,7 @@ class Crawler:
         except urllib.error.HTTPError:
             self.logger.warning("Unable to query ASN API and thus some "
                                 "control data may be missing from this run.")
-        control_data["tor_version"] = self.controller.get_version()
+        control_data["tor_version"] = self.controller.get_version().version_str
         control_data["tb_version"] = self.tb_driver.tb_version
         # Tor will have multiple entry nodes in its state file, but will
         # choose the first sequential one that is up as its entry guard.
