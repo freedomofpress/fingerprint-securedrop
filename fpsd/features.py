@@ -352,7 +352,7 @@ class FeatureStorage():
 
         where there are a variable number (num_cells) of feature
         columns, each named outgoing_cell_position_x where x is the
-        position in the trace, beginning at 1.
+        position of the xth outgoing cell in trace (beginning at 1).
 
         Args:
             num_cells [int]: number of cells to use as features
@@ -394,7 +394,8 @@ class FeatureStorage():
 
         where there are a variable number (num_cells) of feature
         columns, each named outgoing_cell_position_difference_x where x
-        is the position in the trace + 1, beginning at 1. For example,
+        is the difference in overall cell position between the x-th
+        and (x+1)-th outgoing cells, beginning from 1. For example,
         outgoing_cell_position_difference_1 is the difference in
         position between the 2nd and 1st outgoing cells.
 
