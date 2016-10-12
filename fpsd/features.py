@@ -150,17 +150,17 @@ class FeatureStorage():
         table_name = "first_{}_outgoing_cell_positions".format(num_cells)
         self.drop_table(table_name)
 
-        query = ("CREATE TEMP TABLE first_{n}_outgoing_cell_positions AS "
-                 "(SELECT exampleid, outgoing_cell_order, position      "
-                 "  FROM (                                                 "
-                 "    SELECT                                               "
-                 "      ROW_NUMBER() OVER                                  "
-                 "      (PARTITION BY exampleid ORDER BY position)         "
-                 "      AS outgoing_cell_order,                         "
-                 "      t.*                                                "
-                 "    FROM cell_positions t) x                           "
-                 "  WHERE x.outgoing_cell_order <= {n}                  "
-                 ");").format(n=num_cells)
+        query = """CREATE TEMP TABLE first_{n}_outgoing_cell_positions AS
+                  (SELECT exampleid, outgoing_cell_order, position
+                    FROM (
+                      SELECT
+                        ROW_NUMBER() OVER
+                        (PARTITION BY exampleid ORDER BY position)
+                        AS outgoing_cell_order,
+                        t.*
+                      FROM cell_positions t) x
+                    WHERE x.outgoing_cell_order <= {n}
+                  );""".format(n=num_cells)
 
         self.engine.execute(query)
 
@@ -172,9 +172,9 @@ class FeatureStorage():
 
     def get_ordered_trace_cells(self, exampleid):
         """Get trace for a given exampleid"""
-        df = pd.read_sql(("SELECT ingoing, t_trace FROM raw.frontpage_traces "
-                          "WHERE exampleid={} "
-                          "ORDER BY t_trace").format(exampleid),
+        df = pd.read_sql("""SELECT ingoing, t_trace FROM raw.frontpage_traces
+                           WHERE exampleid={}
+                           ORDER BY t_trace""".format(exampleid),
                          self.engine)
         return df
 
@@ -249,10 +249,10 @@ class FeatureStorage():
 
         self.drop_table("features.cell_timings")
 
-        query = ("CREATE TABLE features.cell_timings AS           "
-                 "  (SELECT exampleid, MAX(t_trace) -             "
-                 "  MIN(t_trace) as total_elapsed_time            "
-                 "  FROM raw.frontpage_traces GROUP BY exampleid);")
+        query = """CREATE TABLE features.cell_timings AS
+                   (SELECT exampleid, MAX(t_trace) -
+                   MIN(t_trace) as total_elapsed_time
+                   FROM raw.frontpage_traces GROUP BY exampleid);"""
         self.engine.execute(query)
 
         return "features.cell_timings"
@@ -277,19 +277,19 @@ class FeatureStorage():
 
         self.drop_table("features.intercell_timings")
 
-        query = ("CREATE TABLE features.intercell_timings AS ( "
-                 "WITH intercell_times as (                       "
-                 "  SELECT                                          "
-                 "    exampleid,                                    "
-                 "    t_trace - lag(t_trace) over                   "
-                 "    (partition BY exampleid ORDER BY t_trace)     "
-                 "    as difference                                 "
-                 "  FROM raw.frontpage_traces )                     "
-                 "SELECT exampleid,                                 "
-                 "  avg( difference ) as mean_intercell_time,       "
-                 "  stddev( difference )                            "
-                 "  as standard_deviation_intercell_time            "
-                 "FROM intercell_times GROUP BY exampleid);       ")
+        query = """CREATE TABLE features.intercell_timings AS (
+                 WITH intercell_times as (
+                   SELECT
+                     exampleid,
+                     t_trace - lag(t_trace) over
+                     (partition BY exampleid ORDER BY t_trace)
+                     as difference
+                   FROM raw.frontpage_traces )
+                 SELECT exampleid,
+                   avg( difference ) as mean_intercell_time,
+                   stddev( difference )
+                   as standard_deviation_intercell_time
+                 FROM intercell_times GROUP BY exampleid);"""
         self.engine.execute(query)
 
         return "features.intercell_timings"
@@ -366,12 +366,12 @@ class FeatureStorage():
         crosstab_columns = ['outgoing_cell_position_{} bigint'.format(x+1)
                             for x in range(num_cells)]
 
-        query = ("CREATE TABLE features.cell_positions AS             "
-                 "(SELECT * FROM crosstab(                            "
-                 "'SELECT exampleid, outgoing_cell_order, position "
-                 "FROM first_{}_outgoing_cell_positions')           "
-                 "AS ct(exampleid integer,                            "
-                 "{}));").format(num_cells,
+        query = """CREATE TABLE features.cell_positions AS
+                  (SELECT * FROM crosstab(
+                  'SELECT exampleid, outgoing_cell_order, position
+                  FROM first_{}_outgoing_cell_positions')
+                  AS ct(exampleid integer, 
+                  {}));""".format(num_cells,
                                  ', '.join(crosstab_columns))
 
         self.engine.execute(query)
@@ -415,11 +415,11 @@ class FeatureStorage():
         crosstab_columns = ['outgoing_cell_position_{} bigint'.format(x)
                             for x in range(1, num_ranks + 1)]
 
-        query = ("CREATE TEMP TABLE first_{n}_cell_positions AS         "
-                 "(SELECT * FROM crosstab(                           "
-                 "'SELECT * FROM first_{n}_outgoing_cell_positions') "
-                 "AS ct(exampleid integer,                           "
-                 "{cols})); ").format(n=num_ranks,
+        query = """CREATE TEMP TABLE first_{n}_cell_positions AS 
+                 (SELECT * FROM crosstab(
+                 'SELECT * FROM first_{n}_outgoing_cell_positions')
+                 AS ct(exampleid integer,
+                 {cols})); """.format(n=num_ranks,
                                       cols=', '.join(crosstab_columns))
         self.engine.execute(query)
 
@@ -477,13 +477,13 @@ class FeatureStorage():
         # Use LEFT OUTER JOIN because many of the later windows
         # will be Null.
         # Note: count(*) will return Null if count(*) = 0
-        arr_subqueries = [("LEFT OUTER JOIN (SELECT exampleid,             "
-                           "COALESCE(count(*), 0)                          "
-                           "AS {colname} FROM cell_positions WHERE       "
-                           "ingoing = false AND position > {pos_start} AND "
-                           "position <= {pos_stop} GROUP BY exampleid)     "
-                           "t{feat_ind} ON foo.exampleid =                 "
-                           "t{feat_ind}.exampleid").format(colname=feature_columns[x-1],
+        arr_subqueries = ["""LEFT OUTER JOIN (SELECT exampleid,
+                             COALESCE(count(*), 0)
+                             AS {colname} FROM cell_positions WHERE
+                             ingoing = false AND position > {pos_start} AND
+                             position <= {pos_stop} GROUP BY exampleid)
+                             t{feat_ind} ON foo.exampleid =
+                             t{feat_ind}.exampleid""".format(colname=feature_columns[x-1],
                                                            pos_start=(x-1)*size_window,
                                                            pos_stop=x*size_window,
                                                            feat_ind=x)
@@ -491,11 +491,11 @@ class FeatureStorage():
 
         subqueries = " ".join(arr_subqueries)
 
-        query = ("CREATE TABLE features.size_{}_windows AS ( "
-                 "SELECT foo.exampleid, {} FROM ( "
-                 "(SELECT exampleid, count(*) FROM " 
-                 "raw.frontpage_traces GROUP BY exampleid) foo"
-                 " {} ));").format(size_window,
+        query = """CREATE TABLE features.size_{}_windows AS (
+                 SELECT foo.exampleid, {} FROM (
+                 (SELECT exampleid, count(*) FROM
+                 raw.frontpage_traces GROUP BY exampleid) foo 
+                  {} ));""".format(size_window,
                                ', '.join(feature_columns),
                                subqueries)
 
@@ -534,9 +534,9 @@ class FeatureStorage():
         final_df = final_df.reset_index(drop=True)
         self.drop_table("public.current_bursts")
 
-        table_creation = ("CREATE TABLE public.current_bursts             "
-                          "(burstid SERIAL PRIMARY KEY, exampleid BIGINT, "
-                          "burst BIGINT, rank BIGINT)                     ")
+        table_creation = """CREATE TABLE public.current_bursts
+                            (burstid SERIAL PRIMARY KEY, exampleid BIGINT,
+                            burst BIGINT, rank BIGINT)"""
         self.engine.execute(table_creation)
 
         burst_rows = ['({}, {}, {})'.format(*row)
@@ -569,12 +569,12 @@ class FeatureStorage():
 
         self.drop_table("features.burst_length_aggregates")
 
-        query = ("CREATE TABLE features.burst_length_aggregates AS    "
-                 "(SELECT exampleid, avg(burst) AS mean_burst_length, "
-                 "count(burst) AS num_bursts,                         "
-                 "max(burst) AS max_burst_length                      "
-                 "FROM public.current_bursts                          "
-                 "GROUP BY exampleid);                                ")
+        query = """CREATE TABLE features.burst_length_aggregates AS
+                   (SELECT exampleid, avg(burst) AS mean_burst_length,
+                   count(burst) AS num_bursts,
+                   max(burst) AS max_burst_length
+                   FROM public.current_bursts
+                   GROUP BY exampleid);"""
 
         self.engine.execute(query)
         return "features.burst_length_aggregates"
@@ -611,22 +611,22 @@ class FeatureStorage():
         # Use LEFT OUTER JOIN because many of the later windows will be Null
         # Note: count(*) will return Null if count(*) = 0 hence coalesce is
         # used to set those cells to 0
-        subqueries = [("LEFT OUTER JOIN (SELECT exampleid,        "
-                       "COALESCE(count(burst), 0) AS {colname}    "
-                       "FROM public.current_bursts WHERE          "
-                       "burst > {length} GROUP BY exampleid)      "
-                       "t{table_ref} ON foo.exampleid =           "
-                       "t{table_ref}.exampleid").format(colname=feature_columns[feat_ind],
+        subqueries = ["""LEFT OUTER JOIN (SELECT exampleid,
+                         COALESCE(count(burst), 0) AS {colname}
+                         FROM public.current_bursts WHERE
+                         burst > {length} GROUP BY exampleid)
+                         t{table_ref} ON foo.exampleid =
+                         t{table_ref}.exampleid""".format(colname=feature_columns[feat_ind],
                                                         length=length,
                                                         table_ref=feat_ind)
                       for feat_ind, length in enumerate(lengths)]
 
-        query = ("CREATE TABLE features.burst_windowed_lengths AS ( "
-                 "SELECT foo.exampleid, {} FROM ( "
-                 "(SELECT exampleid, count(*) FROM " 
-                 "raw.frontpage_traces GROUP BY exampleid) foo "
-                 "{} ));").format(", ".join(feature_columns),
-                                  " ".join(subqueries))
+        query = """CREATE TABLE features.burst_windowed_lengths AS (
+                   SELECT foo.exampleid, {} FROM (
+                   (SELECT exampleid, count(*) FROM
+                   raw.frontpage_traces GROUP BY exampleid) foo
+                   {} ));""".format(", ".join(feature_columns),
+                                    " ".join(subqueries))
 
         self.engine.execute(query)
         return "features.burst_windowed_lengths"
@@ -658,12 +658,12 @@ class FeatureStorage():
         column_names = ['length_burst_{} bigint'.format(x)
                         for x in range(1, num_bursts + 1)]
 
-        query = ("CREATE TABLE features.burst_lengths AS         "
-                 "(SELECT * FROM crosstab(                       "
-                 "'SELECT exampleid, rank, burst                 "
-                 "FROM public.current_bursts')                   "
-                 "AS ct(exampleid bigint,                        "
-                 "{}));").format(', '.join(column_names))
+        query = """CREATE TABLE features.burst_lengths AS
+                   (SELECT * FROM crosstab(
+                   'SELECT exampleid, rank, burst
+                   FROM public.current_bursts')
+                   AS ct(exampleid bigint,
+                   {}));""".format(', '.join(column_names))
 
         self.engine.execute(query)
         return "features.burst_lengths"
