@@ -523,7 +523,7 @@ class FeatureStorage():
             [string] name of newly created table
         """
 
-        # Preprocessing that would ideally be done in SQL (for speed)
+        # TODO: Preprocessing that would ideally be done in SQL (for speed)
         final_df = pd.DataFrame()
         for example in tqdm(self.get_exampleids()):
             trace_df = self.get_ordered_trace_cells(example)
