@@ -539,14 +539,12 @@ class FeatureStorage():
                           "burst BIGINT, rank BIGINT)                     ")
         self.engine.execute(table_creation)
 
-        burst_rows = ['({}, {}, {})'.format(row[0], row[1], row[2])
+        burst_rows = ['({}, {}, {})'.format(*row)
                       for row in final_df.values]
 
         cols = final_df.columns
         insert_query = ("INSERT INTO public.current_bursts "
-                        "({}, {}, {}) VALUES {};".format(cols[0],
-                                                         cols[1],
-                                                         cols[2],
+                        "({}, {}, {}) VALUES {};".format(*cols,
                                                          ', '.join(burst_rows)))
         self.engine.execute(insert_query)
         return "public.current_bursts"
