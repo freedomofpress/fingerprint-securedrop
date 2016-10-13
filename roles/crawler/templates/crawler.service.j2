@@ -7,6 +7,7 @@ After=network.target
 User={{ fpsd_crawler_system_account }}
 ExecStart=/usr/bin/python3.5 {{ fpsd_crawler_project_directory }}/fpsd/crawler.py
 Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
