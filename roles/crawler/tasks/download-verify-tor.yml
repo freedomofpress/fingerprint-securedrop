@@ -1,4 +1,13 @@
 ---
+- name: Create Tor download directory.
+  become: yes
+  file:
+    path: "{{ fpsd_crawler_tor_directory }}"
+    state: directory
+    owner: "{{ fpsd_crawler_system_account }}"
+    group: "{{ fpsd_crawler_system_account }}"
+    mode: "0755"
+
 - block:
   - name: Download Tor {{ fpsd_crawler_tor_release }} source and signature.
     get_url:
