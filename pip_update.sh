@@ -32,8 +32,7 @@ trap "rm -rf ${VENV}" EXIT
 virtualenv -p python3 "${VENV}" > /dev/null
 source "${VENV}/bin/activate"
 
-pip install -U pip > /dev/null
-pip install -U pip-tools > /dev/null
+pip3 install -U pip pip-tools > /dev/null
 
 # Compile new requirements (.txt) files from our top-level dependency (.in)
 # files. See http://nvie.com/posts/better-package-management/
