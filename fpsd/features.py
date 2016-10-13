@@ -723,8 +723,9 @@ class FeatureStorage():
             prefix = 't{}.'.format(table_num)
             prefixed_columns = [prefix + s for s in master_features[table_name]]
             columns_to_select = columns_to_select + ', ' + ', '.join(prefixed_columns)
-            join_query = ("LEFT OUTER JOIN {name} t{name} "
-                          "ON foo.exampleid = t{name}.exampleid ").format(name=table_name)
+            join_query = ("LEFT OUTER JOIN {name} t{num} "
+                          "ON foo.exampleid = t{num}.exampleid ").format(name=table_name,
+                                                                         num=table_num)
             full_join_query += join_query
 
         drop_view = "DROP VIEW IF EXISTS features.frontpage_features; "
