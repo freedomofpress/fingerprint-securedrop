@@ -37,7 +37,7 @@ fpsd_crawler_tbb_arch: 64
 fpsd_crawler_tbb_directory: "~{{ fpsd_crawler_system_account }}/tbb"
 
 # Specify Tor version to download, patch, build, and install
-fpsd_crawler_tor_release: 0.2.8.7
+fpsd_crawler_tor_release: 0.2.8.8
 fpsd_crawler_tor_directory: "~{{ fpsd_crawler_system_account }}"
 
 # Clone the git repo by default, but allow disabling, e.g. in vagrant,
