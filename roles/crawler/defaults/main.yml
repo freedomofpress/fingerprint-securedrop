@@ -34,7 +34,7 @@ fpsd_crawler_pypi_packages:
 fpsd_crawler_tbb_release: 6.0.5
 fpsd_crawler_tbb_locale: en-US
 fpsd_crawler_tbb_arch: 64
-fpsd_crawler_tbb_directory: "~{{ fpsd_crawler_system_account }}/tbb"
+fpsd_crawler_tbb_directory: "/opt/tbb"
 
 # Specify Tor version to download, patch, build, and install
 fpsd_crawler_tor_release: 0.2.8.8

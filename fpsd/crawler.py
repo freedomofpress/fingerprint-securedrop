@@ -9,7 +9,7 @@ import codecs
 import http.client
 from io import SEEK_END, SEEK_SET
 from os import mkdir
-from os.path import abspath, dirname, expanduser, join
+from os.path import abspath, dirname, join
 import pickle
 import platform
 import random
@@ -64,7 +64,7 @@ class Crawler:
                  control_port=9051,
                  socks_port=9050, 
                  run_in_xvfb=True,
-                 tbb_path=join(expanduser("~"),"tbb","tor-browser_en-US"),
+                 tbb_path=join("/opt","tbb","tor-browser_en-US"),
                  tb_log_path=join(_log_dir,"firefox.log"),
                  tb_tor_cfg=USE_RUNNING_TOR,
                  page_load_timeout=20,
