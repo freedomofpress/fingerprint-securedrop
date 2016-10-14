@@ -3,9 +3,6 @@
   - name: Clobber relay.c in Tor {{ fpsd_crawler_tor_release }} with custom relay.c from repo
     patch:
       src: relay.c.patch
-      # Not using the ~username prefix to the fullpath because the patch module
-      # doesn't expand the path correctly. Technically it's an assumption that
-      # the user's home directory resides in /home/<username>, but a reasonable one.
       basedir: "{{ fpsd_crawler_tor_directory }}/tor-{{ fpsd_crawler_tor_release }}/src/or"
     register: tor_relay_patch_result
 
