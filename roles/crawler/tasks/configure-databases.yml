@@ -63,9 +63,12 @@
     changed_when: false
 
   - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
-    command: psql -c '{{ lookup("file", item) }}'
-    with_fileglob:
-      - postgres/create_table_*
+    command: psql -c '{{ lookup("file", "postgres-schemas/"+item) }}'
+    with_items:
+      - create_table_crawls.sql
+      - create_table_hs_history.sql
+      - create_table_frontpage_examples.sql
+      - create_table_frontpage_traces.sql
     # Each file is of the form create_table_<table name>.sql, so let's extract the
     # expected table name and inspect the table list to check if it already exists.
     when: item|basename|regex_replace('^create_table_(.*)\\.sql$', '\\1') not in tables.stdout
