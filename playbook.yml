@@ -1,18 +1,18 @@
 ---
-- name: Update the Ubuntu image and install the packages both scripts need.
-  hosts: all
-  roles:
-    - role: common
-      tags: common
-
-- name: Install and configure dependencies for Tor.
+- name: Configure FingerprintSecureDrop Tor Hidden Service crawler.
   hosts: all
   roles:
     - role: crawler
+      fpsd_crawler_clone_git_repo: false # don't clone, use mounted local directory
+      fpsd_crawler_system_account: vagrant
       tags: crawler
-
-- name: Install PostgreSQL and configure the fpsd database.
-  hosts: all
-  roles:
-    - role: database
-      tags: database
+  tasks:
+    - name: Set tmux mode to vim, avoid that rsi.
+      become: yes
+      lineinfile:
+        dest: "/etc/tmux.conf"
+        line: "setw -g mode-keys vi"
+        create: yes
+        owner: root
+        group: root
+        mode: "0644"

@@ -1,20 +1,91 @@
 ---
-crawler_apt_packages:
-  - xvfb # tbs
+# Whether to configure the project application code.
+# Allows skipping the code tasks if only the database
+# tasks should be run, which is useful in a multi-host setup.
+fpsd_crawler_configure_service: true
+
+# General system dependencies requiring for running
+# Tor Browser Bundle (tbb).
+fpsd_crawler_apt_packages:
+  - aptitude # needed by Ansible for apt 'upgrade'
   - git #tbs
   - gnupg-curl # needed for https keyservers
-  - libfontconfig1 # tbb (firefox)
-  - libxrender1 # tbb (firefox)
   - libasound2 # tbb (firefox)
   - libdbus-glib-1-2 # tbb (firefox)
+  - libfontconfig1 # tbb (firefox)
   - libgtk2.0-0 # tbb (firefox)
+  - libpq-dev # needed to install psycopg2
+  - libxrender1 # tbb (firefox)
+  - python3-pip
+  - python3.5
+  - tmux
+  - vim
+  - xvfb # tbs
+
+# General Python tooling for development. Specific Python dependencies
+# for the crawler code are installed from `requirements.txt` files.
+fpsd_crawler_pypi_packages:
+  - pip
+  - pytest
+  - ipython
+  - ipdb
 
 # Specify TBB version to download and install
-tbb_release: 6.0.5
-tbb_locale: en-US
-tbb_arch: 64
+fpsd_crawler_tbb_release: 6.0.5
+fpsd_crawler_tbb_locale: en-US
+fpsd_crawler_tbb_arch: 64
+fpsd_crawler_tbb_directory: "/opt/tbb"
 
 # Specify Tor version to download, patch, build, and install
-tor_release: 0.2.8.7
+fpsd_crawler_tor_release: 0.2.8.8
+fpsd_crawler_tor_directory: "/usr/local/src/tor"
 
-ssh_username: "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"
+# Clone the git repo by default, but allow disabling, e.g. in vagrant,
+# where it can be mounted in.
+fpsd_crawler_clone_git_repo: true
+fpsd_crawler_project_directory: "/opt/FingerprintSecureDrop"
+fpsd_crawler_git_repo_url: "https://github.com/freedomofpress/FingerprintSecureDrop"
+
+# Username for running the crawler systemd service.
+fpsd_crawler_system_account: fpsd
+
+# Configuration options for Postgres database.
+fpsd_database_apt_packages:
+  - postgresql
+  - libpq-dev
+  - python-psycopg2
+
+# If left undefined, a randomly generated password will be created and written
+# to /tmp on the Ansible controller.
+fpsd_database_password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters,digits') }}"
+
+# All of these vars except password will be set as environment variables in
+# `/etc/bash.bashrc`. If password is not set, then Ansible will generate one for
+# you at provision-time. The password will not be set as an environment
+# variable, but is instead saved to a PGPASSFILE, `~{{ ssh_username }}/.pgpass`,
+# along with the corresponding information from the other vars according to the
+# PGPASSFILE spec.
+#
+# Note: the database role will not overwrite an existing PGPASSFILE, so in order
+# to do so, you'll have to first remove it then re-run the role:
+# `ANSIBLE_ARGS="--tags=database vagrant provision"`.
+fpsd_database_psql_env:
+  PGHOST: localhost
+  PGUSER: fp_user
+  PGPORT: "5432"
+  PGDATABASE: fpsd
+  PGPASSWORD: "{{ fpsd_database_password }}"
+  PGPASSFILE: "{{ ansible_env.HOME }}/.pgpass"
+
+# Defaults to true. Set to false if you want to use a remote database. If you
+# wish not to use the database at all, set the environment variable
+# `ANSIBLE_ARGS="--skip-tags=database"`. If set to false you must fill out all
+# vars in the field below so Ansible can still set the appropriate environment
+# variables and create the PGPASSFILE for it just works™ access to your remote
+# database.
+fpsd_database_initialize_local_db: true
+
+# Whether to configure credentials for user accounts.
+fpsd_database_configure_credentials: true
+fpsd_database_usernames:
+  - "{{ ansible_user|default(ansible_ssh_user|default(lookup('env', 'USER'))) }}"

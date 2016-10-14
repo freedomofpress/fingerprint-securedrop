@@ -1,8 +1,0 @@
----
-- name: Install PostgreSQL.
-  become: true
-  apt:
-    name: "{{ fpsd_database_apt_packages }}"
-    state: latest
-    update_cache: yes
-    cache_valid_time: 86400

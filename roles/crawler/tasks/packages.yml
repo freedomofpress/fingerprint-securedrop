@@ -1,0 +1,45 @@
+---
+- name: Install crawler apt dependencies.
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+    # Only update if it's been 24 hours since last time
+    cache_valid_time: 86400
+  with_items: "{{ fpsd_crawler_apt_packages }}"
+
+# Upgrading after previous installation to ensure we have python-apt installed,
+# which is necessary for using the `upgrade` parameter for the apt module.
+- name: Upgrade all apt packages.
+  become: yes
+  apt:
+    upgrade: safe
+    update_cache: yes
+    cache_valid_time: 86400
+
+- name: Install and upgrade Python packaging and debugging tools.
+  become: true
+  pip:
+    executable: pip3
+    name: "{{ item }}"
+    state: latest
+  with_items: "{{ fpsd_crawler_pypi_packages }}"
+
+- name: Download universe sources for tor.
+  become: yes
+  apt_repository:
+    filename: "xenial-universe-sources"
+    repo: "deb-src http://us.archive.ubuntu.com/ubuntu/ xenial universe"
+    mode: "0644"
+
+- name: Install Tor build dependencies.
+  become: yes
+  apt:
+    name: tor
+    state: build-dep
+    update_cache: yes
+  # Ansible is always reporting changed for this task, so let's
+  # inspect the output to determine changed status.
+  register: tor_build_dep_result
+  changed_when: "'0 upgraded, 0 newly installed' not in tor_build_dep_result.stdout"
