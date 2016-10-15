@@ -107,21 +107,24 @@ class Sorter:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
-        return self
 
 
     def __del__(self):
         self.close()
-        return self
 
 
     def close(self):
-        self.logger.info("Closing out any lingering HTTP connections...")
-        self.session.close()
-        self.logger.info("Closing event loop...")
-        self.loop.close()
-        self.logger.info("Killing the Tor process...")
-        self.tor_process.kill()
+        self.logger.info("Beginning the Sorter exit process..."
+        if "session" in dir(self):
+            self.logger.info("Closing out any lingering HTTP connections...")
+            self.session.close()
+        if loop in dir(self):
+            self.logger.info("Closing the event loop...")
+            self.loop.close()
+        if "tor_process" in dir(self):
+            self.logger.info("Killing the Tor process...")
+            self.tor_process.kill()
+        self.logger.info("Sorter exit complete.")
 
 
     def scrape_directories(self, onion_dirs):
