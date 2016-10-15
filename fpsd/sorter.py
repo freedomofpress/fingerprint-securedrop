@@ -114,11 +114,11 @@ class Sorter:
 
 
     def close(self):
-        self.logger.info("Beginning the Sorter exit process..."
+        self.logger.info("Beginning the Sorter exit process...")
         if "session" in dir(self):
             self.logger.info("Closing out any lingering HTTP connections...")
             self.session.close()
-        if loop in dir(self):
+        if "loop" in dir(self):
             self.logger.info("Closing the event loop...")
             self.loop.close()
         if "tor_process" in dir(self):
