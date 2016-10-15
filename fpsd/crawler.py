@@ -452,7 +452,7 @@ class Crawler:
             if not url_to_id_mapping:
                 url_to_id_mapping = nonmonitored_class
                 url_to_id_mapping.update(monitored_class)
-            trace_dir, mon_trace_dir, non_mon_trace_dir = (None,) * 3
+            trace_dir, mon_trace_dir, nonmon_trace_dir = (None,) * 3
         else:
             trace_dir = self.make_ts_dir()
             mon_trace_dir = join(trace_dir, monitored_name)
