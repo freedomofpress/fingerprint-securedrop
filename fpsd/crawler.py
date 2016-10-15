@@ -60,6 +60,7 @@ class Crawler:
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
                  torrc_config={"CookieAuth": "1"},
+                 tor_log=join(_log_dir, "tor.log"),
                  tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
                  control_port=9051,
                  socks_port=9050, 
@@ -81,6 +82,7 @@ class Crawler:
         self.torrc_config.update({"SocksPort": str(self.socks_port)})
         self.control_port = find_free_port(control_port, self.socks_port)
         self.torrc_config.update({"ControlPort": str(self.control_port)})
+        self.torrc_config.update({"Log": "DEBUG file {}".format(tor_log)})
         self.logger.info("Starting tor process with config "
                          "{torrc_config}.".format(**locals()))
         self.tor_process = launch_tor_with_config(config=self.torrc_config,
