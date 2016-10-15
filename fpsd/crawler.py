@@ -513,8 +513,8 @@ def _securedrop_crawl():
                  wait_after_closing_circuits=config.getint("wait_after_closing_circuits"),
                  restart_on_sketchy_exception=config.getboolean("restart_on_sketchy_exception"),
                  db_handler=fpdb,
-                 torrc_config={"CookieAuth": "1",
-                               "EntryNodes": config["entry_nodes"].split()}) as crawler:
+                 torrc_config={"CookieAuthentication": "1",
+                               "EntryNodes": config["entry_nodes"]}) as crawler:
         crawler.crawl_monitored_nonmonitored(monitored_class,
                                              nonmonitored_class,
                                              monitored_name=monitored_name,

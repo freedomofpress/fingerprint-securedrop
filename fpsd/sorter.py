@@ -341,7 +341,7 @@ def _securedrop_sort():
     with Sorter(page_load_timeout=config.getint("page_load_timeout"),
                 max_tasks=config.getint("max_tasks"),
                 db_handler=fpdb) as sorter:
-        sorter.scrape_directories(config["onion_dirs"].split())
+        sorter.scrape_directories(config["onion_dirs"].split(","))
         sorter.sort_onions(class_tests)
 
 
