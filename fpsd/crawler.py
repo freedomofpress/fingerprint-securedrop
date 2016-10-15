@@ -60,6 +60,7 @@ class Crawler:
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
                  torrc_config={"CookieAuth": "1"},
+                 tor_log=join(_log_dir, "tor.log"),
                  tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
                  control_port=9051,
                  socks_port=9050, 
@@ -81,6 +82,7 @@ class Crawler:
         self.torrc_config.update({"SocksPort": str(self.socks_port)})
         self.control_port = find_free_port(control_port, self.socks_port)
         self.torrc_config.update({"ControlPort": str(self.control_port)})
+        self.torrc_config.update({"Log": "DEBUG file {}".format(tor_log)})
         self.logger.info("Starting tor process with config "
                          "{torrc_config}.".format(**locals()))
         self.tor_process = launch_tor_with_config(config=self.torrc_config,
@@ -184,20 +186,28 @@ class Crawler:
 
     def __del__(self):
         self.close()
-        return self
 
 
     def close(self):
-        self.logger.info("Exiting the Crawler...")
-        self.logger.info("Closing Tor Browser...")
-        self.tb_driver.quit()
-        if self.run_in_xvfb:
+        self.logger.info("Beginning Crawler exit process...")
+        if "tb_driver" in dir(self):
+            self.logger.info("Closing Tor Browser...")
+            self.tb_driver.quit()
+        if "virtual_framebuffer" in dir(self):
             self.logger.info("Closing the virtual framebuffer...")
-            stop_xvfb(self.virtual_framebuffer)
-        self.logger.info("Closing the Tor cell stream...")
-        self.cell_log.close()
-        self.logger.info("Killing the tor process...")
-        self.tor_process.kill()
+	    # A bug in pyvirtualdisplay triggers a KeyError exception when closing a
+            # virtual framebuffer if the $DISPLAY environment variable is not set.
+            try:
+                stop_xvfb(self.virtual_framebuffer)
+            except KeyError:
+                pass
+        if "cell_log" in dir(self):
+            self.logger.info("Closing the Tor cell stream...")
+            self.cell_log.close()
+        if "tor_process" in dir(self):
+            self.logger.info("Killing the tor process...")
+            self.tor_process.kill()
+        self.logger.info("Crawler exit completed.")
 
 
     def collect_onion_trace(self, url, hsid=None, extra_fn=None, trace_dir=None,
@@ -245,7 +255,7 @@ class Crawler:
             if exc_type in _sketchy_exceptions:
                 self.save_debug_log(url, trace_path, start_idx)
                 if self.restart_on_sketchy_exception:
-                    self.restart_tor()
+                    self.restart_tb()
 
             return "failed"
 
@@ -375,22 +385,16 @@ class Crawler:
         return self.cell_log.read(end_idx - start_idx)
 
 
-    def restart_tor(self):
-        """Restarts tor and the Tor Browser."""
-        self.logger.info("Quitting the Tor Browser...")
+    def restart_tb(self):
+        """Restarts the Tor Browser."""
+        self.logger.info("Restarting the Tor Browser...")
         self.tb_driver.quit()
-        self.logger.info("Restarting the tor process...")
-        self.tor_process.kill()
-        self.tor_process = launch_tor_with_config(config=self.torrc_config,
-                                                  take_ownership=take_ownership)
-        self.controller = Controller.from_port(port=self.control_port)
-        self.authenticate_to_tor_controlport()
-        self.logger.info("Starting Tor Browser...")
         self.tb_driver = TorBrowserDriver(tbb_path=tbb_path,
                                           tor_cfg=USE_RUNNING_TOR,
                                           tbb_logfile_path=tb_log_path,
                                           socks_port=self.socks_port,
                                           control_port=self.control_port)
+        self.logger.info("Tor Browser restarted...")
 
 
     def collect_set_of_traces(self, url_set, extra_fn=None, trace_dir=None,
@@ -452,7 +456,7 @@ class Crawler:
             if not url_to_id_mapping:
                 url_to_id_mapping = nonmonitored_class
                 url_to_id_mapping.update(monitored_class)
-            trace_dir, mon_trace_dir, non_mon_trace_dir = (None,) * 3
+            trace_dir, mon_trace_dir, nonmon_trace_dir = (None,) * 3
         else:
             trace_dir = self.make_ts_dir()
             mon_trace_dir = join(trace_dir, monitored_name)
@@ -513,8 +517,8 @@ def _securedrop_crawl():
                  wait_after_closing_circuits=config.getint("wait_after_closing_circuits"),
                  restart_on_sketchy_exception=config.getboolean("restart_on_sketchy_exception"),
                  db_handler=fpdb,
-                 torrc_config={"CookieAuth": "1",
-                               "EntryNodes": config["entry_nodes"].split()}) as crawler:
+                 torrc_config={"CookieAuthentication": "1",
+                               "EntryNodes": config["entry_nodes"]}) as crawler:
         crawler.crawl_monitored_nonmonitored(monitored_class,
                                              nonmonitored_class,
                                              monitored_name=monitored_name,
