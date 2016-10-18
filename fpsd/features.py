@@ -715,14 +715,16 @@ class FeatureStorage():
             table_columns.remove("exampleid")
             master_features.update({schema_and_table: table_columns})
 
-        columns_to_select = "foo.exampleid"
-        full_join_query = ("FROM ( (SELECT exampleid FROM      " 
-                           "features.undefended_frontpage_examples) foo ")
+        columns_to_select, full_join_query = "", ""
 
         for table_num, table_name in enumerate(list(master_features)):
             prefix = 't{}.'.format(table_num)
             prefixed_columns = [prefix + s for s in master_features[table_name]]
-            columns_to_select = columns_to_select + ', ' + ', '.join(prefixed_columns)
+            if table_num == 0:
+                columns_to_select = columns_to_select + ', '.join(prefixed_columns)
+            else:
+                columns_to_select = columns_to_select + ', ' + ', '.join(prefixed_columns)
+
             join_query = ("LEFT OUTER JOIN {name} t{num} "
                           "ON foo.exampleid = t{num}.exampleid ").format(name=table_name,
                                                                          num=table_num)
@@ -731,9 +733,13 @@ class FeatureStorage():
         drop_view = "DROP VIEW IF EXISTS features.frontpage_features; "
         self.engine.execute(drop_view)
 
-        create_new_view = ("CREATE VIEW features.frontpage_features "
-                           "AS ( SELECT {} {} ));").format(columns_to_select,
-                                                          full_join_query)
+        create_new_view = ("CREATE VIEW features.frontpage_features           "
+                           "AS ( SELECT foo.exampleid, {}                     "
+                           "FROM ( (SELECT exampleid FROM                     "
+                           "features.undefended_frontpage_examples)           "
+                           "foo {} ));").format(columns_to_select,
+                                                full_join_query)
+
         self.engine.execute(create_new_view)
 
 

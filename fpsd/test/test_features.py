@@ -46,6 +46,34 @@ def db_helper(db, table_name, feature_names):
     return dict(actual_output)
 
 
+def populate_hs_crawls(engine):
+    insert_test_hs = ("INSERT INTO raw.hs_history "
+    "(hs_url, is_sd, sd_version, is_current, sorted_class, t_sort) VALUES "
+    "('notarealonion.onion', 't', '038', 't', 'sd_038', '2016-07-30 16:42:02.298115');")
+    engine.execute(insert_test_hs)
+
+    insert_test_crawl = ("INSERT INTO raw.crawls "
+    "(page_load_timeout, wait_on_page, wait_after_closing_circuits, "
+    "entry_node, os, kernel, kernel_version, python_version, "
+    "tor_version, tb_version, crawler_version, ip) VALUES "
+    "(20, 5, 5, '1B60184DB9B96EA500A19C52D88F145BA5EC93CD', "
+    "'#47-Ubuntu SMP Fri Jun 24 10:09:13 UTC 2016', 'Linux', "
+    "'4.4.0-28-generic', '3.5.2', '0.2.8.6', '6.0.3', '1.3', "
+    "'162.243.217.22');")
+    engine.execute(insert_test_crawl)
+
+
+def cleanup(engine):
+    clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
+    engine.execute(clean_up_features_schema)
+    conn = engine.connect()
+    conn.execute("TRUNCATE TABLE raw.frontpage_traces RESTART IDENTITY CASCADE;")
+    conn.execute("TRUNCATE TABLE raw.frontpage_examples RESTART IDENTITY CASCADE;")
+    conn.execute("TRUNCATE TABLE raw.hs_history RESTART IDENTITY CASCADE;")
+    conn.execute("TRUNCATE TABLE raw.crawls RESTART IDENTITY CASCADE;")
+    conn.execute("COMMIT;")
+
+
 class BurstGenerationTest(unittest.TestCase):
     def test_incoming_burst(self):
         df = pd.DataFrame({'ingoing': [True, True, True]})
@@ -83,6 +111,14 @@ class RawFeatureGenerationTest(unittest.TestCase):
         instantiate_features_schema = ("CREATE SCHEMA features; ")
         self.db.engine.execute(instantiate_features_schema)
 
+        populate_hs_crawls(self.db.engine)
+
+        insert_test_data_examples = ("INSERT INTO raw.frontpage_examples "
+        "(exampleid, hsid, crawlid, t_scrape) VALUES "
+        "(9, 1, 1, '2016-08-30 19:11:38.869066'), "
+        "(10, 1, 1, '2016-08-30 19:11:39.879066');")
+        self.db.engine.execute(insert_test_data_examples)
+
         insert_test_data_traces = ("INSERT INTO raw.frontpage_traces "
         "(cellid, exampleid, ingoing, circuit, stream, command, "
         "length, t_trace) VALUES "
@@ -94,11 +130,6 @@ class RawFeatureGenerationTest(unittest.TestCase):
         "(924, 10, 'f', 3418218064, 59159, 'DATA(2)', 289, 1472598739.571273);")
         self.db.engine.execute(insert_test_data_traces)
 
-        insert_test_data_examples = ("INSERT INTO raw.frontpage_examples "
-        "(exampleid, hsid, crawlid, t_scrape) VALUES "
-        "(9, 1, 1, '2016-08-30 19:11:38.869066'), "
-        "(10, 2, 1, '2016-08-30 19:11:39.879066');")
-        self.db.engine.execute(insert_test_data_examples)
         return None
 
     def test_aggregate_cell_numbers(self):
@@ -202,12 +233,7 @@ class RawFeatureGenerationTest(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def tearDown(self):
-        clean_up_test_data_traces = ("DELETE FROM raw.frontpage_traces;")
-        self.db.engine.execute(clean_up_test_data_traces)
-        clean_up_test_data_examples = ("DELETE FROM raw.frontpage_examples;")
-        self.db.engine.execute(clean_up_test_data_examples)
-        clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
-        self.db.engine.execute(clean_up_features_schema)
+        cleanup(self.db.engine)
         self.db.drop_table("public.current_bursts")
 
 
@@ -226,6 +252,14 @@ class BurstFeatureGeneration(unittest.TestCase):
 
         instantiate_features_schema = ("CREATE SCHEMA features; ")
         self.db.engine.execute(instantiate_features_schema)
+
+        populate_hs_crawls(self.db.engine)
+
+        insert_test_data_examples = ("INSERT INTO raw.frontpage_examples "
+        "(exampleid, hsid, crawlid, t_scrape) VALUES "
+        "(9, 1, 1, '2016-08-30 19:11:38.869066'), "
+        "(10, 1, 1, '2016-08-30 19:11:39.879066');")
+        self.db.engine.execute(insert_test_data_examples)
 
         insert_test_data_traces = ("INSERT INTO raw.frontpage_traces "
         "(cellid, exampleid, ingoing, circuit, stream, command, "
@@ -286,8 +320,5 @@ class BurstFeatureGeneration(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def tearDown(self):
+        cleanup(self.db.engine)
         self.db.drop_table("public.current_bursts")
-        clean_up_features_schema = ("DROP SCHEMA IF EXISTS features CASCADE; ")
-        self.db.engine.execute(clean_up_features_schema)
-        clean_up_test_data_traces = ("DELETE FROM raw.frontpage_traces;")
-        self.db.engine.execute(clean_up_test_data_traces)
