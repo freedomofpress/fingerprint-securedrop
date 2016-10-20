@@ -40,6 +40,12 @@
       template: template0
     register: fpsd_database_result
 
+  - name: Setup TABLEFUNC extension.
+    postgresql_ext:
+      name: tablefunc
+      db: "{{ fpsd_database_psql_env.PGDATABASE }}"
+    register: postgres_extension
+
   become: true
   become_user: postgres
 
@@ -51,10 +57,13 @@
     always_run: true
     changed_when: false
 
-  - name: Create the raw schema.
-    command: psql -c 'CREATE SCHEMA raw;'
-    when: "'raw' not in schemas.stdout"
-    register: raw_schema_result
+  - name: Create the raw and features schemata.
+    command: psql -c 'CREATE SCHEMA {{ item }};'
+    when: "'{{ item }}' not in schemas.stdout"
+    register: "schema_result"
+    with_items:
+      - raw
+      - features
 
   - name: List all tables in the raw schema.
     command: psql -c '\dt raw.*'
@@ -77,10 +86,9 @@
   environment: "{{ fpsd_database_psql_env }}"
 
 # Configure test database
-# The test database is only used for running tests, which for simplicity we
-# won't support remote databases for. Since the test database should contain
-# no important data, we keep recreate it based on the "prod" database whenever
-# changes are made to the "prod" database's schemas or tables.
+# Since the test database should contain no important data, we keep recreate it
+# based on the "prod" database whenever changes are made to the "prod"
+# database's schemas or tables.
 - block:
   - name: Delete the test database based on outdated version of fpsd.
     postgresql_db:
@@ -88,7 +96,7 @@
       state: absent
     # If the fpsd database was just created, the test database should
     # not exist, so there will be nothing to delete.
-    when: fpsd_database_result|skipped
+    when: not fpsd_database_result|changed
 
   - name: Create the test database based on fpsd.
     postgresql_db:
@@ -99,6 +107,8 @@
       lc_ctype: en_US.UTF-8
       template: "{{ fpsd_database_psql_env.PGDATABASE }}"
 
-  when: raw_schema_result|changed or raw_schema_tables_result|changed
+  when: "postgres_extension|changed 
+    or False in raw_schema_tables_result.results|map(attribute='skipped')|list
+    or False in schema_result.results|map(attribute='skipped')|list"
   become: true
   become_user: postgres

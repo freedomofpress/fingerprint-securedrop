@@ -10,9 +10,15 @@ async-timeout==1.0.0      # via aiohttp
 chardet==2.3.0            # via aiohttp
 EasyProcess==0.2.3        # via pyvirtualdisplay
 multidict==2.1.2          # via aiohttp
+numpy==1.11.2             # via pandas
+pandas==0.19.0
 psycopg2==2.6.2
+python-dateutil==2.5.3    # via pandas
+pytz==2016.7              # via pandas
 pyvirtualdisplay==0.2.1
 selenium==2.53.6          # via tbselenium
-SQLAlchemy==1.1.1
+six==1.10.0               # via python-dateutil
+SQLAlchemy==1.1.2
 stem==1.4.0
 tbselenium==0.1
+tqdm==4.8.4

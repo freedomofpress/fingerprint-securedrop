@@ -52,6 +52,7 @@ fpsd_crawler_system_account: fpsd
 # Configuration options for Postgres database.
 fpsd_database_apt_packages:
   - postgresql
+  - postgresql-contrib
   - libpq-dev
   - python-psycopg2
 
