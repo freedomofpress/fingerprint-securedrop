@@ -45,8 +45,6 @@
       name: tablefunc
       db: "{{ fpsd_database_psql_env.PGDATABASE }}"
     register: postgres_extension
-    always_run: true
-    changed_when: false
 
   become: true
   become_user: postgres
@@ -61,8 +59,8 @@
 
   - name: Create the raw and features schemata.
     command: psql -c 'CREATE SCHEMA {{ item }};'
-    when: "'item' not in schemas.stdout"
-    register: "{{ item }}_result"
+    when: "'{{ item }}' not in schemas.stdout"
+    register: "{{ item }}_schema_result"
     with_items:
       - raw
       - features
@@ -70,6 +68,8 @@
   - name: List all tables in the raw schema.
     command: psql -c '\dt raw.*'
     register: tables
+    always_run: true
+    changed_when: false
 
   - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
     command: psql -c '{{ lookup("file", "postgres-schemas/"+item) }}'
@@ -108,6 +108,7 @@
       lc_ctype: en_US.UTF-8
       template: "{{ fpsd_database_psql_env.PGDATABASE }}"
 
-  when: raw_schema_tables_result|changed or postgres_extension|skipped or schemata_results|skipped
+  when: raw_schema_tables_result|changed or postgres_extension|skipped
+        or schemas|changed
   become: true
   become_user: postgres
