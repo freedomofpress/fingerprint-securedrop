@@ -40,6 +40,12 @@
       template: template0
     register: fpsd_database_result
 
+  - name: Setup TABLEFUNC extension.
+    postgresql_ext:
+      name: tablefunc
+      db: "{{ fpsd_database_psql_env.PGDATABASE }}"
+    register: postgres_extension
+
   become: true
   become_user: postgres
 
@@ -51,10 +57,13 @@
     always_run: true
     changed_when: false
 
-  - name: Create the raw schema.
-    command: psql -c 'CREATE SCHEMA raw;'
-    when: "'raw' not in schemas.stdout"
-    register: raw_schema_result
+  - name: Create the raw and features schemata.
+    command: psql -c 'CREATE SCHEMA {{ item }};'
+    when: "'{{ item }}' not in schemas.stdout"
+    register: "{{ item }}_schema_result"
+    with_items:
+      - raw
+      - features
 
   - name: List all tables in the raw schema.
     command: psql -c '\dt raw.*'
@@ -88,7 +97,7 @@
       state: absent
     # If the fpsd database was just created, the test database should
     # not exist, so there will be nothing to delete.
-    when: fpsd_database_result|skipped
+    when: not fpsd_database_result|skipped
 
   - name: Create the test database based on fpsd.
     postgresql_db:
@@ -99,6 +108,7 @@
       lc_ctype: en_US.UTF-8
       template: "{{ fpsd_database_psql_env.PGDATABASE }}"
 
-  when: raw_schema_result|changed or raw_schema_tables_result|changed
+  when: raw_schema_tables_result|changed or postgres_extension|skipped
+        or schemas|changed
   become: true
   become_user: postgres

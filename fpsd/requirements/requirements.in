@@ -8,3 +8,8 @@ aiohttp
 aiosocks
 psycopg2
 SQLAlchemy
+
+# Machine Learning
+pandas
+tqdm
+
