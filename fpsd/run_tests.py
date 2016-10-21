@@ -7,3 +7,4 @@ from os.path import dirname, abspath, join
 call(["python3.5", "-m", "unittest", "-f", "-v", "test.test_sketchy_sites"])
 call(["python3.5", "-m", "unittest", "-f", "-v", "test.test_utils"])
 call(["python3.5", "-m", "unittest", "-f", "-v", "test.test_database_methods"])
+call(["python3.5", "-m", "unittest", "-f", "-v", "test.test_features"])
