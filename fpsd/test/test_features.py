@@ -57,9 +57,9 @@ def populate_hs_crawls(engine):
     "entry_node, os, kernel, kernel_version, python_version, "
     "tor_version, tb_version, crawler_version, ip) VALUES "
     "(20, 5, 5, '1B60184DB9B96EA500A19C52D88F145BA5EC93CD', "
-    "'#47-Ubuntu SMP Fri Jun 24 10:09:13 UTC 2016', 'Linux', "
-    "'4.4.0-28-generic', '3.5.2', '0.2.8.6', '6.0.3', '1.3', "
-    "'162.243.217.22');")
+    "'Ubuntu', 'Linux', "
+    "'1.1.1-generic', '3.5.2', '0.2.8.6', '6.0.3', '1.3', "
+    "'1.1.1.1');")
     engine.execute(insert_test_crawl)
 
 
