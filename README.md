@@ -6,7 +6,8 @@ to use this as a way to test server-side defense mitigations we hope to
 implement. If you're interested in website fingerprinting and defenses
 (especially in relation to Tor), please feel encouraged to come talk with a
 group of researchers in a Gitter chatroom at
-https://gitter.im/freedomofpress/Website_Fingerprinting. 
+https://gitter.im/freedomofpress/Website_Fingerprinting, or check out/ join our
+mailing list at https://lists.riseup.net/www/arc/tor-traffic-fingerprinting.
 
 We're hoping to the code in this repo a little more composable soon, so you can
 make some modifications to get this going for your own onion service (or perhaps
