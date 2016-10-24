@@ -228,7 +228,6 @@ class RawFeatureGenerationTest(unittest.TestCase):
             actual_output['burst_length'].append(row[2])
             actual_output['burst_rank'].append(row[3])
 
-        pdb.set_trace()
         self.assertEqual(expected_output, actual_output)
 
     def tearDown(self):
