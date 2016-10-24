@@ -82,7 +82,7 @@ class Crawler:
         self.torrc_config.update({"SocksPort": str(self.socks_port)})
         self.control_port = find_free_port(control_port, self.socks_port)
         self.torrc_config.update({"ControlPort": str(self.control_port)})
-        self.torrc_config.update({"Log": "DEBUG file {}".format(tor_log)})
+        self.torrc_config.update({"Log": "INFO file {}".format(tor_log)})
         self.logger.info("Starting tor process with config "
                          "{torrc_config}.".format(**locals()))
         self.tor_process = launch_tor_with_config(config=self.torrc_config,
