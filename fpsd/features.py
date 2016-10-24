@@ -1,7 +1,6 @@
 #!/usr/bin/env python3.5
 import os
 import pandas as pd
-import pdb
 from sqlalchemy import create_engine
 import subprocess
 from tqdm import tqdm
