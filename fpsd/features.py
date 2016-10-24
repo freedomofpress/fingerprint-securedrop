@@ -661,7 +661,7 @@ class FeatureStorage():
         query = """CREATE TABLE features.burst_lengths AS
                    (SELECT * FROM crosstab(
                    'SELECT exampleid, rank, burst
-                   FROM public.current_bursts')
+                   FROM public.current_bursts ORDER BY rank')
                    AS ct(exampleid bigint,
                    {}));""".format(', '.join(column_names))
 

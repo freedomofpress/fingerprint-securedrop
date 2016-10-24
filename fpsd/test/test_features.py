@@ -78,20 +78,17 @@ class BurstGenerationTest(unittest.TestCase):
     def test_incoming_burst(self):
         df = pd.DataFrame({'ingoing': [True, True, True]})
         bursts = compute_bursts(df)
-        burst_positions = range(1, len(bursts) + 1)
         self.assertEqual(bursts, [3])
 
     def test_outgoing_burst(self):
         df = pd.DataFrame({'ingoing': [False, False, False]})
         bursts = compute_bursts(df)
-        burst_positions = range(1, len(bursts) + 1)
         self.assertEqual(bursts, [3])
 
     def test_multiple_bursts(self):
         df = pd.DataFrame({'ingoing': [True, True, False, False, True,
                                        True, False, False, False]})
         bursts = compute_bursts(df)
-        burst_positions = range(1, len(bursts) + 1)
         self.assertEqual(bursts, [2, 2, 2, 3])
 
 
@@ -230,6 +227,8 @@ class RawFeatureGenerationTest(unittest.TestCase):
             actual_output['exampleid'].append(row[1])
             actual_output['burst_length'].append(row[2])
             actual_output['burst_rank'].append(row[3])
+
+        pdb.set_trace()
         self.assertEqual(expected_output, actual_output)
 
     def tearDown(self):
@@ -312,8 +311,8 @@ class BurstFeatureGeneration(unittest.TestCase):
     def test_burst_lengths(self):
         table_name = self.db.create_table_burst_lengths(num_bursts=2)
         expected_output = {'exampleid': [9, 10],
-                           'length_burst_1': [1, 2],
-                           'length_burst_2': [9, 8]}
+                           'length_burst_1': [9, 1],
+                           'length_burst_2': [1, 8]}
 
         actual_output = db_helper(self.db, table_name,
                                   ['length_burst_1', 'length_burst_2'])
@@ -322,3 +321,6 @@ class BurstFeatureGeneration(unittest.TestCase):
     def tearDown(self):
         cleanup(self.db.engine)
         self.db.drop_table("public.current_bursts")
+
+if __name__ == '__main__':
+    unittest.main()
