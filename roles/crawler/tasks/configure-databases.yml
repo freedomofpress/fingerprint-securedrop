@@ -9,6 +9,13 @@
     update_cache: yes
     cache_valid_time: 86400
 
+- name: Make sure the cluster is running.
+  become: true
+  service: 
+    name: postgresql
+    enabled: yes 
+    state: started
+
 - block:
   - name: Record present roles.
     command: psql -c "SELECT rolname FROM pg_roles;"

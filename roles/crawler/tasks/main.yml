@@ -14,9 +14,11 @@
 
 - block:
   - include: packages.yml
+    tags: packages
   - include: configure.yml
   - include: download-verify-tbb.yml
   - include: download-verify-tor.yml
   - include: build-install-tor.yml
   - include: install-systemd-unit.yml
+    tags: systemd
   when: fpsd_crawler_configure_service == true

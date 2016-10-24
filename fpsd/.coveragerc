@@ -1,0 +1,7 @@
+[run]
+source = .
+omit = 
+    logging/*
+    lib/*
+    requirements/*
+    test/*

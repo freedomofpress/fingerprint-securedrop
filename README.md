@@ -1,5 +1,9 @@
 # FingerprintSecureDrop
 
+[![Build Status](https://travis-ci.org/freedomofpress/FingerprintSecureDrop.png)](http://travis-ci.org/freedomofpress/FingerprintSecureDrop)
+[![Coverage Status](https://coveralls.io/repos/freedomofpress/FingerprintSecureDrop/badge.svg?branch=develop&service=github)](https://coveralls.io/github/freedomofpress/FingerprintSecureDrop?branch=master)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/freedomofpress/Website_Fingerprinting)
+
 The code herein can be used to collect Tor cell traces, which can be used to
 train classifiers to website fingerprint SecureDrop (SD) instances. The idea is
 to use this as a way to test server-side defense mitigations we hope to
