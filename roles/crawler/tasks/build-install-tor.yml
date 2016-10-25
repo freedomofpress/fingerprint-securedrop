@@ -23,3 +23,12 @@
   become: yes
   command: make install -C "{{ fpsd_crawler_tor_directory }}/tor-{{ fpsd_crawler_tor_release }}"
   when: tor_relay_patch_result|changed
+
+- name: Create the folder for Tor logs.
+  become: yes
+  file:
+    path: /var/log/tor
+    state: directory
+    owner: "{{ fpsd_crawler_system_account }}"
+    group: "{{ fpsd_crawler_system_account }}"
+    mode: "0770"

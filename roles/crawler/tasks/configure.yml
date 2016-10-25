@@ -3,8 +3,21 @@
   become: yes
   user:
     name: "{{ fpsd_crawler_system_account }}"
-    state: present
     system: yes
+
+- name: Create a system group for running crawler.
+  become: yes
+  group:
+    name: "{{ fpsd_crawler_system_account }}"
+    system: yes
+
+- name: Add users to system group for running crawler.
+  become: yes
+  user:
+    append: yes
+    groups: "{{ fpsd_crawler_system_account }}"
+    name: "{{ item }}"
+  with_items: "{{ fpsd_database_usernames }}"
 
 - name: Create project directory.
   become: yes
@@ -13,7 +26,7 @@
     state: directory
     owner: "{{ fpsd_crawler_system_account }}"
     group: "{{ fpsd_crawler_system_account }}"
-    mode: "0755"
+    mode: "0770"
   when: fpsd_crawler_clone_git_repo == true
 
 - name: Clone git repository.

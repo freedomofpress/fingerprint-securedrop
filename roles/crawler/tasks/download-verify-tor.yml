@@ -6,7 +6,7 @@
     state: directory
     owner: "{{ fpsd_crawler_system_account }}"
     group: "{{ fpsd_crawler_system_account }}"
-    mode: "0755"
+    mode: "0770"
 
 - block:
   - name: Download Tor {{ fpsd_crawler_tor_release }} source and signature.

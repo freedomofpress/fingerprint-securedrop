@@ -60,8 +60,8 @@ class Crawler:
     def __init__(self, 
                  take_ownership=True, # Tor dies when the Crawler does
                  torrc_config={"CookieAuth": "1"},
-                 tor_log=join(_log_dir, "tor.log"),
-                 tor_cell_log=join(_log_dir,"tor_cell_seq.log"),
+                 tor_log="/var/log/tor/tor.log",
+                 tor_cell_log="/var/log/tor/tor_cell_seq.log",
                  control_port=9051,
                  socks_port=9050, 
                  run_in_xvfb=True,
