@@ -1,49 +1,59 @@
 ---
-- name: Create system account for running crawler.
-  become: yes
-  user:
-    name: "{{ fpsd_crawler_system_account }}"
-    system: yes
+- block:
 
-- name: Create a system group for running crawler.
-  become: yes
-  group:
-    name: "{{ fpsd_crawler_system_account }}"
-    system: yes
+  - name: Create system account for running crawler.
+    user:
+      name: "{{ fpsd_crawler_system_account }}"
+      system: yes
 
-- name: Add users to system group for running crawler.
-  become: yes
-  user:
-    append: yes
-    groups: "{{ fpsd_crawler_system_account }}"
-    name: "{{ item }}"
-  with_items: "{{ fpsd_database_usernames }}"
+  - name: Create a system group for running crawler.
+    group:
+      name: "{{ fpsd_crawler_system_account }}"
+      system: yes
 
-- name: Create project directory.
-  become: yes
-  file:
-    path: "{{ fpsd_crawler_project_directory }}"
-    state: directory
-    owner: "{{ fpsd_crawler_system_account }}"
-    group: "{{ fpsd_crawler_system_account }}"
-    mode: "0770"
-  when: fpsd_crawler_clone_git_repo == true
+  # Necessary because the user module is not idempotent.
+  - name: List what groups each user is in.
+    command: "groups {{ item }}"
+    with_items: "{{ fpsd_crawler_system_account }}"
+    register: groups_result
+    always_run: true
+    changed_when: false
 
-- name: Clone git repository.
-  become: yes
-  become_user: "{{ fpsd_crawler_system_account }}"
-  git:
-    repo: "{{ fpsd_crawler_git_repo_url }}"
-    dest: "{{ fpsd_crawler_project_directory }}"
-    force: yes
-  # Under vagrant the project will be mounted as a shared directory,
-  # so no need to clone it. Deploying to prod, however, means we'll need
-  # to pull, so check the boolean var for toggling cloning functionality.
-  when: fpsd_crawler_clone_git_repo == true
+  - name: Add users to system group for running crawler.
+    user:
+      append: yes
+      groups: "{{ fpsd_crawler_system_account }}"
+      name: "{{ item.1 }}"
+    when: "fpsd_crawler_system_account not in item.0.stdout"
+    with_together: 
+      - "{{ groups_result.results }}"
+      - "{{ fpsd_database_usernames }}"
+    failed_when: true
 
-- name: Install crawler pip dependencies.
-  become: yes
-  pip:
-    executable: pip3
-    state: latest
-    requirements: "{{ fpsd_crawler_project_directory }}/fpsd/requirements/requirements.txt"
+  - name: Create project directory.
+    file:
+      path: "{{ fpsd_crawler_project_directory }}"
+      state: directory
+      owner: "{{ fpsd_crawler_system_account }}"
+      group: "{{ fpsd_crawler_system_account }}"
+      mode: "0770"
+    when: fpsd_crawler_clone_git_repo == true
+
+  - name: Clone git repository.
+    become_user: "{{ fpsd_crawler_system_account }}"
+    git:
+      repo: "{{ fpsd_crawler_git_repo_url }}"
+      dest: "{{ fpsd_crawler_project_directory }}"
+      force: yes
+    # Under vagrant the project will be mounted as a shared directory,
+    # so no need to clone it. Deploying to prod, however, means we'll need
+    # to pull, so check the boolean var for toggling cloning functionality.
+    when: fpsd_crawler_clone_git_repo == true
+
+  - name: Install crawler pip dependencies.
+    pip:
+      executable: pip3
+      state: latest
+      requirements: "{{ fpsd_crawler_project_directory }}/fpsd/requirements/requirements.txt"
+
+  become: true
