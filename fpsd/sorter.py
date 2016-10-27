@@ -25,9 +25,9 @@ from stem.process import launch_tor_with_config
 import socket
 import ssl
 
-import database
-from utils import (find_free_port, get_timestamp, setup_logging,
-                   symlink_cur_to_latest)
+from database import RawStorage
+from utils import (coalesce_ordered_dict, find_free_port, get_config,
+                   get_timestamp, setup_logging, symlink_cur_to_latest)
 
 _repo_root = dirname(abspath(__file__))
 _log_dir = join(_repo_root, "logging")
@@ -329,17 +329,13 @@ class Sorter:
 
 
 def _securedrop_sort():
-    import configparser
-    config = configparser.ConfigParser()
-    config.read("config.ini")
+    config = get_config()
     config = config["sorter"]
     if config.getboolean("use_database"):
-        fpdb = database.RawStorage()
+        fpdb = RawStorage()
     else:
         fpdb = None
-    class_tests = OrderedDict()
-    [class_tests.update(literal_eval(i))
-     for i in config["class_tests"].split("zzz")]
+    class_tests = coalesce_ordered_dict(config["class_tests"])
     
     with Sorter(page_load_timeout=config.getint("page_load_timeout"),
                 max_tasks=config.getint("max_tasks"),

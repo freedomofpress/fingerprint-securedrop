@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime as dt
@@ -8,42 +9,57 @@ from sqlalchemy.engine.url import URL as SQL_connect_URL
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 
-from utils import get_lookback, get_timestamp, panic
+from utils import get_config, get_lookback, get_timestamp, panic
 
+class Database:
+    """A base class for database objects providing an engine and context
+    management for safe transactions.
 
-@contextmanager
-def safe_session(engine):
-    """Context manager for database session"""
-    session = Session(bind=engine)
-    try:
-        yield session
-        session.commit()
-    except:
-        # if something goes wrong, do not commit
-        session.rollback()
-        raise
-    finally:
-        session.close()
+    :param dict database_config: An optional parameter supplying a
+                                 database engine configuration. Contains
+                                 the following keys: 'pguser', 'pghost',
+                                 'pgport', & 'pgdatabase'. If not passed
+                                 values will read from the [database]
+                                 section of './config.ini'.
 
-
-class RawStorage(object):
-    """Store raw crawled data in the database"""
-    def __init__(self):
-        """Read current structure from database"""
+    :raises: An :exc:OperationalError, when unable to initialize the
+             database engine with the given database configuration.
+    """
+    def __init__(self, database_config=None):
+        if not database_config:
+            config = get_config()
+            database_config = dict(config.items("test_database"))
         try:
             self.engine = create_engine(
-                'postgresql://{}:@{}/{}'.format(
-                    *[os.environ[i] for i in
-                      ["PGUSER", "PGHOST", "PGDATABASE"]]))
-        except KeyError as exc:
-            panic("The following env vars must be set in order to know which "
-                  "database to connect to: PGUSER, PGHOST, & PGDATABASE."
-                  "\n{}.".format(exc))
+                'postgresql://{pguser}:@{pghost}:{pgport}/{pgdatabase}'.format(
+                    **database_config))
         except OperationalError as exc:
             panic("FingerprintSecureDrop Postgres support relies on use of a "
                   "PGPASSFILE. Make sure this file and the env var pointing "
                   "to it exist and set 0600 permissions & user ownership."
                   "\n{}.".format(exc))
+
+
+    @contextmanager
+    def safe_session(self):
+        """Context manager for database session."""
+        session = Session(bind=self.engine)
+        try:
+            yield session
+            session.commit()
+        except:
+            # if something goes wrong, do not commit
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+
+class RawStorage(Database):
+    """Store raw crawled data in the database"""
+    def __init__(self, **kwargs):
+        """Read current structure from database"""
+        super().__init__(**kwargs)
 
         # Generate mappings from existing tables
         metadata = MetaData(schema='raw')
@@ -58,14 +74,10 @@ class RawStorage(object):
         self.Crawl = Base.classes.crawls
 
 
-    def wipe_database(self):
+    def _wipe_raw_schema(self):
         """Like with a cloth. Delete entries while keeping table structure
         intact."""
-        if not os.getenv("PGDATABASE").startswith("test"):
-            panic("The wipe_database method can only be called when the "
-                  "database handler was initialized with a test database (its "
-                  "name must literally start with 'test').")
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             for table in self.Cell, self.Example, self.Onion, self.Crawl:
                 session.query(table).delete()
 
@@ -84,7 +96,7 @@ class RawStorage(object):
                 t_sort=ts)
                 for hs_url in class_urls]
 
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             session.bulk_save_objects(onions)
 
     def get_onion_class(self, timespan, is_monitored):
@@ -108,7 +120,7 @@ class RawStorage(object):
 
         onion_class = {}
         class_name = ""
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             for row in session.query(self.Onion).\
                        filter(self.Onion.t_sort >= start_sort_time).\
                        filter(self.Onion.is_sd == is_monitored):
@@ -129,7 +141,7 @@ class RawStorage(object):
         """Insert row for new crawl into the crawls table."""
         new_crawl = self.Crawl(**control_data)
 
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             session.add(new_crawl)
             session.flush()
             inserted_primary_key = new_crawl.crawlid
@@ -139,7 +151,7 @@ class RawStorage(object):
         """Insert row for new example into the frontpage_examples table"""
         new_example = self.Example(**example)
 
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             session.add(new_example)
             session.flush()
             inserted_primary_key = new_example.exampleid
@@ -163,6 +175,6 @@ class RawStorage(object):
                     circuit=int(row[2]), stream=int(row[3]),
                     command=row[4], length=int(row[5]), t_trace=float(row[0])))
 
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             session.bulk_save_objects(cells)
         return None

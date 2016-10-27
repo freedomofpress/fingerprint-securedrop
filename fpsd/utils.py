@@ -1,9 +1,48 @@
+from ast import literal_eval
+import configparser
+from collections import OrderedDict
 from datetime import datetime, timedelta
 import logging
 import os
+from os.path import abspath, dirname, join
 import random
 import socket
 import sys
+
+_dir = dirname(abspath(__file__))
+
+
+def get_config():
+    """Return an :obj:config.ConfigParser that has parse the file
+    "./config.ini."
+
+    >>> config = get_config()
+    >>> assert isinstance(config, configparser.ConfigParser)
+    """
+    config = configparser.ConfigParser()
+    config.read(join(_dir, "config.ini"))
+    return config
+
+
+def coalesce_ordered_dict(dict_str):
+    """Return an :obj:collections.OrderedDict from ``dict_str``.
+
+    >>> config = configparser.ConfigParser()
+    >>> config.add_section('x')
+    >>> config.set('x', 'y', "{'a': 0}\\n{'b': 1}")
+    >>> od = coalesce_ordered_dict(config['x']['y'])
+    >>> assert isinstance(od, OrderedDict)
+    >>> assert od.popitem() == ('b', 1)
+    >>> assert od.popitem() == ('a', 0)
+
+    :param str dict_str: A string of newline-delimited dictionary
+                         literals.
+    """
+    ordered_dict = OrderedDict()
+    [ordered_dict.update(literal_eval(i))
+     for i in dict_str.splitlines()]
+    return ordered_dict
+
 
 def find_free_port(desired_port, *additional_conflicts):
     """Return a port that is unused and conflict-free.
@@ -24,6 +63,7 @@ def find_free_port(desired_port, *additional_conflicts):
     finally:
         sock.close()
     return port
+
 
 def get_lookback(lookback_length):
     """Take a string from the user and return a datetime.timedelta object."""
@@ -66,7 +106,7 @@ def panic(error_msg):
 
 
 def setup_logging(dir, filename):
-    filepath = os.path.join(dir, filename)
+    filepath = join(dir, filename)
     ts = get_timestamp("log")
     ts_filepath = timestamp_file(filepath, ts, ext="log")
 

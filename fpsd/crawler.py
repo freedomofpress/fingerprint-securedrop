@@ -27,12 +27,13 @@ from tbselenium.tbdriver import TorBrowserDriver
 from tbselenium.common import USE_RUNNING_TOR
 from tbselenium.utils import start_xvfb, stop_xvfb
 
-from utils import (find_free_port, get_timestamp, panic, setup_logging,
-                   symlink_cur_to_latest, timestamp_file)
+from database import RawStorage
+from utils import (find_free_port, get_config, get_timestamp, panic,
+                   setup_logging, symlink_cur_to_latest, timestamp_file)
 from version import __version__ as _version
 
-_repo_root = dirname(abspath(__file__))
-_log_dir = join(_repo_root, "logging")
+_dir = dirname(abspath(__file__))
+_log_dir = join(_dir, "logging")
 
 # The Crawler handles most errors internally so the user does not have to worry
 # about exception handling
@@ -496,13 +497,10 @@ class Crawler:
                                        trace_dir=nonmon_trace_dir)
 
 def _securedrop_crawl():
-    import configparser
-    config = configparser.ConfigParser()
-    config.read(join(_repo_root, "config.ini"))
+    config = get_config()
     config = config["crawler"]
     if config.getboolean("use_database"):
-        import database
-        fpdb = database.RawStorage()
+        fpdb = RawStorage()
         class_data = fpdb.get_onions(config["hs_history_lookback"])
     else:
         fpdb = None 

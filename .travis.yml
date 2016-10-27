@@ -18,8 +18,6 @@ before_script:
 - sudo su postgres -c "/usr/lib/postgresql/9.6/bin/pg_ctl start -D /usr/local/psql/data"
 - sudo apt-get build-dep tor -qq
 - sudo ln -s "$(which pip)" /usr/local/bin/pip3
-env:
-  - PGHOST=localhost PGUSER=fp_user PGPORT='5432' PGDATABASE=fpsd
 script:
 - ansible-playbook -vv --syntax-check playbooks/travis-playbook.yml
 - ansible-playbook --skip-tags "packages,systemd" -vv --connection=local --sudo playbooks/travis-playbook.yml
