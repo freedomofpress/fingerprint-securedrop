@@ -1,7 +1,3 @@
+# .coveragerc to control coverage.py
 [run]
-source = .
-omit = 
-    logging/*
-    lib/*
-    requirements/*
-    test/*
+branch = True
