@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/freedomofpress/FingerprintSecureDrop.png)](http://travis-ci.org/freedomofpress/FingerprintSecureDrop)
 [![Coverage Status](https://coveralls.io/repos/github/freedomofpress/FingerprintSecureDrop/badge.svg?branch=travis-and-coveralls)](https://coveralls.io/github/freedomofpress/FingerprintSecureDrop?branch=travis-and-coveralls)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/freedomofpress/Website_Fingerprinting)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 
 This repository is a work-in-progress to implement an end-to-end data collection
 and analysis pipeline to help tackle the problem of website fingerprinting
