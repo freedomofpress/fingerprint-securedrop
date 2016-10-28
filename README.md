@@ -1,6 +1,6 @@
 # fingerprint-securedrop
 
-[![Build Status](https://travis-ci.org/freedomofpress/FingerprintSecureDrop.png)](http://travis-ci.org/freedomofpress/FingerprintSecureDrop)
+[![Build Status](https://travis-ci.org/freedomofpress/FingerprintSecureDrop.svg?branch=master)](https://travis-ci.org/freedomofpress/FingerprintSecureDrop)
 [![Coverage Status](https://coveralls.io/repos/github/freedomofpress/FingerprintSecureDrop/badge.svg?branch=travis-and-coveralls)](https://coveralls.io/github/freedomofpress/FingerprintSecureDrop?branch=travis-and-coveralls)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/freedomofpress/Website_Fingerprinting)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
