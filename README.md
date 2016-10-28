@@ -1,4 +1,4 @@
-# FingerprintSecureDrop
+# fingerprint-securedrop
 
 [![Build Status](https://travis-ci.org/freedomofpress/FingerprintSecureDrop.png)](http://travis-ci.org/freedomofpress/FingerprintSecureDrop)
 [![Coverage Status](https://coveralls.io/repos/github/freedomofpress/FingerprintSecureDrop/badge.svg?branch=travis-and-coveralls)](https://coveralls.io/github/freedomofpress/FingerprintSecureDrop?branch=travis-and-coveralls)
