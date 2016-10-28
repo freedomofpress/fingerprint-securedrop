@@ -2,7 +2,7 @@
 - name: Configure FingerprintSecureDrop Tor Hidden Service crawler.
   hosts: all
   roles:
-    - role: crawler
+    - role: ../roles/crawler
       fpsd_crawler_clone_git_repo: false # don't clone, use mounted local directory
       fpsd_crawler_system_account: vagrant
       tags: crawler

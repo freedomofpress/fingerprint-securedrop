@@ -1,0 +1,29 @@
+sudo: required
+dist: trusty
+
+language: python
+python:
+- '3.5'
+
+install:
+- pip install coveralls
+before_script:
+- sudo add-apt-repository ppa:ansible/ansible -y
+- sudo apt-get update -qq
+- sudo /usr/bin/pg_ctlcluster 9.1 main stop
+- sudo apt-get install ansible postgresql postgresql-contrib python-psycopg2 libpq-dev aptitude git gnupg-curl libasound2 libdbus-glib-1-2 libfontconfig1 libgtk2.0-0 libxrender1 xvfb -qq
+- sudo mkdir -p /usr/local/psql/data
+- sudo chown postgres:postgres /usr/local/psql/data
+- sudo su postgres -c "/usr/lib/postgresql/9.6/bin/pg_ctl -D /usr/local/psql/data initdb"
+- sudo su postgres -c "/usr/lib/postgresql/9.6/bin/pg_ctl start -D /usr/local/psql/data"
+- sudo apt-get build-dep tor -qq
+- sudo ln -s "$(which pip)" /usr/local/bin/pip3
+script:
+- ansible-playbook -vv --syntax-check playbooks/travis-playbook.yml
+- ansible-playbook --skip-tags "packages,systemd" -vv --connection=local --sudo playbooks/travis-playbook.yml
+- sh -c "cd fpsd && coverage run ./run_tests.py"
+after_success:
+  cd fpsd && coveralls
+notifications:
+  slack:
+    secure: ciMUadMpDDPp5kBaLpUXkoZBwiXbcpkMK5wEks6TKNX0dqpl4LCFCT8DMBbZshn9SJEG0dkcl+we12TPMR5P3OuZi5687WGe5iGXFl/Q+ILKGPxcQEjAVd+d0KaVIVsJ1JDzZzcoUvZ46kEPZ9CJk778SnSf8b7kkKoRH9PKhovQL0mGYgGhyIG7agjbV0CqnDmUUJOCOokBuicb3yMr2mAoC91i3A93zBdRY3yRThBMY0qLxTADxpaHzC9GlF+NXfOkMiVkzgv0i+CwVQIbSGu9RqXTeZku4Q5DYNbKc4xAxUFTCDoQGkrss0zpUDHzF/HmNsUYksCy/CcirPHFmwM4OR4tMg0ssfX0Dx297LbVVb5jfbkx3/fFFZCGNmOdKV/n6w5VBtJXCFHyVM8hNcQv8s7jwwya0gGpYT+sJd6VsfUbg7OBZeBCtL7pXFdkex7KeFedTySB3Y/E71LBpuskjrLPC308bvmicA/IVhKmSOe4EexE7rUBEMrz0UqLwJFWEr6bd1BsHHsxjvLhAsdDokY5k5DKCKRIWBgE6vq/7PeoEi8sGIEE5R9xvWm0r446fFtFcfmMYLjLtrMaxRaK/1VUyPA6SlQLePBDRsFHkTRNbl33BoOx1r1nOeHGIsM/cocEAa3+BCIpMIdGzKZkKi9ChzZOneIplD8WdO0=
