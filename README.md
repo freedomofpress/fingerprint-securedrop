@@ -7,7 +7,7 @@
 This repository is a work-in-progress to implement an end-to-end data collection
 and analysis pipeline to help tackle the problem of website fingerprinting
 attacks in the context of Tor Hidden Services
-[1](https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-kwon.pdf).
+[[1]](https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-kwon.pdf).
 It is designed as a single system that carries out everything from data
 collection, to feature generation, to model training and analysis, with the
 intention of helping us evaluate and develop defenses to be implement in the
