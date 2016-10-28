@@ -114,5 +114,3 @@ per crawl session to `raw.crawls`, one row per trace to
 The current design of the database is shown in the following figure:
 
 ![](docs/images/dbdesign.png)
-
-### Deploying to remote servers
