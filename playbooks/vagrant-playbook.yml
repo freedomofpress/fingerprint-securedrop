@@ -1,5 +1,5 @@
 ---
-- name: Configure FingerprintSecureDrop Tor Hidden Service crawler.
+- name: Configure fingerprint-securedrop Tor Hidden Service crawler.
   hosts: all
   roles:
     - role: ../roles/crawler

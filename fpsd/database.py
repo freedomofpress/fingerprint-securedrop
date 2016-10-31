@@ -34,7 +34,7 @@ class Database:
                 'postgresql://{pguser}:@{pghost}:{pgport}/{pgdatabase}'.format(
                     **database_config))
         except OperationalError as exc:
-            panic("FingerprintSecureDrop Postgres support relies on use of a "
+            panic("fingerprint-securedrop Postgres support relies on use of a "
                   "PGPASSFILE. Make sure this file and the env var pointing "
                   "to it exist and set 0600 permissions & user ownership."
                   "\n{}.".format(exc))
