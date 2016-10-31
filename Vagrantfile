@@ -3,7 +3,7 @@
 
 Vagrant.configure(2) do |config|
   config.vm.box = "bento/ubuntu-16.04"
-  config.vm.synced_folder "./", "/opt/FingerprintSecureDrop/", disabled: false
+  config.vm.synced_folder "./", "/opt/fingerprint-securedrop/", disabled: false
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "playbooks/vagrant-playbook.yml"
     # Hack to support CLI options such as `--tags` and `--skip-tags`.
