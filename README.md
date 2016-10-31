@@ -1,7 +1,7 @@
 # fingerprint-securedrop
 
-[![Build Status](https://travis-ci.org/freedomofpress/FingerprintSecureDrop.svg?branch=master)](https://travis-ci.org/freedomofpress/FingerprintSecureDrop)
-[![Coverage Status](https://coveralls.io/repos/github/freedomofpress/FingerprintSecureDrop/badge.svg?branch=travis-and-coveralls)](https://coveralls.io/github/freedomofpress/FingerprintSecureDrop?branch=travis-and-coveralls)
+[![Build Status](https://travis-ci.org/freedomofpress/fingerprint-securedrop.svg?branch=master)](https://travis-ci.org/freedomofpress/fingerprint-securedrop)
+[![Coverage Status](https://coveralls.io/repos/github/freedomofpress/fingerprint-securedrop/badge.svg?branch=travis-and-coveralls)](https://coveralls.io/github/freedomofpress/fingerprint-securedrop?branch=travis-and-coveralls)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/freedomofpress/Website_Fingerprinting)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 
@@ -49,10 +49,10 @@ besides SecureDrop.
 ### Provisioning a local VM
 
 ```
-cd FingerprintSecureDrop
+cd fingerprint-securedrop
 vagrant up
 vagrant ssh
-cd /opt/FingerprintSecureDrop/fpsd
+cd /opt/fingerprint-securedrop/fpsd
 ```
 
 ### Running the Sorter

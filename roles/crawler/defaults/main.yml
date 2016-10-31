@@ -43,8 +43,8 @@ fpsd_crawler_tor_directory: "/usr/local/src/tor"
 # Clone the git repo by default, but allow disabling, e.g. in vagrant,
 # where it can be mounted in.
 fpsd_crawler_clone_git_repo: true
-fpsd_crawler_project_directory: "/opt/FingerprintSecureDrop"
-fpsd_crawler_git_repo_url: "https://github.com/freedomofpress/FingerprintSecureDrop"
+fpsd_crawler_project_directory: "/opt/fingerprint-securedrop"
+fpsd_crawler_git_repo_url: "https://github.com/freedomofpress/fingerprint-securedrop"
 
 # Username for running the crawler systemd service.
 fpsd_crawler_system_account: fpsd
