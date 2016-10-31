@@ -22,7 +22,7 @@ script:
 - echo localhost > inventory
 - ansible-playbook -i inventory -vv --syntax-check playbooks/travis-playbook.yml
 - ansible-playbook -i inventory --skip-tags "packages,systemd" -vv --connection=local --sudo playbooks/travis-playbook.yml
-- sh -c "ansible-playbook --skip-tags 'packages,systemd' -vv --connection=local --sudo playbooks/travis-playbook.yml | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test passed =D' && exit 0) || (echo 'Idempotence test failed =(' && exit 1)"
+- sh -c "ansible-playbook -i inventory --skip-tags 'packages,systemd' -vv --connection=local --sudo playbooks/travis-playbook.yml | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test passed =D' && exit 0) || (echo 'Idempotence test failed =(' && exit 1)"
 - sh -c "cd fpsd && coverage run ./run_tests.py"
 - sh -c "cd fpsd && coverage run ./run_tests.py"
 after_success:
