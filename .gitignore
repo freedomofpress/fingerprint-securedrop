@@ -16,15 +16,3 @@ fpsd/logging/
 
 # Ansible
 playbook.retry
-
-# virtualenv
-.env/
-bin/
-env/
-lib/
-lib64
-local/
-selenium/
-
-
-
