@@ -19,7 +19,7 @@ If you are a researcher interested in this problem we encourage you to
 collaborate with us in our [Gitter
 chatroom](https://gitter.im/freedomofpress/Website_Fingerprinting) and via our
 [mailing
-list](https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-kwon.pdf).
+list](https://lists.riseup.net/www/arc/tor-traffic-fingerprinting).
 Feel free to get in touch
 [personally](https://github.com/fowlslegs/fowlslegs-sec-pack) as well.
 
