@@ -28,13 +28,13 @@ def get_metrics(truth, predicted):
     eval_metrics["tpr"] = tpr
     eval_metrics["thresholds"] = thresholds
     eval_metrics["auc"] = metrics.auc(fpr, tpr)
-    eval_metrics["precision"] = {}
-    eval_metrics["recall"] = {}
-    eval_metrics["f1"] = {}
+    eval_metrics["precision"] = {}  # TODO
+    eval_metrics["recall"] = {}  # TODO
+    eval_metrics["f1"] = {}  # TODO
 
     for threshold in THRESHOLDS:
         precision, recall, f1 = precision_recall_at_x_proportion(truth,
-            predicted, x_proportion=threshold/100.)
+            predicted, x_proportion=threshold/100)
         eval_metrics.update({threshold: {'precision': precision, 
                                          'recall': recall,
                                          'f1': f1}})
@@ -57,7 +57,7 @@ def get_average_metrics(metrics_list):
     for metric in ("fpr", "tpr"):
         # the fpr, tpr output from scikit-learn may not have the same
         # number of elements in the arrays, set to Null for now
-        eval_metrics.update({metric: [0, 0]})
+        eval_metrics.update({metric: [0, 0]})  # TODO
 
     for threshold in THRESHOLDS:
         eval_metrics[threshold] = {}
@@ -73,50 +73,18 @@ def get_average_metrics(metrics_list):
     return eval_metrics 
 
 
-def get_feature_importances(model):
-
-    try:
-        return model.feature_importances_
-    except:
-        pass
-    try:
-        # Must be 1D for feature importance plot
-        if len(model.coef_) <= 1:
-            return model.coef_[0]
-        else:
-            return model.coef_
-    except:
-        pass
-    return None
-
-
-def plot_feature_importances(feature_names, feature_importances, N=30):
-    importances = list(zip(feature_names, list(feature_importances)))
-    importances = pd.DataFrame(importances, columns=["Feature", "Importance"])
-    importances = importances.set_index("Feature")
-
-    # Sort by the absolute value of the importance of the feature
-    importances["sort"] = abs(importances["Importance"])
-    importances = importances.sort(columns="sort", ascending=False).drop("sort", axis=1)
-    importances = importances[0:N]
-
-    # Show the most important positive feature at the top of the graph
-    importances = importances.sort(columns="Importance", ascending=True)
-
-    with plt.style.context(('ggplot')):
-        fig, ax = plt.subplots(figsize=(16,12))
-        ax.tick_params(labelsize=16)
-        importances.plot(kind="barh", legend=False, ax=ax)
-        ax.set_frame_on(False)
-        ax.set_xlabel("Relative importance", fontsize=20)
-        ax.set_ylabel("Feature name", fontsize=20)
-    plt.tight_layout()
-    plt.title("Most important features for attack", fontsize=20).set_position([.5, 0.99])
-    return fig
-
-
 def precision_recall_at_x_proportion(test_labels, test_predictions, x_proportion=0.01,
                                      return_cutoff=False):
+    """Compute precision, recall, F1 for a specified fraction of the test set.
+
+    :params list test_labels: true labels on test set
+    :params list test_predicted: predicted labels on test set
+    :params float x_proportion: proportion of the test set to flag
+    :params bool return_cutoff: if True return the cutoff probablility
+    :returns float precision: fraction correctly flagged
+    :returns float recall: fraction of the positive class recovered
+    :returns float f1: 
+    """
 
     cutoff_index = int(len(test_predictions) * x_proportion)
     cutoff_index = min(cutoff_index, len(test_predictions) - 1)
@@ -191,3 +159,45 @@ def plot_allkfolds_ROC(timestamp, cv, fpr_arr, tpr_arr):
         plt.savefig('{}_roc.png'.format(timestamp))
     plt.close('all') 
     return mean_auc
+
+
+def get_feature_importances(model):
+
+    try:
+        return model.feature_importances_
+    except:
+        pass
+    try:
+        # Must be 1D for feature importance plot
+        if len(model.coef_) <= 1:
+            return model.coef_[0]
+        else:
+            return model.coef_
+    except:
+        pass
+    return None
+
+
+def plot_feature_importances(feature_names, feature_importances, N=30):
+    importances = list(zip(feature_names, list(feature_importances)))
+    importances = pd.DataFrame(importances, columns=["Feature", "Importance"])
+    importances = importances.set_index("Feature")
+
+    # Sort by the absolute value of the importance of the feature
+    importances["sort"] = abs(importances["Importance"])
+    importances = importances.sort(columns="sort", ascending=False).drop("sort", axis=1)
+    importances = importances[0:N]
+
+    # Show the most important positive feature at the top of the graph
+    importances = importances.sort(columns="Importance", ascending=True)
+
+    with plt.style.context(('ggplot')):
+        fig, ax = plt.subplots(figsize=(16,12))
+        ax.tick_params(labelsize=16)
+        importances.plot(kind="barh", legend=False, ax=ax)
+        ax.set_frame_on(False)
+        ax.set_xlabel("Relative importance", fontsize=20)
+        ax.set_ylabel("Feature name", fontsize=20)
+    plt.tight_layout()
+    plt.title("Most important features for attack", fontsize=20).set_position([.5, 0.99])
+    return fig

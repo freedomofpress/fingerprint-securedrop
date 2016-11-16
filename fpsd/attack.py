@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.5
 import argparse
 import datetime
 from itertools import product
@@ -21,17 +22,13 @@ def run(options):
 
     db = database.DatasetLoader()
 
-    if options["world"]["type"] == "closed":
-        df = db.load_closed_world()
-    elif options["world"]["type"] == "open":
-        df = db.load_open_world()
+    df = db.load_world(options["world"]["type"])
 
-    df = classify.interpolate(df)
+    df = classify.imputation(df)
     x = df.drop(['exampleid', 'is_sd'], axis=1).values
     y = df['is_sd'].astype(int).values
 
-    experiments = generate_experiments(options)
-    for experiment in experiments:
+    for experiment in generate_experiments(options):
         experiment.train_eval_all_folds(x, y)
 
 
@@ -53,6 +50,8 @@ def generate_experiments(options):
 
         parameter_names = sorted(model_hyperparameters)
         parameter_values = [model_hyperparameters[p] for p in parameter_names]
+
+        # Compute Cartesian product of hyperparameter lists
         all_params = product(*parameter_values)
 
         for param in all_params:
@@ -72,8 +71,9 @@ def generate_experiments(options):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", "--setup-yml", dest="attack_setup", type=str, default="attack.yaml", 
-                        help="point to attack setup file")
+    parser.add_argument("-c", "--config", dest="config", type=str,
+                        default="attack.yaml",
+                        help="point to attack config/setup file")
     args = parser.parse_args()
 
-    run(args.attack_setup)
+    run(args.config)

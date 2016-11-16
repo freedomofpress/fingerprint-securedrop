@@ -183,48 +183,33 @@ class RawStorage(Database):
 
 class DatasetLoader(Database):
     """Load train/test sets"""
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def load_closed_world(self):
-        """For closed world validation, we can select traces
-        without consideration of which site they belong to and instead 
+    def load_world(self, world_type):
+        """For open world validation, we must keep track of which onion service
+        a trace came from. However for closed world validation, we can select
+        traces without consideration of which site they belong to.
 
-        Returns:
-           df [pandas DataFrame]: dataset
+        :returns: a pandas DataFrame df containing the dataset
         """
 
-        labelled_query = ('select t1.*, t3.is_sd from features.frontpage_features t1 '
+        select_hs_urls = ', t3.hs_url' if world_type is 'open' else ''
+
+        labeled_query = ('select t1.*, t3.is_sd {} '
+                           'from features.frontpage_features t1 '
                            'inner join raw.frontpage_examples t2 '
                            'on t1.exampleid = t2.exampleid '
                            'inner join raw.hs_history t3 '
-                           'on t3.hsid = t2.hsid')
+                           'on t3.hsid = t2.hsid').format(world_type)
 
-        df = pd.read_sql(labelled_query, self.engine)
-        return df
-
-    def load_open_world(self):
-        """For open world validation, we must keep track of which onion service
-        a trace came from
-
-        Returns:
-           df [pandas DataFrame]: dataset with hs_url
-        """
-
-        labelled_query = ('select t1.*, t3.is_sd, t3.hs_url '
-                          'from features.frontpage_features t1 '
-                          'inner join raw.frontpage_examples t2 '
-                          'on t1.exampleid = t2.exampleid '
-                          'inner join raw.hs_history t3 '
-                          'on t3.hsid = t2.hsid')
-
-        df = pd.read_sql(labelled_query, self.engine)
+        df = pd.read_sql(labeled_query, self.engine)
         return df
 
 
 class ModelStorage(Database):
     """Store trained models in the database"""
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.COMMON_METRICS = ("auc, tpr, fpr,                   "
              "precision_at_0_point_01_percent,                   "
@@ -278,7 +263,7 @@ class ModelStorage(Database):
                     options["world_type"], options["model_type"],
                     options["base_rate"], json.dumps(options["hyperparameters"]),
                     self.metric_formatter(eval_metrics)))
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             session.execute(query)
 
     def save_fold_of_model(self, eval_metrics, model_timestamp, fold_timestamp):
@@ -287,5 +272,5 @@ class ModelStorage(Database):
                  "('{}', '{}', {}) ".format(self.COMMON_METRICS, 
                     model_timestamp, fold_timestamp,
                     self.metric_formatter(eval_metrics)))
-        with safe_session(self.engine) as session:
+        with self.safe_session() as session:
             session.execute(query)

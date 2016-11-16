@@ -1,8 +1,8 @@
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+import multiprocessing
 import pickle
-from scipy import interp
 from sklearn import (cross_validation, ensemble, metrics, svm, tree,
                      linear_model, neighbors, naive_bayes,
                      preprocessing)
@@ -11,7 +11,7 @@ from sklearn import (cross_validation, ensemble, metrics, svm, tree,
 import evaluation, database
 
 
-def interpolate(df):
+def imputation(df):
     """Handle missing values in our data. This is mostly a
     placeholder for when we have a better way to handle this.
 
@@ -25,10 +25,10 @@ def interpolate(df):
     return df.fillna(0)
 
 
-class Experiment(object):
+class Experiment:
     def __init__(self, model_timestamp, world, model_type, 
-                 hyperparameters,
-                 feature_scaling=True, n_cores=2, k=10):
+                 hyperparameters, feature_scaling=True,
+                 n_cores=multiprocessing.cpu_count(), k=10):
         """
         Args:
             model [string]: machine learning algorithm to be used
@@ -60,12 +60,12 @@ class Experiment(object):
                 "train_class_balance": 'DEFAULT',
                 "base_rate": 'DEFAULT'}
 
-    def train_single_fold(self, train_x, train_y):
+    def train_single_fold(self, x_train, y_train):
         """Trains a model and saves it as self.trained_model
 
         Args:
-            train_x [ndarray]: features in training set (no id column, no target)
-            train_y [ndarray]: target variable in training set (no id column)
+            x_train [ndarray]: features in training set (no id column, no target)
+            y_train [ndarray]: target variable in training set (no id column)
         """
 
         print("Training {} classifier with {}".format(self.model_type,
@@ -74,21 +74,21 @@ class Experiment(object):
         modelobj = self._get_model_object(self.model_type,
                                           self.hyperparameters,
                                           self.n_cores)
-        trained_model = modelobj.fit(train_x, train_y)
+        trained_model = modelobj.fit(x_train, y_train)
         return trained_model
 
-    def score(self, test_x, trained_model):
+    def score(self, x_test, trained_model):
         """Generates continuous risk scores for a testing set.
 
         Args:
-            test_x [ndarray]: testing features
+            x_test [ndarray]: testing features
             trained_model [sklearn object]: trained classifier object
 
         Returns:
             result_y [ndarray]: predictions on test set
         """
 
-        result_y = trained_model.predict_proba(test_x)
+        result_y = trained_model.predict_proba(x_test)
         score_positive_class = result_y[:, 1]
         return score_positive_class
 

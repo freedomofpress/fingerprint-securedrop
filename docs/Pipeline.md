@@ -10,7 +10,7 @@ Our feature generation code is primarily in SQL and takes data the crawlers dump
 
 Run this step with:
 
-```python features.py```
+```./features.py```
 
 ## Machine Learning
 
@@ -23,7 +23,7 @@ This step:
 
 Run this step with:
 
-```python attack.py -a my_attack_file.yaml``` 
+```./attack.py -a my_attack_file.yaml```
 
 ### Attack Setup
 
@@ -35,7 +35,7 @@ The machine learning part of the code takes a YAML file (by default `attack.yaml
 
 * `num_kfolds`: value of k for k-fold cross-validation 
 
-* `feature_scaling`: this option will take the features and rescale them to a zero mean and unit standard deviation. For some classifiers, e.g. primarily those based on decision trees, this should not improve performance, but for many classifiers, e.g. SVM, this is necessary. 
+* `feature_scaling`: this option will take the features and [rescale](https://en.wikipedia.org/wiki/Feature_scaling) them to a [zero mean and unit standard deviation](https://en.wikipedia.org/wiki/Standard_score). For some classifiers, e.g. primarily those based on decision trees, this should not improve performance, but for many classifiers, e.g. SVM, this is necessary. See also [scikit-learn's documentation](http://scikit-learn.org/stable/modules/preprocessing.html).
 
 * `models`: a list of types of binary classifiers that should be trained
 
@@ -65,8 +65,8 @@ The information and evaluation metrics stored in the database in table `models.u
 * `auc`: [Area under the ROC curve](http://people.inf.elte.hu/kiss/12dwhdm/roc.pdf)
 * `tpr`: true positive rate [array for default sklearn thresholds]
 * `fpr`: false positive rate [array for default sklearn thresholds]
-* `precision_at_k` for `k=[0.01, 0.05, 0.1, 0.5, 1, 5, 10]`: "Fraction of SecureDrop users correctly identified in the top k percent"
-* `recall_at_k` for `k=[0.01, 0.05, 0.1, 0.5, 1, 5, 10]`: "Number of SecureDrop users captured by flagging the top k percent" 
+* `precision_at_k` for `k=[0.01, 0.05, 0.1, 0.5, 1, 5, 10]`: "Fraction of SecureDrop users correctly identified in the top k percent of the testing set"
+* `recall_at_k` for `k=[0.01, 0.05, 0.1, 0.5, 1, 5, 10]`: "Number of SecureDrop users captured by flagging the top k percent of the testing set"
 * `f1_at_k` for `k=[0.01, 0.05, 0.1, 0.5, 1, 5, 10]` 
 
 The same metrics are then computed over all folds and saved in `models.undefended_frontpage_attacks`, in addition to:
