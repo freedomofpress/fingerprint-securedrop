@@ -64,13 +64,14 @@
     always_run: true
     changed_when: false
 
-  - name: Create the raw and features schemata.
+  - name: Create the raw, features, and models schemata.
     command: psql -c 'CREATE SCHEMA {{ item }};'
     when: "'{{ item }}' not in schemas.stdout"
     register: "schema_result"
     with_items:
       - raw
       - features
+      - models
 
   - name: List all tables in the raw schema.
     command: psql -c '\dt raw.*'
@@ -78,7 +79,7 @@
     always_run: true
     changed_when: false
 
-  - name: "Create the tables: crawls, hs_history, frontpage_examples, & frontpage_traces."
+  - name: "Create the tables: crawls, hs_history, and frontpage_examples tables."
     command: psql -c '{{ lookup("file", "postgres-schemas/"+item) }}'
     with_items:
       - create_table_crawls.sql
@@ -89,6 +90,22 @@
     # expected table name and inspect the table list to check if it already exists.
     when: item|basename|regex_replace('^create_table_(.*)\\.sql$', '\\1') not in tables.stdout
     register: raw_schema_tables_result
+
+  - name: List all tables in the models schema.
+    command: psql -c '\dt models.*'
+    register: models_tables
+    always_run: true
+    changed_when: false
+
+  - name: "Create the tables: undefended_frontpage_folds and undefended_frontpage_attacks tables."
+    command: psql -c '{{ lookup("file", "postgres-schemas/"+item) }}'
+    with_items:
+      - create_table_undefended_frontpage_attacks.sql
+      - create_table_undefended_frontpage_folds.sql
+    # Each file is of the form create_table_<table name>.sql, so let's extract the
+    # expected table name and inspect the table list to check if it already exists.
+    when: item|basename|regex_replace('^create_table_(.*)\\.sql$', '\\1') not in models_tables.stdout
+    register: models_schema_tables_result
 
   environment: "{{ fpsd_database_psql_env }}"
 
@@ -116,6 +133,7 @@
 
   when: "postgres_extension|changed 
     or False in raw_schema_tables_result.results|map(attribute='skipped')|list
+    or False in models_schema_tables_result.results|map(attribute='skipped')|list
     or False in schema_result.results|map(attribute='skipped')|list"
   become: true
   become_user: postgres
