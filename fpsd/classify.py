@@ -48,17 +48,8 @@ class Experiment:
         self.k = k
         self.feature_scaling = feature_scaling
         self.db = database.ModelStorage(test=False)
-
-    def get_dict(self):
-        """Get config options as a dict"""
-
-        return {"hyperparameters": self.hyperparameters,
-                "model_type": self.model_type,
-                "world_type": self.world_type,
-                "observed_world_fraction": self.frac_obs,
-                "numfolds": self.k,
-                "train_class_balance": 'DEFAULT',
-                "base_rate": 'DEFAULT'}
+        self.train_class_balance = 'DEFAULT'
+        self.base_rate = 'DEFAULT'
 
     def train_single_fold(self, x_train, y_train):
         """Trains a model and saves it as self.trained_model
@@ -161,7 +152,7 @@ class Experiment:
         avg_metrics = evaluation.get_average_metrics(metrics_all_folds)
         # Save results of experiment (model evaluation averaged over all
         # folds) into the database
-        self.db.save_full_model(avg_metrics, self.model_timestamp, self.get_dict())
+        self.db.save_full_model(avg_metrics, self.model_timestamp, self.__dict__)
 
     def pickle_results(self, pkl_file, to_save):
         with open(pkl_file, 'wb') as f:
