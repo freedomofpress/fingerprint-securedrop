@@ -205,7 +205,7 @@ class DatasetLoader(Database):
                            'inner join raw.frontpage_examples t2 '
                            'on t1.exampleid = t2.exampleid '
                            'inner join raw.hs_history t3 '
-                           'on t3.hsid = t2.hsid').format(world_type)
+                           'on t3.hsid = t2.hsid').format(select_hs_urls)
 
         df = pd.read_sql(labeled_query, self.engine)
         return df
