@@ -33,8 +33,12 @@ class Database:
             config = get_config()
             database_config = dict(config.items("test_database"))
         try:
+            with open(os.environ["PGPASSFILE"], "rb") as f:
+                content = f.read().decode("utf-8").replace("\n", "").split(":")
+                database_config["pgpass"] = content[-1]
+
             self.engine = create_engine(
-                'postgresql://{pguser}:@{pghost}:{pgport}/{pgdatabase}'.format(
+                'postgresql://{pguser}:{pgpass}@{pghost}:{pgport}/{pgdatabase}'.format(
                     **database_config))
         except OperationalError as exc:
             panic("fingerprint-securedrop Postgres support relies on use of a "
