@@ -24,14 +24,21 @@ class Database:
                                  'pgport', & 'pgdatabase'. If not passed
                                  values will read from the [database]
                                  section of './config.ini'.
+    :param bool test: An optional parameter specifiying if the test or
+                      production database should be used. Defaults to
+                      true (to use thetest database).
 
     :raises: An :exc:OperationalError, when unable to initialize the
              database engine with the given database configuration.
     """
-    def __init__(self, database_config=None):
+    def __init__(self, database_config=None, test=True):
         if not database_config:
             config = get_config()
-            database_config = dict(config.items("test_database"))
+            if test:
+                database_config = dict(config.items("test_database"))
+            else:
+                database_config = dict(config.items("database"))
+
         try:
             with open(os.environ["PGPASSFILE"], "rb") as f:
                 content = f.read().decode("utf-8").replace("\n", "").split(":")
