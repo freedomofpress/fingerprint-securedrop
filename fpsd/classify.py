@@ -47,7 +47,7 @@ class Experiment:
         self.n_cores = n_cores
         self.k = k
         self.feature_scaling = feature_scaling
-        self.db = database.ModelStorage()
+        self.db = database.ModelStorage(test=False)
 
     def get_dict(self):
         """Get config options as a dict"""

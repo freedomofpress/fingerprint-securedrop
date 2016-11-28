@@ -731,7 +731,7 @@ class FeatureStorage(Database):
 
 
 def compute_wang_feature_set():
-    db = FeatureStorage()
+    db = FeatureStorage(test=False)
 
     # Create master table to store list of examples that we have generated features for
     db.create_table_undefended_frontpage_links()
