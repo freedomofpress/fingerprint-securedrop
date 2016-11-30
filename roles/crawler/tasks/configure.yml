@@ -11,24 +11,12 @@
       name: "{{ fpsd_crawler_system_account }}"
       system: yes
 
-  # Necessary because the user module is not idempotent.
-  - name: List what groups each user is in.
-    command: "groups {{ item }}"
-    with_items: "{{ fpsd_crawler_system_account }}"
-    register: groups_result
-    always_run: true
-    changed_when: false
-
   - name: Add users to system group for running crawler.
     user:
       append: yes
       groups: "{{ fpsd_crawler_system_account }}"
-      name: "{{ item.1 }}"
-    when: "fpsd_crawler_system_account not in item.0.stdout"
-    with_together: 
-      - "{{ groups_result.results }}"
-      - "{{ fpsd_database_usernames }}"
-    failed_when: true
+      name: "{{ item }}"
+    with_items: "{{ fpsd_database_usernames }}"
 
   - name: Create project directory.
     file:
