@@ -2,7 +2,9 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime as dt
+import json
 import os
+import pandas as pd
 import re
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.url import URL as SQL_connect_URL
@@ -10,6 +12,7 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 
 from utils import get_config, get_lookback, get_timestamp, panic
+
 
 class Database:
     """A base class for database objects providing an engine and context
@@ -21,17 +24,28 @@ class Database:
                                  'pgport', & 'pgdatabase'. If not passed
                                  values will read from the [database]
                                  section of './config.ini'.
+    :param bool test: An optional parameter specifiying if the test or
+                      production database should be used. Defaults to
+                      true (to use thetest database).
 
     :raises: An :exc:OperationalError, when unable to initialize the
              database engine with the given database configuration.
     """
-    def __init__(self, database_config=None):
+    def __init__(self, database_config=None, test=True):
         if not database_config:
             config = get_config()
-            database_config = dict(config.items("test_database"))
+            if test:
+                database_config = dict(config.items("test_database"))
+            else:
+                database_config = dict(config.items("database"))
+
         try:
+            with open(os.environ["PGPASSFILE"], "rb") as f:
+                content = f.read().decode("utf-8").replace("\n", "").split(":")
+                database_config["pgpass"] = content[-1]
+
             self.engine = create_engine(
-                'postgresql://{pguser}:@{pghost}:{pgport}/{pgdatabase}'.format(
+                'postgresql://{pguser}:{pgpass}@{pghost}:{pgport}/{pgdatabase}'.format(
                     **database_config))
         except OperationalError as exc:
             panic("fingerprint-securedrop Postgres support relies on use of a "
@@ -73,14 +87,12 @@ class RawStorage(Database):
         self.Cell = Base.classes.frontpage_traces
         self.Crawl = Base.classes.crawls
 
-
     def _wipe_raw_schema(self):
         """Like with a cloth. Delete entries while keeping table structure
         intact."""
         with self.safe_session() as session:
             for table in self.Cell, self.Example, self.Onion, self.Crawl:
                 session.query(table).delete()
-
 
     def add_onions(self, class_data):
         """Add sorted onions into the HS history table"""
@@ -178,3 +190,98 @@ class RawStorage(Database):
         with self.safe_session() as session:
             session.bulk_save_objects(cells)
         return None
+
+
+class DatasetLoader(Database):
+    """Load train/test sets"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def load_world(self, world_type):
+        """For open world validation, we must keep track of which onion service
+        a trace came from. However for closed world validation, we can select
+        traces without consideration of which site they belong to.
+
+        :returns: a pandas DataFrame df containing the dataset
+        """
+
+        select_hs_urls = ', t3.hs_url' if world_type is 'open' else ''
+
+        labeled_query = ('select t1.*, t3.is_sd {} '
+                           'from features.frontpage_features t1 '
+                           'inner join raw.frontpage_examples t2 '
+                           'on t1.exampleid = t2.exampleid '
+                           'inner join raw.hs_history t3 '
+                           'on t3.hsid = t2.hsid').format(select_hs_urls)
+
+        df = pd.read_sql(labeled_query, self.engine)
+        return df
+
+
+class ModelStorage(Database):
+    """Store trained models in the database"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.COMMON_METRICS = ("auc, tpr, fpr,                   "
+             "precision_at_0_point_01_percent,                   "
+             "precision_at_0_point_05_percent,                   "
+             "precision_at_0_point_1_percent,                    "
+             "precision_at_0_point_5_percent,                    "
+             "precision_at_1_percent, precision_at_5_percent,    "
+             "precision_at_10_percent,                           "
+             "recall_at_0_point_01_percent,                      "
+             "recall_at_0_point_05_percent,                      "
+             "recall_at_0_point_1_percent,                       "
+             "recall_at_0_point_5_percent,                       "
+             "recall_at_1_percent, recall_at_5_percent,          "
+             "recall_at_10_percent, f1_at_0_point_01_percent,    "
+             "f1_at_0_point_05_percent, f1_at_0_point_1_percent, "
+             "f1_at_0_point_5_percent, f1_at_1_percent,          "
+             "f1_at_5_percent, f1_at_10_percent")
+
+    def metric_formatter(self, metrics):
+        """Format the metrics query"""
+        for metric in ("tpr", "fpr"):
+            metrics[metric] = [str(x) for x in metrics[metric]]
+            #metrics[metric] = ["'{}'".format(x) for x in metrics[metric]]
+            metrics[metric] = "'{{ {} }}'".format(", ".join(metrics[metric]))
+        metrics_list = [metrics["auc"],
+                        metrics["tpr"], metrics["fpr"],
+                        metrics[0.01]["precision"], 
+                        metrics[0.05]["precision"], metrics[0.1]["precision"],
+                        metrics[0.5]["precision"], metrics[1]["precision"],
+                        metrics[5]["precision"], metrics[10]["precision"],
+                        metrics[0.01]["recall"], 
+                        metrics[0.05]["recall"], metrics[0.1]["recall"],
+                        metrics[0.5]["recall"], metrics[1]["recall"],
+                        metrics[5]["recall"], metrics[10]["recall"],
+                        metrics[0.01]["f1"],
+                        metrics[0.05]["f1"], metrics[0.1]["f1"],
+                        metrics[0.5]["f1"], metrics[1]["f1"],
+                        metrics[5]["f1"], metrics[10]["f1"]]
+        metrics_list = [str(x) for x in metrics_list]
+
+        return ', '.join(metrics_list)
+
+    def save_full_model(self, eval_metrics, model_timestamp, options):
+        query = ("INSERT INTO models.undefended_frontpage_attacks  "
+                 "(model_timestamp, numfolds,                      "
+                 "train_class_balance, world_type, model_type,     "
+                 "base_rate, hyperparameters, {})                  "
+                 "VALUES ('{}', {}, {}, '{}', '{}', {}, '{}', {}     "
+                 ") ".format(self.COMMON_METRICS, model_timestamp,
+                    options["numfolds"], options["train_class_balance"],
+                    options["world_type"], options["model_type"],
+                    options["base_rate"], json.dumps(options["hyperparameters"]),
+                    self.metric_formatter(eval_metrics)))
+        with self.safe_session() as session:
+            session.execute(query)
+
+    def save_fold_of_model(self, eval_metrics, model_timestamp, fold_timestamp):
+        query = ("INSERT INTO models.undefended_frontpage_folds    "
+                 "(model_timestamp, fold_timestamp, {}) VALUES     "
+                 "('{}', '{}', {}) ".format(self.COMMON_METRICS, 
+                    model_timestamp, fold_timestamp,
+                    self.metric_formatter(eval_metrics)))
+        with self.safe_session() as session:
+            session.execute(query)
