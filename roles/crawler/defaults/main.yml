@@ -31,7 +31,7 @@ fpsd_crawler_pypi_packages:
   - ipdb
 
 # Specify TBB version to download and install
-fpsd_crawler_tbb_release: 6.0.5
+fpsd_crawler_tbb_release: 6.0.7
 fpsd_crawler_tbb_locale: en-US
 fpsd_crawler_tbb_arch: 64
 fpsd_crawler_tbb_directory: "/opt/tbb"

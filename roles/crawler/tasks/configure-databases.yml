@@ -137,3 +137,23 @@
     or False in schema_result.results|map(attribute='skipped')|list"
   become: true
   become_user: postgres
+
+# Populate the raw schema in the prod database with data
+- block:
+  - name: "See how many rows are in the raw schema."
+    command: psql -c 'select count(*) from raw.{{ item }}'
+    register: raw_schema_population_result
+    with_items:
+      - crawls
+      - hs_history
+      - frontpage_examples
+      - frontpage_traces
+    always_run: true
+    changed_when: false
+
+  - name: "Populate the raw schema."
+    command: psql -c "\copy raw.{{ item.item }} from {{ fpsd_crawler_project_directory }}/roles/crawler/files/raw-data/{{ item.item }}.csv csv header"
+    when: "'  0\n(1 row)' in item.stdout"
+    with_items: '{{ raw_schema_population_result.results }}'
+
+  environment: "{{ fpsd_database_psql_env }}"
