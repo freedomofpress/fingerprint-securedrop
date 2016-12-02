@@ -33,3 +33,7 @@ class EvaluationTest(unittest.TestCase):
         self.assertEqual(recall, 0.5)
         self.assertEqual(precision, 0.5)
         self.assertEqual(f1, 0.5)
+
+
+if __name__ == "__main__":
+    unittest.main()

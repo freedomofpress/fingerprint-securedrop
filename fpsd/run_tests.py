@@ -5,7 +5,7 @@ import doctest
 import getpass
 import subprocess
 
-unit_tests = ['utils', 'database', 'features']
+unit_tests = ['utils', 'database', 'features', 'evaluation']
 if getpass.getuser() != 'travis':
     #     # This test can take a long time because I've yet to implement my own
     #     # timeout function for page loads, and the selenium implementation is not
