@@ -10,7 +10,6 @@ install:
 before_script:
 - sudo add-apt-repository ppa:ansible/ansible -y
 - sudo apt-get update -qq
-- sudo /usr/bin/pg_ctlcluster 9.1 main stop
 - sudo apt-get install ansible postgresql postgresql-contrib python-psycopg2 libpq-dev aptitude git gnupg-curl libasound2 libdbus-glib-1-2 libfontconfig1 libgtk2.0-0 libxrender1 xvfb -qq
 - sudo mkdir -p /usr/local/psql/data
 - sudo chown postgres:postgres /usr/local/psql/data
