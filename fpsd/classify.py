@@ -47,7 +47,7 @@ class Experiment:
         self.n_cores = n_cores
         self.k = k
         self.feature_scaling = feature_scaling
-        self.db = database.ModelStorage(test=False)
+        self.db = database.ModelStorage()
         self.train_class_balance = 'DEFAULT'
         self.base_rate = 'DEFAULT'
 
