@@ -6,7 +6,7 @@
 
 [sorter]
 ; Comma-delimited list of hidden service directories
-onion_dirs = http://secrdrop5wyphb5x.onion/sites/securedrop.org/files/securedrop_list.txt,http://msydqstlz2kzerdg.onion/address/,http://skunksworkedp2cg.onion/sites.html
+onion_dirs = {{ fpsd_onion_dirs|join(',') }}
 ; Time to wait for a onion service to load before timing out
 page_load_timeout = 20
 ; Number of asynchronous connections to have open at a time. The higher this
@@ -50,4 +50,15 @@ restart_on_sketchy_exception = True
 monitored_nonmonitored_ratio = 10
 ; List of preferred EntryNodes. Tor will make the first
 ; sequentially listed one reachable the client guard.
-entry_nodes = 237C733E2D1BAD26FAABEAFB612BDA0CD3BC6AF4,95CDFAA852FF075FCD23102C06636F2B84B3371A,E727D0B4179549BB3F82ED3C256F209E54CE0B23,41E2FB97690EED79DD4BD6BAC00A974B69F49858
+entry_nodes = {{ fpsd_entry_nodes|join(',') }}
+
+[database]
+; The username to authenticate to your production database. Password should be
+; in a PGPASSFILE (normally generated for you by Ansible).
+pguser = {{ fpsd_database_psql_env.PGUSER }}
+; The IP of your database
+pghost = {{ fpsd_database_psql_env.PGHOST }}
+; The port on which to connect to your production database>
+pgport = {{ fpsd_database_psql_env.PGPORT }}
+; Your production database name.
+pgdatabase = {{ fpsd_database_psql_env.PGDATABASE }}

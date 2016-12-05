@@ -329,8 +329,7 @@ class Sorter:
 
 
 def _securedrop_sort():
-    config = get_config()
-    config = config["sorter"]
+    config = get_config()['sorter']
     if config.getboolean("use_database"):
         fpdb = RawStorage()
     else:

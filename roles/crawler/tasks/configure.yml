@@ -38,6 +38,12 @@
     # to pull, so check the boolean var for toggling cloning functionality.
     when: fpsd_crawler_clone_git_repo == true
 
+  - name: Populate config.ini.
+    template:
+      src: config.ini.j2
+      dest: "{{ fpsd_crawler_project_directory }}/fpsd/config.ini"
+      force: no
+
   - name: Install crawler pip dependencies.
     pip:
       executable: pip3

@@ -5,13 +5,14 @@ from datetime import datetime as dt
 import json
 import os
 import pandas as pd
+from psycopg2 import OperationalError
 import re
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.url import URL as SQL_connect_URL
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 
-from utils import get_config, get_db_creds, get_lookback, get_timestamp, panic
+from utils import get_config, get_lookback, get_timestamp, panic
 
 
 class Database:
@@ -30,18 +31,16 @@ class Database:
     """
     def __init__(self, database_config=None):
         if not database_config:
-            try:
-                database_config = get_db_creds()
-            except OperationalError as exc:
-                panic("fingerprint-securedrop Postgres support relies on use of a "
-                      "PGPASSFILE. Make sure this file exists in your homedir "
-                      "with the first entry corresponding to the database you "
-                      "wish to use. Also set 0600 permissions & user ownership."
-                      "\n{}.".format(exc))
+            database_config = get_config()['database']
 
-        self.engine = create_engine(
+        try:
+            self.engine = create_engine(
                 'postgresql://{pguser}:@{pghost}:{pgport}/{pgdatabase}'.format(
                     **database_config))
+        except OperationalError as exc:
+            panic("fingerprint-securedrop Postgres support relies on use of a "
+                  "PGPASSFILE. Make sure this file exists in your homedir with "
+                  "0600 permissions:\n{}.".format(exc))
 
 
     @contextmanager
