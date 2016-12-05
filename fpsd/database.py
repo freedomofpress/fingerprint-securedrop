@@ -34,8 +34,9 @@ class Database:
                 database_config = get_db_creds()
             except OperationalError as exc:
                 panic("fingerprint-securedrop Postgres support relies on use of a "
-                      "PGPASSFILE. Make sure this file and the env var pointing "
-                      "to it exist and set 0600 permissions & user ownership."
+                      "PGPASSFILE. Make sure this file exists in your homedir "
+                      "with the first entry corresponding to the database you "
+                      "wish to use. Also set 0600 permissions & user ownership."
                       "\n{}.".format(exc))
 
         self.engine = create_engine(
