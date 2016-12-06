@@ -9,8 +9,6 @@ class ConfigParsingTest(unittest.TestCase):
         config = get_config()
         self.assertTrue(config.has_section('sorter'))
         self.assertTrue(config.has_section('crawler'))
-        self.assertTrue(config.has_section('database'))
-        self.assertTrue(config.has_section('test_database'))
         self.assertIsInstance(config.getint('sorter', 'page_load_timeout'),
                               int)
         entry_nodes = config['crawler']['entry_nodes'].split(',')

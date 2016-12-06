@@ -20,7 +20,7 @@ def run(options):
     with open(options, 'r') as f:
         options = yaml.load(f)
 
-    db = database.DatasetLoader(test=False)
+    db = database.DatasetLoader()
 
     df = db.load_world(options["world"]["type"])
 

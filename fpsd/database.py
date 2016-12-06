@@ -11,7 +11,7 @@ from sqlalchemy.engine.url import URL as SQL_connect_URL
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 
-from utils import get_config, get_lookback, get_timestamp, panic
+from utils import get_config, get_db_creds, get_lookback, get_timestamp, panic
 
 
 class Database:
@@ -22,36 +22,26 @@ class Database:
                                  database engine configuration. Contains
                                  the following keys: 'pguser', 'pghost',
                                  'pgport', & 'pgdatabase'. If not passed
-                                 values will read from the [database]
-                                 section of './config.ini'.
-    :param bool test: An optional parameter specifiying if the test or
-                      production database should be used. Defaults to
-                      true (to use thetest database).
+                                 values then it will read from the
+                                 PGPASSFILE that stores the password.
 
     :raises: An :exc:OperationalError, when unable to initialize the
              database engine with the given database configuration.
     """
-    def __init__(self, database_config=None, test=True):
+    def __init__(self, database_config=None):
         if not database_config:
-            config = get_config()
-            if test:
-                database_config = dict(config.items("test_database"))
-            else:
-                database_config = dict(config.items("database"))
+            try:
+                database_config = get_db_creds()
+            except OperationalError as exc:
+                panic("fingerprint-securedrop Postgres support relies on use of a "
+                      "PGPASSFILE. Make sure this file exists in your homedir "
+                      "with the first entry corresponding to the database you "
+                      "wish to use. Also set 0600 permissions & user ownership."
+                      "\n{}.".format(exc))
 
-        try:
-            with open(os.environ["PGPASSFILE"], "rb") as f:
-                content = f.read().decode("utf-8").replace("\n", "").split(":")
-                database_config["pgpass"] = content[-1]
-
-            self.engine = create_engine(
-                'postgresql://{pguser}:{pgpass}@{pghost}:{pgport}/{pgdatabase}'.format(
+        self.engine = create_engine(
+                'postgresql://{pguser}:@{pghost}:{pgport}/{pgdatabase}'.format(
                     **database_config))
-        except OperationalError as exc:
-            panic("fingerprint-securedrop Postgres support relies on use of a "
-                  "PGPASSFILE. Make sure this file and the env var pointing "
-                  "to it exist and set 0600 permissions & user ownership."
-                  "\n{}.".format(exc))
 
 
     @contextmanager
