@@ -19,7 +19,7 @@ def get_config():
     >>> assert isinstance(config, configparser.ConfigParser)
     """
     config = configparser.ConfigParser()
-    config.read(join(_dir, "config.ini"))
+    config.read('/etc/fpsd.ini')
     return config
 
 
