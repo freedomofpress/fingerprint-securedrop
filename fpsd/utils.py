@@ -11,27 +11,6 @@ import sys
 
 _dir = dirname(abspath(__file__))
 
-
-def get_db_creds():
-    """Reads the db credentials from the PGPASSFILE that should exist
-    in the homedir with format pghost:pgport:pgdatabase:pguser:pgpasswd
-    """
-
-    database_config = {}
-    with open(os.path.expanduser("~/.pgpass"), "rb") as f:
-        content = f.read().decode("utf-8").split("\n")
-    for line in content:
-        if not line.strip().startswith("#"):
-            creds = line.split(':')
-            database_config["pghost"] = creds[0]
-            database_config["pgport"] = creds[1]
-            database_config["pgdatabase"] = creds[2]
-            database_config["pguser"] = creds[3]
-
-            # Use first entry
-            return database_config
-
-
 def get_config():
     """Return an :obj:config.ConfigParser that has parse the file
     "./config.ini."

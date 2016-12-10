@@ -497,8 +497,7 @@ class Crawler:
                                        trace_dir=nonmon_trace_dir)
 
 def _securedrop_crawl():
-    config = get_config()
-    config = config["crawler"]
+    config = get_config()['crawler']
     if config.getboolean("use_database"):
         fpdb = RawStorage()
         class_data = fpdb.get_onions(config["hs_history_lookback"])

@@ -56,6 +56,20 @@ fpsd_database_apt_packages:
   - libpq-dev
   - python-psycopg2
 
+# List of hidden service directories to sort
+fpsd_onion_dirs:
+  - http://secrdrop5wyphb5x.onion/sites/securedrop.org/files/securedrop_list.txt
+  - http://msydqstlz2kzerdg.onion/address/
+  - http://skunksworkedp2cg.onion/sites.html
+
+# List of preferred EntryNodes. Tor will make the first sequentially listed one
+# reachable the client guard.
+fpsd_entry_nodes: 
+  - 237C733E2D1BAD26FAABEAFB612BDA0CD3BC6AF4
+  - 95CDFAA852FF075FCD23102C06636F2B84B3371A
+  - E727D0B4179549BB3F82ED3C256F209E54CE0B23
+  - 41E2FB97690EED79DD4BD6BAC00A974B69F49858
+
 # If left undefined, a randomly generated password will be created and written
 # to /tmp on the Ansible controller.
 fpsd_database_password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters,digits') }}"
@@ -76,7 +90,6 @@ fpsd_database_psql_env:
   PGPORT: "5432"
   PGDATABASE: fpsd
   PGPASSWORD: "{{ fpsd_database_password }}"
-  PGPASSFILE: "{{ ansible_env.HOME }}/.pgpass"
 
 # Defaults to true. Set to false if you want to use a remote database. If you
 # wish not to use the database at all, set the environment variable
