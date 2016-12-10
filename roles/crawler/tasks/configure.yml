@@ -40,8 +40,11 @@
 
   - name: Populate config.ini.
     template:
-      src: config.ini.j2
-      dest: "{{ fpsd_crawler_project_directory }}/fpsd/config.ini"
+      src: fpsd.ini.j2
+      dest: "/etc/fpsd.ini"
+      owner: "{{ fpsd_crawler_system_account }}"
+      group: "{{ fpsd_crawler_system_account }}"
+      mode: "0660"
       force: no
 
   - name: Install crawler pip dependencies.
