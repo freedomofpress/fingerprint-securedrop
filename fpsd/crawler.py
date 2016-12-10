@@ -77,6 +77,8 @@ class Crawler:
                  db_handler=None):
 
         self.logger = setup_logging(_log_dir, "crawler")
+        # Set stem logging level to INFO - "high level library activity"
+        stem.util.log.get_logger().setLevel(stem.util.log.Runlevel.INFO)
 
         self.torrc_config = torrc_config
         self.socks_port = find_free_port(socks_port, control_port)
