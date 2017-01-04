@@ -38,6 +38,13 @@
     # to pull, so check the boolean var for toggling cloning functionality.
     when: fpsd_crawler_clone_git_repo == true
 
+  - name: Ensure repository logging folder is {{ fpsd_crawler_system_account }} group writeable.
+    file:
+      path: "{{ fpsd_crawler_project_directory}}/fpsd/logging"
+      owner: "{{ fpsd_crawler_system_account }}"
+      group: "{{ fpsd_crawler_system_account }}"
+      mode: "0770"
+
   - name: Populate config.ini.
     template:
       src: fpsd.ini.j2
