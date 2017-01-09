@@ -80,7 +80,7 @@
     changed_when: false
 
   - name: "Create the tables: crawls, hs_history, and frontpage_examples tables."
-    command: psql -c '{{ lookup("file", "postgres-schemas/"+item) }}'
+    command: psql -c '{{ lookup("file", "database-tables/"+item) }}'
     with_items:
       - create_table_crawls.sql
       - create_table_hs_history.sql
@@ -98,7 +98,7 @@
     changed_when: false
 
   - name: "Create the tables: undefended_frontpage_folds and undefended_frontpage_attacks tables."
-    command: psql -c '{{ lookup("file", "postgres-schemas/"+item) }}'
+    command: psql -c '{{ lookup("file", "database-tables/"+item) }}'
     with_items:
       - create_table_undefended_frontpage_attacks.sql
       - create_table_undefended_frontpage_folds.sql
