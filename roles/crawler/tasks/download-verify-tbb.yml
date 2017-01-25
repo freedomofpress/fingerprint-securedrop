@@ -20,7 +20,7 @@
 
   - name: Download TBB {{ fpsd_crawler_tbb_release }} signing key.
     become: yes
-    command: gpg --keyserver hkps://keyserver.cns.vt.edu --recv-key EF6E286DDA85EA2A4BA7DE684E2C6E8793298290
+    command: gpg --keyserver {{ fpsd_keyserver }} --recv-key {{ fpsd_tbb_signing_key }}
     register: gpg_import_tor_browser_devs_key_result
     changed_when: "'imported: 1' in gpg_import_tor_browser_devs_key_result.stderr"
 
