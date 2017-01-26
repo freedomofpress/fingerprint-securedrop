@@ -31,7 +31,7 @@ fpsd_crawler_pypi_packages:
   - ipdb
 
 # Specify TBB version to download and install
-fpsd_crawler_tbb_release: 6.0.7
+fpsd_crawler_tbb_release: 6.0.8
 fpsd_crawler_tbb_locale: en-US
 fpsd_crawler_tbb_arch: 64
 fpsd_crawler_tbb_directory: "/opt/tbb"
@@ -64,7 +64,7 @@ fpsd_onion_dirs:
 
 # List of preferred EntryNodes. Tor will make the first sequentially listed one
 # reachable the client guard.
-fpsd_entry_nodes: 
+fpsd_entry_nodes:
   - 237C733E2D1BAD26FAABEAFB612BDA0CD3BC6AF4
   - 95CDFAA852FF075FCD23102C06636F2B84B3371A
   - E727D0B4179549BB3F82ED3C256F209E54CE0B23
