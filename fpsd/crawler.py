@@ -58,13 +58,13 @@ _sketchy_exceptions = [http.client.RemoteDisconnected]
 class Crawler:
     """Crawls your onions, but also manages Tor, drives Tor Browser, and uses
     information from your Tor cell log and stem to collect cell sequences."""
-    def __init__(self, 
+    def __init__(self,
                  take_ownership=True, # Tor dies when the Crawler does
                  torrc_config={"CookieAuth": "1"},
                  tor_log="/var/log/tor/tor.log",
                  tor_cell_log="/var/log/tor/tor_cell_seq.log",
                  control_port=9051,
-                 socks_port=9050, 
+                 socks_port=9050,
                  run_in_xvfb=True,
                  tbb_path=join("/opt","tbb","tor-browser_en-US"),
                  tb_log_path=join(_log_dir,"firefox.log"),
@@ -342,7 +342,7 @@ class Crawler:
 
         for circ in active_circs:
             if (circ.purpose == "HS_CLIENT_REND" and
-                circ.socks_username and 
+                circ.socks_username and
                 circ.socks_username in url):
                 rend_circ_ids.add(circ.id)
 
@@ -445,7 +445,8 @@ class Crawler:
             self.collect_set_of_traces(failed_urls, extra_fn=extra_fn,
                                        trace_dir=trace_dir,
                                        iteration=iteration, shuffle=shuffle,
-                                       retry=False)
+                                       retry=False,
+                                       url_to_id_mapping=url_to_id_mapping)
 
 
     def crawl_monitored_nonmonitored(self, monitored_class, nonmonitored_class,
@@ -480,7 +481,6 @@ class Crawler:
             random.shuffle(monitored_class)
 
         for iteration in range(ratio):
-
             self.logger.info("Beginning iteration {i} of {ratio} in the "
                              "{monitored_name} class".format(i=iteration+1,
                                                              **locals()))
@@ -496,7 +496,10 @@ class Crawler:
                              "{nonmonitored_name} "
                              "class".format(slice_lb + 1, **locals()))
             self.collect_set_of_traces(nonmonitored_class[slice_lb:slice_ub],
-                                       trace_dir=nonmon_trace_dir)
+                                       trace_dir=nonmon_trace_dir,
+                                       iteration=iteration,
+                                       url_to_id_mapping=url_to_id_mapping)
+
 
 def _securedrop_crawl():
     config = get_config()['crawler']
@@ -504,7 +507,7 @@ def _securedrop_crawl():
         fpdb = RawStorage()
         class_data = fpdb.get_onions(config["hs_history_lookback"])
     else:
-        fpdb = None 
+        fpdb = None
         with open(join(_log_dir, config["class_data"]), 'rb') as pj:
             class_data = pickle.load(pj)
 
