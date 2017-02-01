@@ -31,14 +31,17 @@ fpsd_crawler_pypi_packages:
   - ipdb
 
 # Specify TBB version to download and install
-fpsd_crawler_tbb_release: 6.0.8
+fpsd_crawler_tbb_release: 6.5
 fpsd_crawler_tbb_locale: en-US
 fpsd_crawler_tbb_arch: 64
 fpsd_crawler_tbb_directory: "/opt/tbb"
 
 # Specify Tor version to download, patch, build, and install
-fpsd_crawler_tor_release: 0.2.8.8
+fpsd_crawler_tor_release: 0.2.9.9
 fpsd_crawler_tor_directory: "/usr/local/src/tor"
+fpsd_tor_signing_key: 2133BC600AB133E1D826D173FE43009C4607B1FB
+fpsd_tbb_signing_key: EF6E286DDA85EA2A4BA7DE684E2C6E8793298290
+fpsd_keyserver: "hkps://keyserver.cns.vt.edu"
 
 # Clone the git repo by default, but allow disabling, e.g. in vagrant,
 # where it can be mounted in.

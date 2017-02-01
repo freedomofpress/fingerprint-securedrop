@@ -18,7 +18,7 @@
       - https://dist.torproject.org/tor-{{ fpsd_crawler_tor_release }}.tar.gz.asc
 
   - name: Download Tor {{ fpsd_crawler_tor_release }} signing key.
-    command: gpg --keyserver hkps://keyserver.cns.vt.edu --recv-key B35BF85BF19489D04E28C33C21194EBB165733EA
+    command: gpg --keyserver {{ fpsd_keyserver }}  --recv-key {{ fpsd_tor_signing_key }}
     register: gpg_import_tor_browser_devs_key_result
     changed_when: "'imported: 1' in gpg_import_tor_browser_devs_key_result.stderr"
 
