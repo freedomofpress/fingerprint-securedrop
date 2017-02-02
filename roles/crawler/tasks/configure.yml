@@ -60,4 +60,36 @@
       state: latest
       requirements: "{{ fpsd_crawler_project_directory }}/fpsd/requirements/requirements.txt"
 
+  - name: Create GOPATH.
+    file:
+      path: "{{ fpsd_gopath }}"
+      state: directory
+      owner: "{{ fpsd_crawler_system_account }}"
+      group: "{{ fpsd_crawler_system_account }}"
+      mode: "0770"
+
+  - name: Set GOPATH environment variable in /etc/bashrc.
+    lineinfile:
+      line: "export GOPATH='{{ fpsd_gopath }}'"
+      regexp: '^export GOPATH='
+      dest: "/etc/bash.bashrc"
+      mode: "0644"
+
+  - name: Add GOPATH to PATH in /etc/bashrc.
+    lineinfile:
+      line: 'export PATH="${PATH}:${GOPATH}"'
+      regexp: '^export PATH='
+      dest: "/etc/bash.bashrc"
+      mode: "0644"
+
+  - name: Fetch Wa-kNN with `go get`.
+    become_user: "{{ fpsd_crawler_system_account }}"
+    command: go get -u {{ fpsd_wa_knn_repo }}
+    environment:
+      GOPATH: "{{ fpsd_gopath }}"
+    register: go_get_result
+    # TODO: remove this line after fixing the go-knn Go package s.t. the
+    # necessary binaries are (re-)built upon calls to `go get`.
+    failed_when: '"no buildable Go source files" not in go_get_result.stderr'
+
   become: true

@@ -9,7 +9,8 @@ fpsd_crawler_configure_service: true
 fpsd_crawler_apt_packages:
   - aptitude # needed by Ansible for apt 'upgrade'
   - git #tbs
-  - gnupg-curl # needed for https keyservers
+  - golang # go-knn
+  - gnupg-curl # needed for tls keyservers
   - libasound2 # tbb (firefox)
   - libdbus-glib-1-2 # tbb (firefox)
   - libfontconfig1 # tbb (firefox)
@@ -35,13 +36,20 @@ fpsd_crawler_tbb_release: 6.5
 fpsd_crawler_tbb_locale: en-US
 fpsd_crawler_tbb_arch: 64
 fpsd_crawler_tbb_directory: "/opt/tbb"
+fpsd_tbb_signing_key: EF6E286DDA85EA2A4BA7DE684E2C6E8793298290
 
 # Specify Tor version to download, patch, build, and install
 fpsd_crawler_tor_release: 0.2.9.9
 fpsd_crawler_tor_directory: "/usr/local/src/tor"
 fpsd_tor_signing_key: 2133BC600AB133E1D826D173FE43009C4607B1FB
-fpsd_tbb_signing_key: EF6E286DDA85EA2A4BA7DE684E2C6E8793298290
+
+# TLS-secured PGP keyserver
 fpsd_keyserver: "hkps://keyserver.cns.vt.edu"
+
+# Set GOPATH and Wa-kNN Go repo path.
+fpsd_gopath: "/usr/local/go"
+# Note Go always uses HTTPS, throws errors if you specify it
+fpsd_wa_knn_repo: "github.com/fowlslegs/go-knn"
 
 # Clone the git repo by default, but allow disabling, e.g. in vagrant,
 # where it can be mounted in.

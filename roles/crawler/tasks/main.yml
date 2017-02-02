@@ -4,7 +4,7 @@
 # across all of these tasks (e.g. the crawler service needs database
 # credentials), so bundling them all within the same role.
 
-- include: set-environment-variables.yml
+- include: set-db-environment-variables.yml
   when: fpsd_database_configure_credentials == true
   tags: database
 
