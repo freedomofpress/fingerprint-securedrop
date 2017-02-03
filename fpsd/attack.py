@@ -72,7 +72,7 @@ def generate_experiments(options):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", dest="config", type=str,
-                        default="attack.yaml",
+                        default="attack.yml",
                         help="point to attack config/setup file")
     args = parser.parse_args()
 
