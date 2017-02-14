@@ -2,7 +2,6 @@
 import argparse
 import datetime
 from itertools import product
-import pdb
 import pickle
 import yaml
 
@@ -17,7 +16,7 @@ def run(options):
         options [dict]: attack setup file
     """
 
-    with open(options, 'r') as f:
+    with open(options) as f:
         options = yaml.load(f)
 
     db = database.DatasetLoader()
@@ -25,10 +24,18 @@ def run(options):
     df = db.load_world(options["world"]["type"])
 
     df = classify.imputation(df)
+    # wa_knn_df = classify.imputation(df, -1)
+
     x = df.drop(['exampleid', 'is_sd'], axis=1).values
+    # wa_knn_x = wa_knn_df.drop(['exampleid', 'is_sd'], axis=1).values
     y = df['is_sd'].astype(int).values
+    # wa_knn_y = wa_knn_df['is_sd'].astype(int).values
+
 
     for experiment in generate_experiments(options):
+        # if experiment['model_type'] = 'Wa-kNN':
+        #     experiment.train_eval_all_folds(wa_knn_x, wa_knn_y)
+        # else:
         experiment.train_eval_all_folds(x, y)
 
 

@@ -1,29 +1,70 @@
 import datetime
+import os
+import json
+import pickle
+import subprocess
+
 import matplotlib.pyplot as plt
 import numpy as np
 import multiprocessing
-import pickle
 from sklearn import (cross_validation, ensemble, metrics, svm, tree,
                      linear_model, neighbors, naive_bayes,
                      preprocessing)
 
 
-import evaluation, database
+import database
+import evaluation
 
 
-def imputation(df):
+def imputation(df, fill_value=0):
     """Handle missing values in our data. This is mostly a
     placeholder for when we have a better way to handle this.
 
     Args:
         df [pandas DataFrame]: input data with NaNs
+        fill_value [float]: value to replace NaNs with
 
     Returns:
-        df [pandas DataFrame]: output data with NaNs filled to 0
+        df [pandas DataFrame]: output data with NaNs filled to fill_value
     """
 
-    return df.fillna(0)
+    return df.fillna(fill_value)
 
+class Wa_kNN:
+    """To help integrate our Golang Wa-kNN implementation with the rest
+    of our analysis pipeline, this class partially implements the
+    interface exposed by the models in :package:`sk.ensemble` in order
+    to make the :meth:`Experiment.train_single_fold` work for this
+    classifier without modification.
+    """
+    binary_name = 'wa-knn'
+
+    def __init__(self, rounds, n_neighbors, reco_points_num):
+        self.rounds = rounds
+        self.n_neighbors = n_neighbors
+        self.reco_points_num = reco_points_num
+
+    def fit(self, x_train, y_train):
+        """Returns a trained Wa-kNN model.
+
+        Args:
+            x_train [ndarray]: features in training set (no id column, no target)
+            y_train [ndarray]: target variable in training set (no id column)
+        Returns:
+            self: object
+        """
+        json_args = json.dumps({'x_train': x_train.tolist(),
+                                'y_train': y_train.tolist(),
+                                'rounds': self.rounds,
+                                'n_neighbors': self.n_neighbors,
+                                'reco_points_num': self.reco_points_num})
+        try:
+            subprocess.check_call([binary_name, json_args])
+            # TODO: save JSON stdout from wa-knn and store internally as
+            # ndarray
+        except:
+            pass
+        return self
 
 class Experiment:
     def __init__(self, model_timestamp, world, model_type, 
@@ -167,7 +208,15 @@ class Experiment:
             implemented on it
         """
 
-        if self.model_type == "RandomForest":
+        if self.model_type == 'Wa-kNN':
+            # See http://stackoverflow.com/a/17868720 for why we won't
+            # implement support for the n_cores variable in Wa-kNN.
+            return Wa_kNN(
+                rounds=self.hyperparameters['rounds'],
+                n_neighbors=self.hyperparameters['n_neighbors'],
+                reco_points_num=self.hyperparameters['reco_points_num'])
+
+        elif self.model_type == "RandomForest":
             return ensemble.RandomForestClassifier(
                 n_estimators=self.hyperparameters['n_estimators'],
                 max_features=self.hyperparameters['max_features'],
