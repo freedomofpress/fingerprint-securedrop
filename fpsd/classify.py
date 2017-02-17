@@ -56,15 +56,42 @@ class Wa_kNN:
         json_args = json.dumps({'x_train': x_train.tolist(),
                                 'y_train': y_train.tolist(),
                                 'rounds': self.rounds,
-                                'n_neighbors': self.n_neighbors,
                                 'reco_points_num': self.reco_points_num})
         try:
-            subprocess.check_call([binary_name, json_args])
-            # TODO: save JSON stdout from wa-knn and store internally as
-            # ndarray
-        except:
-            pass
-        return self
+            json_weights = subprocess.check_call([binary_name, '-fit'],
+                                                 stdin=json_args, # Yeah, this doesn't work
+                                                 stdout=subprocess.STDOUT,
+                                                 stderr=subprocess.STDERR)
+            self.weights = json_weights.stdout
+        except CalledProcessError:
+            print("ERROR running Wa-kNN:\n\n{}".format(STDERR))
+            raise
+        else:
+            return self
+
+    def predict_proba(self, x_test):
+        """Returns predicted labels for a testing set.
+
+        Args:
+            x_test [ndarray]: features in testing set (no id column, no target)
+        Returns:
+            result_y [ndarray]: predicted class labels
+        """
+        json_args = json.dumps({'x_train': x_train.tolist(),
+                                'weights': self.weights,
+                                'n_neighbors': self.n_neighbors})
+
+        try:
+            result_y = subprocess.check_call([binary_name, '-predict-proba'],
+                                                 stdin=json_args, # Yeah, this doesn't work
+                                                 stdout=subprocess.STDOUT,
+                                                 stderr=subprocess.STDERR)
+        except CalledProcessError:
+            print("ERROR running Wa-kNN:\n\n{}".format(STDERR))
+            raise
+        else:
+            return result_y
+
 
 class Experiment:
     def __init__(self, model_timestamp, world, model_type, 
