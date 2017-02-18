@@ -77,7 +77,7 @@ class Wa_kNN:
         Returns:
             result_y [ndarray]: predicted class labels
         """
-        json_args = json.dumps({'x_train': x_train.tolist(),
+        json_args = json.dumps({'x_test': x_test.tolist(),
                                 'weights': self.weights,
                                 'n_neighbors': self.n_neighbors})
 
