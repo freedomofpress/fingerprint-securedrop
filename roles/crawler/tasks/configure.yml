@@ -88,8 +88,5 @@
     environment:
       GOPATH: "{{ fpsd_gopath }}"
     register: go_get_result
-    # TODO: remove this line after fixing the go-knn Go package s.t. the
-    # necessary binaries are (re-)built upon calls to `go get`.
-    failed_when: '"no buildable Go source files" not in go_get_result.stderr'
 
   become: true

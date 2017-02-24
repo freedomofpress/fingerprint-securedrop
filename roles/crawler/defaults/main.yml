@@ -48,8 +48,8 @@ fpsd_keyserver: "hkps://keyserver.cns.vt.edu"
 
 # Set GOPATH and Wa-kNN Go repo path.
 fpsd_gopath: "/usr/local/go"
-# Note Go always uses HTTPS, throws errors if you specify it
-fpsd_wa_knn_repo: "github.com/fowlslegs/go-knn"
+# Note `go get` always uses HTTPS, throws errors if you specify it
+fpsd_wa_knn_repo: "github.com/freedomofpress/wa-knn-fingerprint-securedrop"
 
 # Clone the git repo by default, but allow disabling, e.g. in vagrant,
 # where it can be mounted in.
