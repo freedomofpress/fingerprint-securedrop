@@ -57,11 +57,11 @@ class Wa_kNN:
         """
         self.x_train = x_train.to_list()
         self.y_train = y_train.to_list()
-        json_args = json.dumps({'x_train': self.x_train,
-                                'y_train': self.y_train,
-                                'rounds': self.rounds,
-                                'reco_points_num': self.reco_points_num,
-                                'increase_weights_proportionally':
+        json_args = json.dumps({'XTrain': self.x_train,
+                                'YTrain': self.y_train,
+                                'Rounds': self.rounds,
+                                'RecoPointsNum': self.reco_points_num,
+                                'IncreaseWeightsProportionally':
                                 self.increase_weights_proportionally})
         try:
             json_weights = subprocess.check_call([binary_name, '-fit'],
@@ -88,11 +88,11 @@ class Wa_kNN:
                                  "initialize its weights before it's able to "
                                  'make predictions on testing data!'
 
-        json_args = json.dumps({'x_train': self.x_train,
-                                'y_train': self.y_train,
-                                'x_test': x_test.tolist(),
-                                'weights': self.weights,
-                                'n_neighbors': self.n_neighbors})
+        json_args = json.dumps({'XTrain': self.x_train,
+                                'YTrain': self.y_train,
+                                'XTest': x_test.tolist(),
+                                'Weight': self.weights,
+                                'NeighborNum': self.n_neighbors})
         try:
             result_y = subprocess.check_call([binary_name, '-predict-proba'],
                                                  stdin=json_args, # Yeah, this doesn't work
