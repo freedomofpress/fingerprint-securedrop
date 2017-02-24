@@ -33,6 +33,7 @@ parameters:
     rounds: [1, 10, 50, 100, 200]
     n_neighbors: [1, 3, 5, 10, 25, 50, 100] # Higher values trade TPR for FPR
     reco_points_num: [1, 3, 5, 10, 25, 50, 100]
+    increase_weights_proportionally: [True, False] 
   RandomForest:
     n_estimators: [25, 50, 100] #[25, 50] # 100, 1000, 10000, 10
     max_depth: [10, 20, 50, 100] # 50, 100, 5

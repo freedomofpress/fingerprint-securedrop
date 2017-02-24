@@ -39,10 +39,12 @@ class Wa_kNN:
     """
     binary_name = 'wa-knn'
 
-    def __init__(self, rounds, n_neighbors, reco_points_num):
+    def __init__(self, rounds, n_neighbors, reco_points_num,
+                 increase_weights_proportionally):
         self.rounds = rounds
         self.n_neighbors = n_neighbors
         self.reco_points_num = reco_points_num
+        self.increase_weights_proportionally = increase_weights_proportionally
 
     def fit(self, x_train, y_train):
         """Returns a trained Wa-kNN model.
@@ -53,10 +55,14 @@ class Wa_kNN:
         Returns:
             self: object
         """
-        json_args = json.dumps({'x_train': x_train.tolist(),
-                                'y_train': y_train.tolist(),
+        self.x_train = x_train.to_list()
+        self.y_train = y_train.to_list()
+        json_args = json.dumps({'x_train': self.x_train,
+                                'y_train': self.y_train,
                                 'rounds': self.rounds,
-                                'reco_points_num': self.reco_points_num})
+                                'reco_points_num': self.reco_points_num,
+                                'increase_weights_proportionally':
+                                self.increase_weights_proportionally})
         try:
             json_weights = subprocess.check_call([binary_name, '-fit'],
                                                  stdin=json_args, # Yeah, this doesn't work
@@ -67,6 +73,7 @@ class Wa_kNN:
             print("ERROR running Wa-kNN:\n\n{}".format(STDERR))
             raise
         else:
+            self.initialized = True
             return self
 
     def predict_proba(self, x_test):
@@ -77,10 +84,15 @@ class Wa_kNN:
         Returns:
             result_y [ndarray]: predicted class labels
         """
-        json_args = json.dumps({'x_test': x_test.tolist(),
+        assert self.initialized, 'Wa-kNN must learn on training data to '
+                                 "initialize its weights before it's able to "
+                                 'make predictions on testing data!'
+
+        json_args = json.dumps({'x_train': self.x_train,
+                                'y_train': self.y_train,
+                                'x_test': x_test.tolist(),
                                 'weights': self.weights,
                                 'n_neighbors': self.n_neighbors})
-
         try:
             result_y = subprocess.check_call([binary_name, '-predict-proba'],
                                                  stdin=json_args, # Yeah, this doesn't work
@@ -90,7 +102,7 @@ class Wa_kNN:
             print("ERROR running Wa-kNN:\n\n{}".format(STDERR))
             raise
         else:
-            return result_y
+            return np.ndarray(result_y)
 
 
 class Experiment:
@@ -241,7 +253,8 @@ class Experiment:
             return Wa_kNN(
                 rounds=self.hyperparameters['rounds'],
                 n_neighbors=self.hyperparameters['n_neighbors'],
-                reco_points_num=self.hyperparameters['reco_points_num'])
+                reco_points_num=self.hyperparameters['reco_points_num'],
+                increase_weights_proportionally=self.hyperparameter['increase_weights_proportionally'])
 
         elif self.model_type == "RandomForest":
             return ensemble.RandomForestClassifier(
