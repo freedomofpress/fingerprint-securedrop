@@ -7,6 +7,7 @@
     owner: "{{ fpsd_crawler_system_account }}"
     group: "{{ fpsd_crawler_system_account }}"
     mode: "0770"
+    recurse: true
 
 - block:
 
